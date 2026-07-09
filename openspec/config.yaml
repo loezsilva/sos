@@ -1,0 +1,78 @@
+schema: spec-driven
+
+context: |
+  ## Idioma (obrigatório)
+  - SEMPRE responder em português do Brasil.
+  - TODO código gerado deve estar em português: nomes de variáveis, funções, classes, comentários, mensagens de usuário, docstrings, commits e specs.
+  - Exceção: termos técnicos consagrados em inglês (ex.: middleware, queryset, WebSocket).
+
+  ## Projeto: Buzz (Sistema de Atenção Imediata)
+  SaaS de comunicação de ultra-baixa latência para círculos íntimos (família/amigos).
+  Objetivo: "chamar a atenção" instantaneamente sem fricção de abrir um app de chat.
+
+  ### Público-alvo
+  - Familiares que cuidam de idosos ou crianças
+  - Casais ou amigos próximos
+  - Equipes pequenas que precisam de respostas imediatas
+
+  ### Fluxo principal de telas
+  1. Dashboard Principal (O Botão): botão central gigante para contato principal ou seletor rápido
+  2. Tela de Chamada Recebida: interface de alta prioridade (estilo chamada telefônica), tela cheia, som e vibração
+  3. Gerenciamento de Círculo/Contatos: lista de pessoas conectadas e status (online/ocupado)
+  4. Personalização e Configurações: temas, sons por contato, mensagens rápidas pré-definidas
+
+  ### Funcionalidades adicionais
+  - Nudge de Status: ícones de disponibilidade antes de buzinar
+  - Histórico de Chamados
+  - Modo Não Perturbe Inteligente: apenas VIPs em horários específicos
+  - Respostas Rápidas de um Toque: "Já vou", "Tô ocupado", "Ligo em 5 min"
+
+  ### Identidade visual (Tactile Pulse)
+  - Estilo: Neumorfismo + Glassmorfismo (Soft-Tech)
+  - Paleta: dark mode (#0b1326), roxo elétrico (primary), ciano (secondary)
+  - Tipografia: Hanken Grotesk (UI), JetBrains Mono (labels/status)
+  - Interação: feedback tátil, ripple no botão principal, sombras neumórficas
+
+  ## Design system
+  - Fonte de verdade: `docs/DESIGN.md` (tokens de cor, tipografia, espaçamento, componentes)
+  - HTMLs de inspiração em `docs/sos/`:
+    - `docs/sos/buzz_dashboard/code.html` — dashboard com botão central
+    - `docs/sos/incoming_attention_alert/code.html` — alerta de chamada recebida
+    - `docs/sos/my_circles/code.html` — gerenciamento de círculos
+    - `docs/sos/settings_personalization_fixed/code.html` — configurações
+
+  ## Templates Django
+  - Montar `base.html` dividido em blocks Django: `sidebar`, `nav`, `footer`, `menu`, `main`, `extra_css`, `extra_js`
+  - Usar os HTMLs de `docs/sos/` como referência visual, convertendo Tailwind CDN para classes/arquivos estáticos do projeto
+  - Manter consistência com tokens do DESIGN.md
+
+  ## Stack técnica
+  - Python 3.10+, Django 4.2, Daphne (ASGI/WebSockets)
+  - Django REST Framework, django-filter, corsheaders
+  - Apps: `apps.core`, `apps.dashboard`, `apps.accounts`
+  - Autenticação customizada em `apps.accounts`
+  - Deploy: Heroku (Procfile), WhiteNoise, S3 (storages), Sentry
+  - Testes: pytest, pytest-django
+
+  ## Convenções Django
+  - Fat Models, Thin Views — regras de negócio nos models/managers
+  - CBVs genéricas e ModelForms; evitar loops Python para bulk updates (usar ORM)
+  - Zero boilerplate — priorizar soluções nativas do Django
+  - Código mínimo e direto; comentários só quando o "por quê" não for óbvio
+
+rules:
+  proposal:
+    - Escrever em português do Brasil
+    - Referenciar capacidades existentes em openspec/specs/
+    - Incluir impacto em templates, WebSockets e UX tátil quando relevante
+  specs:
+    - Headers em inglês (Purpose, Requirements, Requirement, Scenario, WHEN/THEN/AND); conteúdo em português
+    - Cada requirement MUST conter a keyword SHALL ou MUST
+  design:
+    - Referenciar docs/DESIGN.md e HTMLs de docs/sos/
+    - Descrever blocks Django necessários no base.html
+    - Documentar animações (ripple, neumorfismo, glassmorphism)
+  tasks:
+    - Tarefas em português, chunks de no máximo 2 horas
+    - Separar backend (models/views/WS) de frontend (templates/CSS)
+    - Primeira tarefa de UI deve ser base.html com blocks
