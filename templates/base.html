@@ -1,0 +1,40 @@
+{% load static %}
+<!DOCTYPE html>
+<html class="dark" lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Buzz{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/buzz.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-background text-on-background min-h-screen font-body-md relative overflow-hidden flex flex-col selection:bg-primary-container selection:text-on-primary-container"{% if user.is_authenticated %} data-usuario-autenticado="true"{% endif %}>
+  <div class="absolute inset-0 pointer-events-none overflow-hidden z-[-1]">
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[100px]"></div>
+  </div>
+
+  {% block nav %}{% include 'partials/nav.html' %}{% endblock %}
+
+  <div class="flex flex-col flex-1 w-full">
+    <main class="flex-1 pt-16 pb-20 md:pb-8 w-full z-10">
+      {% block main %}{% endblock %}
+    </main>
+
+    {% block footer %}{% include 'partials/footer.html' %}{% endblock %}
+  </div>
+
+  {% block menu %}{% include 'partials/menu.html' %}{% endblock %}
+
+  {% if user.is_authenticated %}
+    {% include 'partials/alerta_buzina.html' %}
+    {% include 'partials/chamada_sainte.html' %}
+  {% endif %}
+
+  {% block extra_js %}{% endblock %}
+  {% if user.is_authenticated %}
+    <script src="{% static 'js/buzz.js' %}"></script>
+  {% endif %}
+</body>
+</html>

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Buzz — Início{% endblock %}
+
+{% block main %}
+<section class="w-full max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop min-h-[calc(100dvh-4rem)] flex flex-col items-center justify-center">
+  <div class="w-full max-w-md flex flex-col items-center">
+    <div class="container-ripple w-[320px] h-[320px] flex items-center justify-center mb-12">
+      <div class="animacao-ripple"></div>
+      <div class="animacao-ripple"></div>
+      <div class="animacao-ripple"></div>
+      <button
+        type="button"
+        class="botao-buzz relative z-10 w-48 h-48 rounded-full bg-surface-container sombra-neumorfica flex flex-col items-center justify-center gap-sm border border-white/5 transition-all duration-300 group {% if not contato_principal %}opacity-50 cursor-not-allowed{% endif %}"
+        {% if contato_principal %}
+        data-buzinar="{{ contato_principal.contato_id }}"
+        data-buzinar-nome="{{ contato_principal.nome_exibicao }}"
+        {% if contato_principal.contato.avatar %}data-buzinar-avatar="{{ contato_principal.contato.avatar.url }}"{% endif %}
+        {% endif %}
+        {% if not contato_principal %}disabled{% endif %}
+        aria-label="Buzinar contato principal"
+      >
+        <div class="absolute inset-0 rounded-full shadow-buzz opacity-50 group-hover:opacity-80 transition-opacity duration-300"></div>
+        <span class="material-symbols-outlined text-primary text-[64px]" style="font-variation-settings: 'FILL' 1;">graphic_eq</span>
+        <span class="font-button-text text-button-text text-on-surface tracking-wider">BUZZ</span>
+      </button>
+    </div>
+
+    {% if contato_principal %}
+      <p class="text-center text-on-surface-variant font-label-bold text-sm mt-4 mb-2">
+        Contato: {{ contato_principal.nome_exibicao }}
+      </p>
+    {% endif %}
+
+    <div class="w-full grid grid-cols-2 gap-4">
+      <div class="bg-surface-container-low/60 backdrop-blur-md rounded-xl p-4 border border-white/5 sombra-neumorfica flex flex-col gap-2">
+        <span class="text-on-surface-variant font-label-bold text-xs uppercase">Atividade recente</span>
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center sombra-neumorfica-inset">
+            <span class="material-symbols-outlined text-sm text-secondary">bolt</span>
+          </div>
+          <span class="text-on-surface text-sm">{{ total_chamadas }} chamadas</span>
+        </div>
+      </div>
+      <div class="bg-surface-container-low/60 backdrop-blur-md rounded-xl p-4 border border-white/5 sombra-neumorfica flex flex-col gap-2">
+        <span class="text-on-surface-variant font-label-bold text-xs uppercase">Rede</span>
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center sombra-neumorfica-inset">
+            <span class="material-symbols-outlined text-sm text-tertiary">group</span>
+          </div>
+          <span class="text-on-surface text-sm">{{ total_online }} online</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

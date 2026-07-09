@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+  min-height: max(884px, 100dvh);
+  }
+}
+
+@layer components {
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+
+  .sombra-neumorfica {
+    box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4), -2px -2px 10px rgba(255, 255, 255, 0.05);
+  }
+
+  .sombra-neumorfica-inset {
+    box-shadow: inset 4px 4px 10px rgba(0, 0, 0, 0.4), inset -2px -2px 10px rgba(255, 255, 255, 0.05);
+  }
+
+  .efeito-vidro {
+    background: rgba(45, 52, 73, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(149, 141, 161, 0.1);
+  }
+
+  .container-ripple {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .animacao-ripple {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid theme('colors.primary');
+    opacity: 0;
+    animation: efeito-ripple 3s infinite linear;
+  }
+
+  .animacao-ripple:nth-child(1) {
+    animation-delay: 0s;
+  }
+
+  .animacao-ripple:nth-child(2) {
+    animation-delay: 1s;
+  }
+
+  .animacao-ripple:nth-child(3) {
+    animation-delay: 2s;
+  }
+
+  .botao-buzz:active {
+    box-shadow: inset 6px 6px 15px rgba(0, 0, 0, 0.6), inset -6px -6px 15px rgba(255, 255, 255, 0.05);
+    transform: scale(0.95);
+  }
+
+  .item-menu-ativo {
+    @apply text-secondary bg-secondary-container/20 rounded-full px-6 py-2;
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.5), inset -2px -2px 5px rgba(255, 255, 255, 0.1);
+  }
+
+  .item-menu-inativo {
+    @apply text-on-surface-variant opacity-60 hover:text-secondary transition-colors duration-150;
+  }
+
+  .link-nav-ativo {
+    @apply text-primary font-label-bold text-label-bold;
+  }
+
+  .link-nav-inativo {
+    @apply text-outline font-label-bold text-label-bold hover:text-secondary transition-colors;
+  }
+
+  .pulso-buzz {
+    animation: pulso-anel 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  }
+
+  .animacao-flutuar {
+    animation: flutuar 4s ease-in-out infinite;
+  }
+
+  .animacao-ripple-alerta {
+    animation: ripple-alerta 2s infinite ease-out;
+  }
+}
+
+@keyframes efeito-ripple {
+  0% {
+    width: 100px;
+    height: 100px;
+    opacity: 0.8;
+  }
+
+  100% {
+    width: 300px;
+    height: 300px;
+    opacity: 0;
+  }
+}
+
+@keyframes pulso-anel {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(210, 187, 255, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(210, 187, 255, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(210, 187, 255, 0);
+  }
+}
+
+@keyframes flutuar {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes ripple-alerta {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "buzz",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./static/css/src/buzz.css -o ./static/css/buzz.css --minify",
+    "watch:css": "tailwindcss -i ./static/css/src/buzz.css -o ./static/css/buzz.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Buzz — Círculos{% endblock %}
+
+{% block main %}
+<div class="w-full max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop pt-8 md:pt-24">
+  <form method="get" class="mb-lg flex gap-4">
+    <div class="flex-1 bg-surface-container-low rounded-full px-6 py-3 flex items-center gap-3 sombra-neumorfica-inset">
+      <span class="material-symbols-outlined text-outline">search</span>
+      <input
+        class="bg-transparent border-none text-on-surface focus:ring-0 focus:outline-none w-full placeholder-on-surface-variant font-body-md text-body-md"
+        type="search"
+        name="q"
+        value="{{ termo_busca }}"
+        placeholder="Buscar no círculo..."
+      >
+    </div>
+    <button type="submit" class="bg-surface-container-low w-12 h-12 rounded-full flex items-center justify-center sombra-neumorfica text-primary hover:text-secondary transition-colors" aria-label="Filtrar">
+      <span class="material-symbols-outlined">filter_list</span>
+    </button>
+  </form>
+
+  <div class="mb-md flex justify-between items-center gap-4">
+    <h1 class="font-headline-md text-headline-md text-on-surface">Meu círculo</h1>
+    {% if total_online %}
+      <span class="font-label-bold text-label-bold text-secondary shrink-0">{{ total_online }} online</span>
+    {% endif %}
+  </div>
+
+  {% if user.is_authenticated %}
+    {% if membros %}
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md pb-8">
+        {% for membro in membros %}
+          {% include 'partials/card_membro.html' %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="efeito-vidro rounded-xl p-lg text-center sombra-neumorfica">
+        <p class="text-on-surface-variant font-body-md">
+          {% if termo_busca %}
+            Nenhum contato encontrado para "{{ termo_busca }}".
+          {% else %}
+            Seu círculo está vazio. Adicione membros pelo admin ou rode <code class="text-secondary">python manage.py popular_circulo_demo</code>.
+          {% endif %}
+        </p>
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="efeito-vidro rounded-xl p-lg text-center sombra-neumorfica">
+      <p class="text-on-surface-variant font-body-md mb-4">Faça login para ver seu círculo.</p>
+      <a href="{% url 'login' %}" class="inline-flex items-center justify-center px-6 py-3 rounded-full bg-primary-container text-on-primary-container font-button-text sombra-neumorfica hover:scale-105 active:scale-95 transition-all">
+        Entrar
+      </a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

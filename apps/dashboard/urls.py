@@ -15,6 +15,22 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
+from django.urls import path
+
+from apps.dashboard.views import (
+    EnviarBuzinaView,
+    PaginaCirculosView,
+    PaginaConfiguracoesView,
+    PaginaInicioView,
+    ResponderBuzinaView,
+)
+
 app_name = 'dashboard'
 
-urlpatterns = []
+urlpatterns = [
+    path('', PaginaInicioView.as_view(), name='index'),
+    path('circulos/', PaginaCirculosView.as_view(), name='circulos'),
+    path('configuracoes/', PaginaConfiguracoesView.as_view(), name='configuracoes'),
+    path('api/buzina/enviar/', EnviarBuzinaView.as_view(), name='enviar_buzina'),
+    path('api/buzina/<uuid:buzina_id>/responder/', ResponderBuzinaView.as_view(), name='responder_buzina'),
+]
