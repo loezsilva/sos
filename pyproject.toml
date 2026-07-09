@@ -1,0 +1,28 @@
+[tool.mypy]
+plugins = ["mypy_django_plugin.main"]
+exclude = '/(snippets|migrations|__pycache__|\..*)/$'
+
+[tool.django-stubs]
+django_settings_module = "apps.settings"
+
+[tool.ruff.lint]
+ignore = [
+    "PLC0414",
+    "PLC0415",
+    "PLR0912",
+    "PLR2004",
+    "PLR6301",
+    "PLR0904",
+    "E712",
+    "PLR0914",
+    "PLR0915",
+]
+
+[tool.ruff]
+exclude = [
+    "**/snippets/**", 
+    "**/migrations/**",
+]
+
+[tool.ruff.format]
+quote-style = "preserve"

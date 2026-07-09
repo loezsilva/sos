@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Incoming Alert - Buzz</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;700;800&amp;family=JetBrains+Mono:wght@700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#060e20",
+                        "secondary": "#4cd7f6",
+                        "tertiary": "#ffb784",
+                        "on-tertiary-fixed": "#301400",
+                        "error-container": "#93000a",
+                        "background": "#0b1326",
+                        "tertiary-fixed-dim": "#ffb784",
+                        "outline-variant": "#4a4455",
+                        "error": "#ffb4ab",
+                        "on-error": "#690005",
+                        "on-secondary": "#003640",
+                        "surface": "#0b1326",
+                        "on-surface-variant": "#ccc3d8",
+                        "outline": "#958da1",
+                        "primary": "#d2bbff",
+                        "on-primary-container": "#ede0ff",
+                        "surface-dim": "#0b1326",
+                        "surface-container-highest": "#2d3449",
+                        "tertiary-fixed": "#ffdcc6",
+                        "on-surface": "#dae2fd",
+                        "primary-fixed": "#eaddff",
+                        "surface-container": "#171f33",
+                        "on-primary-fixed": "#25005a",
+                        "surface-variant": "#2d3449",
+                        "surface-container-high": "#222a3d",
+                        "on-tertiary-container": "#ffe0cd",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "on-secondary-fixed-variant": "#004e5c",
+                        "secondary-fixed": "#acedff",
+                        "surface-container-low": "#131b2e",
+                        "inverse-surface": "#dae2fd",
+                        "on-tertiary": "#4f2500",
+                        "tertiary-container": "#a15100",
+                        "on-background": "#dae2fd",
+                        "on-primary": "#3f008e",
+                        "on-secondary-fixed": "#001f26",
+                        "secondary-container": "#03b5d3",
+                        "inverse-primary": "#732ee4",
+                        "on-error-container": "#ffdad6",
+                        "primary-container": "#7c3aed",
+                        "on-secondary-container": "#00424e",
+                        "surface-bright": "#31394d",
+                        "primary-fixed-dim": "#d2bbff",
+                        "surface-tint": "#d2bbff",
+                        "inverse-on-surface": "#283044",
+                        "secondary-fixed-dim": "#4cd7f6",
+                        "on-tertiary-fixed-variant": "#713700"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "xl": "40px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "gutter": "16px",
+                        "margin-mobile": "16px",
+                        "margin-desktop": "32px",
+                        "unit": "4px",
+                        "xs": "4px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Hanken Grotesk"],
+                        "display-lg-mobile": ["Hanken Grotesk"],
+                        "display-lg": ["Hanken Grotesk"],
+                        "body-lg": ["Hanken Grotesk"],
+                        "label-bold": ["JetBrains Mono"],
+                        "button-text": ["Hanken Grotesk"],
+                        "headline-md": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "display-lg-mobile": ["36px", { "lineHeight": "42px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-bold": ["14px", { "lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "button-text": ["18px", { "lineHeight": "24px", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .ripple {
+            animation: ripple-effect 2s infinite ease-out;
+        }
+        .ripple-2 {
+            animation: ripple-effect 2s infinite ease-out 0.6s;
+        }
+        .ripple-3 {
+            animation: ripple-effect 2s infinite ease-out 1.2s;
+        }
+
+        @keyframes ripple-effect {
+            0% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(2.5);
+                opacity: 0;
+            }
+        }
+
+        .float-anim {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .glow-overlay {
+            background: radial-gradient(circle at center, rgba(124, 58, 237, 0.4) 0%, rgba(3, 181, 211, 0) 70%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col items-center justify-center overflow-hidden relative">
+<!-- Ambient Animated Background -->
+<div class="absolute inset-0 z-0 overflow-hidden">
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] bg-primary/20 rounded-full blur-[100px] float-anim"></div>
+<div class="absolute top-1/3 right-1/4 w-[60vw] h-[60vw] max-w-[400px] max-h-[400px] bg-secondary/15 rounded-full blur-[80px] float-anim" style="animation-delay: -2s;"></div>
+</div>
+<!-- Main Alert Container -->
+<main class="z-10 flex flex-col items-center justify-between w-full h-[884px] px-margin-mobile py-xl md:px-margin-desktop max-w-md mx-auto">
+<!-- Header Text -->
+<header class="w-full text-center mt-xl flex-shrink-0">
+<h1 class="font-display-lg-mobile text-display-lg-mobile text-on-surface mb-2 tracking-tighter drop-shadow-lg">
+                Incoming Buzz
+            </h1>
+<p class="font-headline-md text-headline-md text-secondary animate-pulse">
+                Urgent Priority
+            </p>
+</header>
+<!-- Center Interactive Area (Caller Profile) -->
+<div class="relative flex-grow flex items-center justify-center w-full my-xl">
+<!-- Ripples -->
+<div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-primary/40 ripple"></div>
+<div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-secondary/40 ripple-2"></div>
+<div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-primary/20 ripple-3"></div>
+<!-- Caller Avatar Container -->
+<div class="relative z-20 w-48 h-48 md:w-64 md:h-64 rounded-full p-2 bg-gradient-to-tr from-primary to-secondary shadow-[0_0_40px_rgba(124,58,237,0.5),inset_0_4px_10px_rgba(255,255,255,0.2)] float-anim">
+<div class="w-full h-full rounded-full overflow-hidden border-4 border-surface-container-highest relative">
+<img class="w-full h-full object-cover" data-alt="A vivid, softly lit portrait photo of an older woman looking warmly at the camera. The lighting is slightly dramatic with a soft cyan and purple rim light on her face, matching a high-tech yet intimate neon aesthetic. Dark background to emphasize her features." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDx15wxO8NUFrIk-WvQiYaFbSqZ1OoGdrJMSfvrHhdI3CNuyMwja4FrqOK1WJryavqWI1q8_iOnKMZf6_YpVvBf5gr8HZIZJyJNh6xB2CuXqrt2eS2dBXoPXdPpXzJjWaHSQW_01NOlTEfAgacr9rzE-_ttX3bCtC11Y0W_5QBB9ZgLSkbnK6xxt5SokBJsoXd14r2H9SkPzGX63fVhIKICaov3vOqeMm7-x9OkTjAT27UIEFhYWLAF69PpA1tESkc_9wnulrfQVYeM"/>
+<!-- Glassy highlight over photo -->
+<div class="absolute inset-0 rounded-full bg-gradient-to-b from-white/20 to-transparent"></div>
+</div>
+</div>
+<!-- Floating Label -->
+<div class="absolute -bottom-8 md:-bottom-12 z-30 px-6 py-3 bg-surface-container-highest/80 backdrop-blur-md rounded-full border border-white/10 shadow-[0_8px_16px_rgba(0,0,0,0.5)]">
+<p class="font-headline-md text-headline-md text-on-surface">Mãe</p>
+</div>
+</div>
+<!-- Action Area -->
+<div class="w-full flex-shrink-0 flex flex-col gap-4 mb-lg z-20">
+<h2 class="text-center font-body-lg text-body-lg text-on-surface-variant mb-4">
+                is calling for attention!
+            </h2>
+<!-- Main Action: Answer -->
+<button class="w-full py-4 px-6 rounded-full bg-primary-container text-on-primary-container font-button-text text-button-text shadow-[4px_4px_10px_rgba(0,0,0,0.4),-2px_-2px_10px_rgba(255,255,255,0.1)] hover:shadow-[6px_6px_15px_rgba(0,0,0,0.5),-3px_-3px_15px_rgba(255,255,255,0.15)] active:shadow-[inset_4px_4px_10px_rgba(0,0,0,0.4),inset_-2px_-2px_10px_rgba(255,255,255,0.1)] transition-all duration-200 flex items-center justify-center gap-3">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">call</span>
+                Answer
+            </button>
+<!-- Secondary Actions Row -->
+<div class="flex gap-4 w-full">
+<button class="flex-1 py-4 px-6 rounded-full bg-surface-container-high text-on-surface font-button-text text-button-text shadow-[2px_2px_8px_rgba(0,0,0,0.3),-1px_-1px_6px_rgba(255,255,255,0.05)] hover:bg-surface-container-highest active:shadow-[inset_2px_2px_8px_rgba(0,0,0,0.3)] transition-all duration-200 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">quick_phrases</span>
+                    Quick Reply
+                </button>
+<button class="w-16 h-16 rounded-full bg-error-container text-on-error-container shadow-[2px_2px_8px_rgba(0,0,0,0.3),-1px_-1px_6px_rgba(255,255,255,0.05)] active:shadow-[inset_2px_2px_8px_rgba(0,0,0,0.3)] flex items-center justify-center transition-all duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">call_end</span>
+</button>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Buzz - Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;700;800&amp;family=JetBrains+Mono:wght@700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "error": "#ffb4ab",
+                "outline": "#958da1",
+                "tertiary-container": "#a15100",
+                "on-primary-container": "#ede0ff",
+                "surface-tint": "#d2bbff",
+                "surface-variant": "#2d3449",
+                "primary-fixed": "#eaddff",
+                "on-secondary-fixed": "#001f26",
+                "on-primary": "#3f008e",
+                "secondary-container": "#03b5d3",
+                "on-secondary": "#003640",
+                "on-error-container": "#ffdad6",
+                "inverse-on-surface": "#283044",
+                "surface": "#0b1326",
+                "primary-container": "#7c3aed",
+                "on-tertiary": "#4f2500",
+                "surface-container": "#171f33",
+                "on-tertiary-fixed-variant": "#713700",
+                "on-surface": "#dae2fd",
+                "surface-dim": "#0b1326",
+                "secondary-fixed-dim": "#4cd7f6",
+                "primary-fixed-dim": "#d2bbff",
+                "secondary": "#4cd7f6",
+                "tertiary-fixed-dim": "#ffb784",
+                "inverse-primary": "#732ee4",
+                "surface-bright": "#31394d",
+                "surface-container-low": "#131b2e",
+                "on-tertiary-container": "#ffe0cd",
+                "on-surface-variant": "#ccc3d8",
+                "on-primary-fixed": "#25005a",
+                "on-error": "#690005",
+                "on-background": "#dae2fd",
+                "surface-container-lowest": "#060e20",
+                "background": "#0b1326",
+                "primary": "#d2bbff",
+                "on-secondary-fixed-variant": "#004e5c",
+                "outline-variant": "#4a4455",
+                "surface-container-high": "#222a3d",
+                "secondary-fixed": "#acedff",
+                "on-primary-fixed-variant": "#5a00c6",
+                "inverse-surface": "#dae2fd",
+                "surface-container-highest": "#2d3449",
+                "tertiary-fixed": "#ffdcc6",
+                "on-secondary-container": "#00424e",
+                "error-container": "#93000a",
+                "on-tertiary-fixed": "#301400",
+                "tertiary": "#ffb784"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "sm": "8px",
+                "gutter": "16px",
+                "xl": "40px",
+                "margin-desktop": "32px",
+                "unit": "4px",
+                "md": "16px",
+                "lg": "24px",
+                "margin-mobile": "16px",
+                "xs": "4px"
+        },
+        "fontFamily": {
+                "label-bold": [
+                        "JetBrains Mono"
+                ],
+                "button-text": [
+                        "Hanken Grotesk"
+                ],
+                "display-lg": [
+                        "Hanken Grotesk"
+                ],
+                "headline-md": [
+                        "Hanken Grotesk"
+                ],
+                "display-lg-mobile": [
+                        "Hanken Grotesk"
+                ],
+                "body-md": [
+                        "Hanken Grotesk"
+                ],
+                "body-lg": [
+                        "Hanken Grotesk"
+                ]
+        },
+        "fontSize": {
+                "label-bold": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "button-text": [
+                        "18px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "700"
+                        }
+                ],
+                "display-lg": [
+                        "48px",
+                        {
+                                "lineHeight": "56px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "800"
+                        }
+                ],
+                "headline-md": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "700"
+                        }
+                ],
+                "display-lg-mobile": [
+                        "36px",
+                        {
+                                "lineHeight": "42px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "800"
+                        }
+                ],
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "400"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .neu-pressed {
+            box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.6), inset -4px -4px 8px rgba(255, 255, 255, 0.03);
+        }
+
+        .neu-raised {
+            box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5), -2px -2px 10px rgba(255, 255, 255, 0.05);
+        }
+        
+        .neu-toggle-track {
+            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.6), inset -2px -2px 5px rgba(255,255,255,0.03);
+        }
+
+        .neu-toggle-thumb {
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.5), -1px -1px 3px rgba(255,255,255,0.1);
+        }
+
+        .glass-panel {
+            background: rgba(23, 31, 51, 0.7); /* surface-container with opacity */
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Toggle Animation */
+        input:checked ~ div.toggle-thumb {
+            transform: translateX(100%);
+            background-color: theme('colors.secondary');
+        }
+        input:checked ~ div.toggle-track {
+            background-color: theme('colors.surface-container-high');
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background antialiased min-h-screen flex flex-col pb-24 md:pb-0 overflow-x-hidden">
+<!-- TopAppBar Mobile Context -->
+<header class="md:hidden bg-surface/80 backdrop-blur-xl fixed top-0 w-full z-50 px-margin-mobile border-b border-white/10 shadow-[4px_4px_10px_rgba(0,0,0,0.3),-2px_-2px_10px_rgba(255,255,255,0.05)]">
+<div class="flex justify-between items-center h-16">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full overflow-hidden neu-raised border border-white/5">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A close up portrait of a young person with vibrant cyber-punk neon lighting on their face, set against a dark textured background. High contrast and highly detailed." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD14r2XVJqGWNHTuPdjWNL5ZheaMjIBqQAElnBMypgLbJGwoo1VE8Fe9aW-P_e8lXYHHXi-tLb90APbZlTZIOAttci3xaPe62GF3KYqPZEDsrO8zJTwOSyy10GpY4MJDF7KtGexviCq6rz9NMegE8QWk8WBgqAxAH6SBsap6KWNeoPAOPwsfurLKKfyyS2LQldUsnZcvN8DzeCES_WIpVtqgoAK3gdLtZh4yiRvs1r0Kfeb5ywnYOAcKYnD1JIpu3U60aHddQ8DtdRp"/>
+</div>
+</div>
+<h1 class="font-display-lg-mobile text-display-lg-mobile font-extrabold text-primary tracking-tighter">Buzz</h1>
+<button class="text-outline hover:scale-105 transition-transform active:scale-95 duration-200 transition-all p-2 rounded-full">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 0;">sensors</span>
+</button>
+</div>
+</header>
+<!-- TopAppBar Desktop Context -->
+<header class="hidden md:flex bg-surface/80 backdrop-blur-xl fixed top-0 w-full z-50 px-margin-desktop border-b border-white/10 shadow-[4px_4px_10px_rgba(0,0,0,0.3),-2px_-2px_10px_rgba(255,255,255,0.05)] justify-center">
+<div class="flex justify-between items-center h-20 max-w-[1280px] w-full">
+<h1 class="font-display-lg text-display-lg font-extrabold text-primary tracking-tighter">Buzz</h1>
+<nav class="flex items-center gap-lg">
+<!-- Desktop Nav Items mapping to JSON structure -->
+<a class="flex items-center gap-xs text-outline hover:text-secondary transition-colors font-label-bold text-label-bold" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home_app_logo</span> Home
+                </a>
+<a class="flex items-center gap-xs text-outline hover:text-secondary transition-colors font-label-bold text-label-bold" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">group</span> Circles
+                </a>
+<a class="flex items-center gap-xs text-secondary bg-secondary-container/20 rounded-full px-6 py-2 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.5),inset_-2px_-2px_5px_rgba(255,255,255,0.1)] font-label-bold text-label-bold" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">align_stretch</span> Settings
+                </a>
+</nav>
+<div class="flex items-center gap-md">
+<button class="text-outline hover:scale-105 transition-transform active:scale-95 duration-200 transition-all p-2 rounded-full">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 0;">sensors</span>
+</button>
+<div class="w-12 h-12 rounded-full overflow-hidden neu-raised border border-white/5">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A close up portrait of a young person with vibrant cyber-punk neon lighting on their face, set against a dark textured background. High contrast and highly detailed." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDie11BmBsheMMXumjgoJPp3trujdrlsXlv2lCZRAvFJeUO4VJwKfhBBrGZCMnFATR5P_HEbccdGsvJS86yVDxEpK_M5DZVhciUvfX7pL1nUHtWmok0NWnbqFea9OXqgwkYwdmypVulNeHXeQeBnu0U7ACnILOTFJrXCr9x4S5gVQssJnhyualqIzNpr425k9kcPRHhM02rtefrMYO9hiBGrXstypA4tnF1x1Ma_-ceGLZs-Ax4wCMSAsR6nPI4YYdJC_ViUXnReGcX"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 mt-20 md:mt-28 px-margin-mobile md:px-margin-desktop max-w-[1280px] mx-auto w-full flex flex-col gap-xl">
+<!-- Header Section -->
+<section class="flex flex-col gap-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface">Settings &amp; Personalization</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Customize your Buzz experience.</p>
+</section>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+<!-- Left Column: Theme & Notifications -->
+<div class="lg:col-span-7 flex flex-col gap-lg">
+<!-- Theme Selection Bento -->
+<div class="glass-panel bg-surface-container rounded-xl p-lg flex flex-col gap-md neu-raised">
+<div class="flex items-center gap-sm text-primary">
+<span class="material-symbols-outlined">palette</span>
+<h3 class="font-button-text text-button-text">Appearance Theme</h3>
+</div>
+<div class="grid grid-cols-3 gap-md mt-sm">
+<!-- Dark Theme (Active) -->
+<button class="flex flex-col items-center gap-sm p-md rounded-lg bg-surface-container-high border-2 border-secondary/50 neu-pressed transition-all relative overflow-hidden group">
+<div class="w-full h-16 rounded bg-surface-container-lowest border border-white/5 shadow-inner mb-2 relative">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent mix-blend-overlay"></div>
+</div>
+<span class="font-label-bold text-label-bold text-secondary">Dark</span>
+<div class="absolute top-2 right-2 w-3 h-3 rounded-full bg-secondary shadow-[0_0_8px_theme('colors.secondary')]"></div>
+</button>
+<!-- Light Theme -->
+<button class="flex flex-col items-center gap-sm p-md rounded-lg bg-surface-container-highest border border-white/5 neu-raised hover:bg-surface-bright transition-all group">
+<div class="w-full h-16 rounded bg-gray-200 border border-black/10 shadow-inner mb-2 relative"></div>
+<span class="font-label-bold text-label-bold text-on-surface-variant group-hover:text-on-surface">Light</span>
+</button>
+<!-- Vibrant Theme -->
+<button class="flex flex-col items-center gap-sm p-md rounded-lg bg-surface-container-highest border border-white/5 neu-raised hover:bg-surface-bright transition-all group">
+<div class="w-full h-16 rounded bg-surface-container-lowest border border-white/5 shadow-inner mb-2 relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-tertiary opacity-30"></div>
+</div>
+<span class="font-label-bold text-label-bold text-on-surface-variant group-hover:text-on-surface">Vibrant</span>
+</button>
+</div>
+</div>
+<!-- Custom Audio Settings -->
+<div class="glass-panel bg-surface-container rounded-xl p-lg flex flex-col gap-md neu-raised">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-sm text-secondary">
+<span class="material-symbols-outlined">graphic_eq</span>
+<h3 class="font-button-text text-button-text">Custom Audio</h3>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-12 h-6 bg-surface-container-lowest rounded-full peer peer-focus:outline-none neu-toggle-track toggle-track transition-colors duration-300"></div>
+<div class="toggle-thumb absolute left-1 top-1 w-4 h-4 bg-on-surface-variant rounded-full transition-transform duration-300 neu-toggle-thumb"></div>
+</label>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm mb-2">Assign unique haptic rhythms and sounds to specific circles.</p>
+<div class="flex flex-col gap-sm">
+<!-- Audio Item 1 -->
+<div class="flex items-center justify-between p-sm rounded-lg bg-surface-container-highest hover:bg-surface-bright transition-colors border border-white/5 group">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">group_work</span>
+</div>
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg text-on-surface leading-tight">Close Friends</span>
+<span class="font-label-bold text-label-bold text-secondary text-[12px]">Neon Pulse (Default)</span>
+</div>
+</div>
+<button class="p-2 rounded-full hover:bg-surface border border-transparent hover:border-white/5 text-on-surface-variant hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</div>
+<!-- Audio Item 2 -->
+<div class="flex items-center justify-between p-sm rounded-lg bg-surface-container-highest hover:bg-surface-bright transition-colors border border-white/5 group">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-tertiary-container/20 flex items-center justify-center text-tertiary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">work</span>
+</div>
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg text-on-surface leading-tight">Work Crew</span>
+<span class="font-label-bold text-label-bold text-on-surface-variant text-[12px]">Subtle Click</span>
+</div>
+</div>
+<button class="p-2 rounded-full hover:bg-surface border border-transparent hover:border-white/5 text-on-surface-variant hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</div>
+</div>
+<button class="mt-sm py-2 px-4 rounded-full border border-outline-variant text-primary font-label-bold text-label-bold hover:bg-surface-bright transition-colors self-start flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px]">add</span> Add Assignment
+                    </button>
+</div>
+</div>
+<!-- Right Column: Quick Messages & System -->
+<div class="lg:col-span-5 flex flex-col gap-lg">
+<!-- Quick Messages -->
+<div class="glass-panel bg-surface-container rounded-xl p-lg flex flex-col gap-md neu-raised h-full">
+<div class="flex items-center gap-sm text-tertiary">
+<span class="material-symbols-outlined">bolt</span>
+<h3 class="font-button-text text-button-text">Quick Replies</h3>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">One-tap responses for the Buzz feed.</p>
+<div class="flex flex-col gap-xs flex-1 mt-sm">
+<!-- Preset 1 -->
+<div class="relative group">
+<input class="w-full bg-surface-container-lowest border-none rounded-lg py-3 px-4 text-on-surface font-body-md focus:ring-1 focus:ring-secondary focus:bg-surface-container-high neu-pressed transition-all pr-10" type="text" value="I'm coming!"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline group-hover:text-secondary transition-colors pointer-events-none">drag_indicator</span>
+</div>
+<!-- Preset 2 -->
+<div class="relative group">
+<input class="w-full bg-surface-container-lowest border-none rounded-lg py-3 px-4 text-on-surface font-body-md focus:ring-1 focus:ring-secondary focus:bg-surface-container-high neu-pressed transition-all pr-10" type="text" value="Busy rn, buzz later."/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline group-hover:text-secondary transition-colors pointer-events-none">drag_indicator</span>
+</div>
+<!-- Preset 3 -->
+<div class="relative group">
+<input class="w-full bg-surface-container-lowest border-none rounded-lg py-3 px-4 text-on-surface font-body-md focus:ring-1 focus:ring-secondary focus:bg-surface-container-high neu-pressed transition-all pr-10" type="text" value="Where are we meeting?"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline group-hover:text-secondary transition-colors pointer-events-none">drag_indicator</span>
+</div>
+<!-- Add New Preset -->
+<button class="w-full py-3 px-4 rounded-lg border border-dashed border-outline-variant text-on-surface-variant font-body-md hover:border-secondary hover:text-secondary transition-colors flex items-center justify-center gap-xs mt-2">
+<span class="material-symbols-outlined text-[18px]">add</span> Add Preset
+                        </button>
+</div>
+<!-- General Toggles inside right column -->
+<div class="mt-lg pt-lg border-t border-white/5 flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<span class="font-body-md text-body-md text-on-surface">Haptic Feedback</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-12 h-6 bg-surface-container-lowest rounded-full peer peer-focus:outline-none neu-toggle-track toggle-track transition-colors duration-300"></div>
+<div class="toggle-thumb absolute left-1 top-1 w-4 h-4 bg-on-surface-variant rounded-full transition-transform duration-300 neu-toggle-thumb"></div>
+</label>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-body-md text-body-md text-on-surface">Read Receipts</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox" value=""/>
+<div class="w-12 h-6 bg-surface-container-lowest rounded-full peer peer-focus:outline-none neu-toggle-track toggle-track transition-colors duration-300"></div>
+<div class="toggle-thumb absolute left-1 top-1 w-4 h-4 bg-on-surface-variant rounded-full transition-transform duration-300 neu-toggle-thumb"></div>
+</label>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Danger Zone -->
+<section class="mt-xl border border-error/20 bg-[#1a0a0d] rounded-xl p-lg flex items-center justify-between neu-raised">
+<div>
+<h4 class="font-button-text text-button-text text-error">Danger Zone</h4>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Permanently delete account and all circle data.</p>
+</div>
+<button class="bg-error text-on-error font-label-bold text-label-bold px-6 py-3 rounded-full hover:bg-[#ffcdc7] transition-colors shadow-lg shadow-error-container/40 active:scale-95">
+                Delete Account
+            </button>
+</section>
+</main>
+<!-- BottomNavBar Mobile Context -->
+<nav class="md:hidden bg-surface-container-low/90 backdrop-blur-2xl fixed bottom-0 w-full z-50 rounded-t-xl px-4 pb-6 border-t border-white/5 shadow-[0_-8px_20px_rgba(0,0,0,0.4)]">
+<div class="flex justify-around items-center h-20">
+<!-- Home (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-60 hover:text-secondary transition-colors active:inner-shadow duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home_app_logo</span>
+<span class="font-label-bold text-label-bold mt-1 text-[10px]">Home</span>
+</a>
+<!-- Circles (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-60 hover:text-secondary transition-colors active:inner-shadow duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">group</span>
+<span class="font-label-bold text-label-bold mt-1 text-[10px]">Circles</span>
+</a>
+<!-- Settings (Active) -->
+<a class="flex flex-col items-center justify-center text-secondary bg-secondary-container/20 rounded-full px-6 py-2 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.5),inset_-2px_-2px_5px_rgba(255,255,255,0.1)] hover:text-secondary transition-colors active:inner-shadow duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">align_stretch</span>
+<span class="font-label-bold text-label-bold mt-1 text-[10px]">Settings</span>
+</a>
+</div>
+</nav>
+</body></html>
