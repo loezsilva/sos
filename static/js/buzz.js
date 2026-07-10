@@ -49,6 +49,115 @@
     if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
   }
 
+  const SomBuzz = (() => {
+    let contexto = null;
+    let loopSainte = null;
+    let loopRecebido = null;
+
+    function obterContexto() {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return null;
+      if (!contexto) contexto = new AudioCtx();
+      if (contexto.state === 'suspended') contexto.resume();
+      return contexto;
+    }
+
+    function tocarTom(destino, freq, inicio, duracao, volume) {
+      const osc = destino.context.createOscillator();
+      const gain = destino.context.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, inicio);
+      gain.gain.linearRampToValueAtTime(volume, inicio + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, inicio + duracao);
+      osc.connect(gain);
+      gain.connect(destino);
+      osc.start(inicio);
+      osc.stop(inicio + duracao + 0.05);
+    }
+
+    function pararLoop(loop) {
+      if (!loop) return;
+      clearInterval(loop.intervalo);
+      try {
+        loop.master.gain.exponentialRampToValueAtTime(0.001, loop.ctx.currentTime + 0.06);
+      } catch {
+        /* osciladores curtos já encerraram */
+      }
+    }
+
+    function pararSainte() {
+      pararLoop(loopSainte);
+      loopSainte = null;
+    }
+
+    function pararRecebido() {
+      pararLoop(loopRecebido);
+      loopRecebido = null;
+    }
+
+    function pararTodos() {
+      pararSainte();
+      pararRecebido();
+    }
+
+    function iniciarPadrao(pararFn, volume, intervaloMs, sequencia) {
+      pararFn();
+      const ctx = obterContexto();
+      if (!ctx) return;
+
+      const master = ctx.createGain();
+      master.gain.value = volume;
+      master.connect(ctx.destination);
+      const loop = { ctx, master, intervalo: null };
+
+      const tocarCiclo = () => {
+        const t = ctx.currentTime;
+        sequencia.forEach(([freq, offset, dur, vol]) => {
+          tocarTom(master, freq, t + offset, dur, vol);
+        });
+      };
+
+      tocarCiclo();
+      loop.intervalo = setInterval(tocarCiclo, intervaloMs);
+      return loop;
+    }
+
+    return {
+      obterContexto,
+      iniciarSainte() {
+        loopSainte = iniciarPadrao(
+          pararSainte,
+          0.14,
+          1800,
+          [
+            [392, 0, 0.2, 0.4],
+            [523.25, 0.24, 0.22, 0.38],
+          ],
+        );
+      },
+      iniciarRecebido() {
+        loopRecebido = iniciarPadrao(
+          pararRecebido,
+          0.2,
+          1300,
+          [
+            [659.25, 0, 0.14, 0.55],
+            [783.99, 0.16, 0.14, 0.5],
+            [987.77, 0.32, 0.22, 0.45],
+          ],
+        );
+      },
+      pararSainte,
+      pararRecebido,
+      pararTodos,
+    };
+  })();
+
+  function desbloquearAudio() {
+    SomBuzz.obterContexto();
+  }
+
   function bloquearScroll() {
     document.body.classList.add('overflow-hidden');
   }
@@ -147,10 +256,12 @@
     alerta.classList.remove('hidden');
     bloquearScroll();
     vibrar();
+    SomBuzz.iniciarRecebido();
     incrementarContadorNotificacoes();
   }
 
   function ocultarAlertaRecebido() {
+    SomBuzz.pararRecebido();
     document.getElementById('alerta-buzina')?.classList.add('hidden');
     if (!document.getElementById('chamada-sainte')?.classList.contains('hidden')) return;
     liberarScroll();
@@ -209,6 +320,7 @@
 
     tela.classList.remove('hidden');
     bloquearScroll();
+    SomBuzz.iniciarSainte();
 
     timeoutChamada = setTimeout(() => encerrarChamadaSainte('timeout'), TEMPO_MAXIMO_ESPERA_MS);
   }
@@ -236,6 +348,7 @@
 
     limparTimerChamada();
     pararSliderNomes();
+    SomBuzz.pararSainte();
 
     if (estaNaPaginaChamar()) {
       buzinaSainte = null;
@@ -409,6 +522,7 @@
   }
 
   function ocultarChamadaSainte() {
+    SomBuzz.pararSainte();
     limparTimerChamada();
     clearTimeout(timeoutFecharChamada);
     pararSliderNomes();
@@ -422,6 +536,7 @@
   }
 
   async function encerrarChamadaSainte(motivo = 'usuario') {
+    SomBuzz.pararSainte();
     if (!chamadaSainteAtiva()) {
       ocultarChamadaSainte();
       return;
@@ -610,6 +725,7 @@
       buzinaSainte = payload.buzina_id;
       buzinasSaintes = [payload];
       limparTimerChamada();
+      SomBuzz.iniciarSainte();
       timeoutChamada = setTimeout(() => encerrarChamadaSainte('timeout'), TEMPO_MAXIMO_ESPERA_MS);
       return;
     }
@@ -1152,6 +1268,8 @@
   resetarAnelProgresso();
 
   if (document.body.dataset.usuarioAutenticado === 'true') {
+    document.addEventListener('pointerdown', desbloquearAudio, { once: true });
+    document.addEventListener('keydown', desbloquearAudio, { once: true });
     conectarWebSocket();
   }
 
