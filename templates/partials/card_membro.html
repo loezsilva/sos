@@ -1,9 +1,11 @@
-{% if membro.pode_buzinar %}
-<a href="{% url 'dashboard:chamar_contato' membro.id %}" class="block efeito-vidro rounded-xl p-lg sombra-neumorfica hover:shadow-[6px_6px_20px_rgba(0,0,0,0.3)] transition-shadow {{ membro.classe_borda_status }} no-underline">
-{% else %}
-<article class="efeito-vidro rounded-xl p-lg sombra-neumorfica {{ membro.classe_borda_status }} {{ membro.classe_card }} cursor-not-allowed">
-{% endif %}
-  <div class="flex items-center justify-between gap-4">
+<div
+  class="card-membro block efeito-vidro rounded-xl p-lg sombra-neumorfica transition-shadow {% if membro.pode_buzinar %}hover:shadow-[6px_6px_20px_rgba(0,0,0,0.3)]{% else %}{{ membro.classe_card }}{% endif %} {{ membro.classe_borda_status }}"
+  data-contato-id="{{ membro.contato_id }}"
+  data-membro-id="{{ membro.id }}"
+  data-status="{{ membro.status }}"
+  data-chamar-url="{% url 'dashboard:chamar_contato' membro.id %}"
+>
+  <a href="{% url 'dashboard:chamar_contato' membro.id %}" class="flex items-center justify-between gap-4 no-underline {% if not membro.pode_buzinar %}pointer-events-none{% endif %}">
     <div class="flex items-center gap-4 min-w-0">
       <div class="relative shrink-0">
         {% if membro.contato.avatar %}
@@ -13,19 +15,15 @@
             <span class="material-symbols-outlined text-outline text-2xl">person</span>
           </div>
         {% endif %}
-        <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-surface-container-highest {{ membro.classe_indicador_status }}"></div>
+        <div class="card-membro-indicador absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-surface-container-highest {{ membro.classe_indicador_status }}"></div>
       </div>
       <div class="min-w-0">
         <h3 class="font-button-text text-button-text text-on-surface truncate">{{ membro.nome_exibicao }}</h3>
-        <p class="font-label-bold text-label-bold {{ membro.classe_cor_status }} mt-1">{{ membro.get_status_display }}</p>
+        <p class="card-membro-status font-label-bold text-label-bold {{ membro.classe_cor_status }} mt-1">{{ membro.get_status_display }}</p>
       </div>
     </div>
-    <div class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center sombra-neumorfica {% if membro.pode_buzinar %}bg-primary-container text-on-primary-container pulso-buzz{% else %}bg-surface-container text-outline{% endif %}">
+    <div class="card-membro-bolt shrink-0 w-10 h-10 rounded-full flex items-center justify-center sombra-neumorfica {% if membro.pode_buzinar %}bg-primary-container text-on-primary-container pulso-buzz{% else %}bg-surface-container text-outline{% endif %}">
       <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' {% if membro.pode_buzinar %}1{% else %}0{% endif %};">bolt</span>
     </div>
-  </div>
-{% if membro.pode_buzinar %}
-</a>
-{% else %}
-</article>
-{% endif %}
+  </a>
+</div>

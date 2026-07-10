@@ -25,7 +25,12 @@
       <h1 class="font-display-lg-mobile text-display-lg-mobile text-on-surface mb-2 tracking-tighter">
         Chamar atenção
       </h1>
-      <p id="status-chamada" class="font-headline-md text-headline-md {{ membro.classe_cor_status }}">
+      <p
+        id="status-chamada"
+        class="font-headline-md text-headline-md {{ membro.classe_cor_status }}"
+        data-contato-id="{{ membro.contato_id }}"
+        data-status="{{ membro.status }}"
+      >
         {{ membro.get_status_display }}
       </p>
     </header>

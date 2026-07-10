@@ -22,9 +22,9 @@
 
   <div class="mb-md flex justify-between items-center gap-4">
     <h1 class="font-headline-md text-headline-md text-on-surface">Meu círculo</h1>
-    {% if total_online %}
-      <span class="font-label-bold text-label-bold text-secondary shrink-0">{{ total_online }} online</span>
-    {% endif %}
+    <span id="contador-online" class="font-label-bold text-label-bold text-secondary shrink-0 {% if not total_online %}hidden{% endif %}" data-total="{{ total_online|default:0 }}">
+      <span id="contador-online-numero">{{ total_online|default:0 }}</span> online
+    </span>
   </div>
 
   {% if user.is_authenticated %}

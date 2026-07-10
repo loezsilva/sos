@@ -5,22 +5,31 @@ from apps.dashboard.models import MembroCirculo, StatusPresenca
 
 
 class Command(BaseCommand):
-    help = 'Popula o círculo do primeiro usuário com contatos de demonstração.'
+    help = 'Popula círculos mútuos de demonstração (status inicial offline).'
 
     def handle(self, *args, **options):
-        dono = User.objects.order_by('date_joined').first()
-        if not dono:
+        contatos_demo = [
+            ('elena', 'Elena Rostova', True),
+            ('marcus', 'Marcus Vance', False),
+            ('sarah', 'Sarah Jenkins', False),
+            ('alex', 'Alex Thorne', False),
+        ]
+
+        # Donos: primeiro usuário + admin (se existir)
+        donos = []
+        primeiro = User.objects.order_by('date_joined').first()
+        if primeiro:
+            donos.append(primeiro)
+        admin = User.objects.filter(username='admin').first()
+        if admin and admin not in donos:
+            donos.append(admin)
+
+        if not donos:
             self.stderr.write('Nenhum usuário encontrado. Crie um usuário primeiro.')
             return
 
-        contatos_demo = [
-            ('elena', 'Elena Rostova', StatusPresenca.ONLINE, True),
-            ('marcus', 'Marcus Vance', StatusPresenca.OCUPADO, False),
-            ('sarah', 'Sarah Jenkins', StatusPresenca.OFFLINE, False),
-            ('alex', 'Alex Thorne', StatusPresenca.ONLINE, False),
-        ]
-
-        for username, nome, status, vip in contatos_demo:
+        contatos = []
+        for username, nome, vip in contatos_demo:
             contato, criado = User.objects.get_or_create(
                 username=username,
                 defaults={
@@ -30,16 +39,34 @@ class Command(BaseCommand):
                 },
             )
             contato.set_password('demo1234')
-            if criado:
-                contato.save()
-            else:
-                contato.save(update_fields=['password'])
+            contato.name = nome
+            contato.save()
+            contatos.append((contato, vip))
 
-            membro, _ = MembroCirculo.objects.update_or_create(
-                dono=dono,
-                contato=contato,
-                defaults={'status': status, 'eh_vip': vip},
-            )
-            self.stdout.write(f'  {membro.nome_exibicao} — {membro.get_status_display()}')
+        for dono in donos:
+            for contato, vip in contatos:
+                if contato.pk == dono.pk:
+                    continue
+                MembroCirculo.objects.update_or_create(
+                    dono=dono,
+                    contato=contato,
+                    defaults={'status': StatusPresenca.OFFLINE, 'eh_vip': vip},
+                )
+                MembroCirculo.objects.update_or_create(
+                    dono=contato,
+                    contato=dono,
+                    defaults={'status': StatusPresenca.OFFLINE, 'eh_vip': False},
+                )
+                self.stdout.write(f'  {dono.username} ↔ {contato.username}')
 
-        self.stdout.write(self.style.SUCCESS(f'Círculo de {dono} populado com sucesso.'))
+            # Donos também se veem entre si (ex.: demo ↔ admin)
+            for outro in donos:
+                if outro.pk == dono.pk:
+                    continue
+                MembroCirculo.objects.update_or_create(
+                    dono=dono,
+                    contato=outro,
+                    defaults={'status': StatusPresenca.OFFLINE, 'eh_vip': False},
+                )
+
+        self.stdout.write(self.style.SUCCESS('Círculos mútuos populados (presença sobe no login).'))

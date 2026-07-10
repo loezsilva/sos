@@ -48,7 +48,7 @@
           <div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center sombra-neumorfica-inset">
             <span class="material-symbols-outlined text-sm text-tertiary">group</span>
           </div>
-          <span class="text-on-surface text-sm">{{ total_online }} online</span>
+          <span id="contador-online-inicio" class="text-on-surface text-sm" data-total="{{ total_online|default:0 }}">{{ total_online }} online</span>
         </div>
       </div>
     </div>

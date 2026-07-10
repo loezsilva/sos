@@ -416,6 +416,152 @@
     ocultarAlertaRecebido();
   }
 
+  const statusConhecidos = {};
+
+  function estilosPresenca(status) {
+    const mapa = {
+      online: {
+        cor: 'text-secondary',
+        indicador: 'bg-secondary shadow-[0_0_8px_#4cd7f6]',
+        rotulo: 'Online',
+      },
+      ocupado: {
+        cor: 'text-tertiary',
+        indicador: 'bg-tertiary shadow-[0_0_8px_#ffb784]',
+        rotulo: 'Ocupado',
+      },
+      offline: {
+        cor: 'text-outline',
+        indicador: 'bg-outline',
+        rotulo: 'Offline',
+      },
+    };
+    return mapa[status] || mapa.offline;
+  }
+
+  function atualizarContadorOnline() {
+    const cards = document.querySelectorAll('.card-membro[data-status]');
+    const contador = document.getElementById('contador-online');
+    const numero = document.getElementById('contador-online-numero');
+    const inicio = document.getElementById('contador-online-inicio');
+
+    if (cards.length) {
+      let online = 0;
+      cards.forEach((card) => {
+        if (card.dataset.status === 'online') online += 1;
+      });
+      if (contador && numero) {
+        numero.textContent = String(online);
+        contador.dataset.total = String(online);
+        contador.classList.toggle('hidden', online === 0);
+      }
+      if (inicio) {
+        inicio.textContent = `${online} online`;
+        inicio.dataset.total = String(online);
+      }
+      return;
+    }
+
+    if (inicio) {
+      const online = Object.values(statusConhecidos).filter((s) => s === 'online').length;
+      const total = Object.keys(statusConhecidos).length
+        ? online
+        : Number(inicio.dataset.total || 0);
+      inicio.textContent = `${total} online`;
+      inicio.dataset.total = String(total);
+    }
+  }
+
+  function atualizarCardPresenca(card, status, rotulo) {
+    const estilo = estilosPresenca(status);
+    card.dataset.status = status;
+
+    const indicador = card.querySelector('.card-membro-indicador');
+    const statusEl = card.querySelector('.card-membro-status');
+    const bolt = card.querySelector('.card-membro-bolt');
+    const link = card.querySelector('a');
+    const pode = status !== 'offline';
+
+    if (indicador) {
+      indicador.className = `card-membro-indicador absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-surface-container-highest ${estilo.indicador}`;
+    }
+    if (statusEl) {
+      statusEl.textContent = rotulo || estilo.rotulo;
+      statusEl.className = `card-membro-status font-label-bold text-label-bold ${estilo.cor} mt-1`;
+    }
+
+    card.classList.toggle('opacity-75', !pode);
+    card.classList.toggle('grayscale-[0.2]', !pode);
+    if (link) link.classList.toggle('pointer-events-none', !pode);
+
+    if (bolt) {
+      bolt.className = `card-membro-bolt shrink-0 w-10 h-10 rounded-full flex items-center justify-center sombra-neumorfica ${
+        pode
+          ? 'bg-primary-container text-on-primary-container pulso-buzz'
+          : 'bg-surface-container text-outline'
+      }`;
+      const icone = bolt.querySelector('.material-symbols-outlined');
+      if (icone) icone.style.fontVariationSettings = `'FILL' ${pode ? 1 : 0}`;
+    }
+  }
+
+  function atualizarPaginaChamarPresenca(status, rotulo) {
+    const statusEl = document.getElementById('status-chamada');
+    if (!statusEl) return;
+
+    const estilo = estilosPresenca(status);
+    statusEl.dataset.status = status;
+    if (!statusEl.dataset.statusOriginal || !chamadaSainteAtiva()) {
+      statusEl.textContent = rotulo || estilo.rotulo;
+      statusEl.className = `font-headline-md text-headline-md ${estilo.cor}`;
+      statusEl.dataset.statusOriginal = rotulo || estilo.rotulo;
+      statusEl.dataset.classeOriginal = statusEl.className;
+    }
+
+    const botao = document.getElementById('botao-buzinar-contato');
+    const dica = document.getElementById('dica-segurar');
+    if (!botao) return;
+
+    const pode = status !== 'offline';
+    if (!chamadaSainteAtiva()) botao.disabled = !pode;
+    botao.classList.toggle('opacity-50', !pode);
+    botao.classList.toggle('cursor-not-allowed', !pode);
+    botao.classList.toggle('cursor-pointer', pode);
+    botao.classList.toggle('hover:scale-105', pode);
+    if (dica && !chamadaSainteAtiva()) {
+      dica.textContent = pode ? 'Segure 2s para chamar' : 'Contato offline';
+    }
+  }
+
+  function tratarPresencaAtualizada(dados) {
+    const usuarioId = String(dados.usuario_id);
+    const status = dados.status;
+    const rotulo = dados.status_rotulo;
+    const anterior = statusConhecidos[usuarioId];
+    statusConhecidos[usuarioId] = status;
+
+    document.querySelectorAll(`.card-membro[data-contato-id="${usuarioId}"]`).forEach((card) => {
+      atualizarCardPresenca(card, status, rotulo);
+    });
+
+    const statusChamada = document.getElementById('status-chamada');
+    if (statusChamada && statusChamada.dataset.contatoId === usuarioId) {
+      atualizarPaginaChamarPresenca(status, rotulo);
+    }
+
+    const inicio = document.getElementById('contador-online-inicio');
+    if (inicio && !document.querySelector('.card-membro') && anterior !== undefined) {
+      let total = Number(inicio.dataset.total || 0);
+      if (anterior === 'online' && status !== 'online') total = Math.max(0, total - 1);
+      if (anterior !== 'online' && status === 'online') total += 1;
+      inicio.dataset.total = String(total);
+      inicio.textContent = `${total} online`;
+      return;
+    }
+
+    atualizarContadorOnline();
+  }
+
   function conectarWebSocket() {
     const protocolo = window.location.protocol === 'https:' ? 'wss' : 'ws';
     socket = new WebSocket(`${protocolo}://${window.location.host}/ws/buzz/`);
@@ -428,6 +574,8 @@
         mostrarRespostaNaChamada(dados);
       } else if (dados.tipo === 'buzina_encerrada') {
         tratarBuzinaEncerrada(dados);
+      } else if (dados.tipo === 'presenca_atualizada') {
+        tratarPresencaAtualizada(dados);
       }
     };
 
@@ -483,4 +631,11 @@
   if (document.body.dataset.usuarioAutenticado === 'true') {
     conectarWebSocket();
   }
+
+  // Mantém TTL da presença no Redis enquanto a aba estiver aberta
+  setInterval(() => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ tipo: 'ping' }));
+    }
+  }, 30000);
 })();
