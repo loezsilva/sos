@@ -1,11 +1,13 @@
 (function () {
   const csrfToken = document.cookie.match(/csrftoken=([^;]+)/)?.[1];
   const TEMPO_MAXIMO_ESPERA_MS = 45000;
+  const CIRCUNFERENCIA_ANEL = 2 * Math.PI * 46;
   let buzinaRecebida = null;
   let buzinaSainte = null;
   let socket = null;
   let timeoutFecharChamada = null;
   let timeoutChamada = null;
+  let pressionarSegurar = null;
 
   function obterCookie(nome) {
     return document.cookie.match(new RegExp(`${nome}=([^;]+)`))?.[1];
@@ -203,9 +205,80 @@
       if (status.dataset.statusOriginal) status.textContent = status.dataset.statusOriginal;
       if (status.dataset.classeOriginal) status.className = status.dataset.classeOriginal;
     }
+    const dica = document.getElementById('dica-segurar');
+    if (dica) dica.textContent = 'Segure 2s para chamar';
+    resetarAnelProgresso();
     document.querySelectorAll('[data-buzinar]').forEach((botao) => {
       if (!botao.dataset.manterDesabilitado) botao.disabled = false;
     });
+  }
+
+  function obterAnelProgresso() {
+    return document.getElementById('anel-progresso-carga');
+  }
+
+  function resetarAnelProgresso() {
+    const anel = obterAnelProgresso();
+    if (!anel) return;
+    anel.classList.remove('carregando');
+    anel.style.strokeDasharray = String(CIRCUNFERENCIA_ANEL);
+    anel.style.strokeDashoffset = String(CIRCUNFERENCIA_ANEL);
+  }
+
+  function atualizarAnelProgresso(progresso) {
+    const anel = obterAnelProgresso();
+    if (!anel) return;
+    const limitado = Math.min(1, Math.max(0, progresso));
+    anel.style.strokeDashoffset = String(CIRCUNFERENCIA_ANEL * (1 - limitado));
+  }
+
+  function cancelarPressionarSegurar() {
+    if (!pressionarSegurar) return;
+    cancelAnimationFrame(pressionarSegurar.frame);
+    clearTimeout(pressionarSegurar.timer);
+    pressionarSegurar = null;
+    resetarAnelProgresso();
+  }
+
+  function iniciarPressionarSegurar(botao) {
+    if (botao.disabled || chamadaSainteAtiva()) return;
+
+    const segundos = Number(botao.dataset.segurarBuzina || 2);
+    const duracaoMs = segundos * 1000;
+    const anel = obterAnelProgresso();
+    const dica = document.getElementById('dica-segurar');
+    const inicio = performance.now();
+
+    cancelarPressionarSegurar();
+    if (anel) anel.classList.add('carregando');
+    if (dica) dica.textContent = 'Segurando...';
+
+    pressionarSegurar = {
+      botao,
+      disparado: false,
+      frame: null,
+      timer: null,
+    };
+
+    const tick = (agora) => {
+      if (!pressionarSegurar || pressionarSegurar.disparado) return;
+      const progresso = (agora - inicio) / duracaoMs;
+      atualizarAnelProgresso(progresso);
+      if (progresso < 1) {
+        pressionarSegurar.frame = requestAnimationFrame(tick);
+      }
+    };
+
+    pressionarSegurar.frame = requestAnimationFrame(tick);
+    pressionarSegurar.timer = setTimeout(() => {
+      if (!pressionarSegurar || pressionarSegurar.disparado) return;
+      pressionarSegurar.disparado = true;
+      atualizarAnelProgresso(1);
+      if (navigator.vibrate) navigator.vibrate(40);
+      if (dica) dica.textContent = 'Chamando...';
+      enviarBuzina(botao);
+      pressionarSegurar = null;
+    }, duracaoMs);
   }
 
   function chamadaSainteAtiva() {
@@ -292,6 +365,8 @@
       status.textContent = 'Buzinando...';
       status.className = 'font-headline-md text-headline-md text-secondary animate-pulse';
     }
+    const dica = document.getElementById('dica-segurar');
+    if (dica) dica.textContent = 'Toque para cancelar';
   }
 
   async function enviarBuzina(botao) {
@@ -361,10 +436,37 @@
 
   document.addEventListener('click', (evento) => {
     const botaoBuzinar = evento.target.closest('[data-buzinar]');
-    if (botaoBuzinar && !botaoBuzinar.disabled) {
-      enviarBuzina(botaoBuzinar);
+    if (!botaoBuzinar || botaoBuzinar.disabled) return;
+
+    // Página chamar: clique simples só cancela se já estiver buzinando
+    if (botaoBuzinar.dataset.segurarBuzina) {
+      if (chamadaSainteAtiva()) encerrarChamadaSainte('usuario');
+      return;
     }
+
+    enviarBuzina(botaoBuzinar);
   });
+
+  function configurarSegurarParaBuzinar() {
+    const botao = document.getElementById('botao-buzinar-contato');
+    if (!botao || !botao.dataset.segurarBuzina) return;
+
+    const iniciar = (evento) => {
+      if (evento.button != null && evento.button !== 0) return;
+      if (botao.disabled) return;
+      if (chamadaSainteAtiva()) return;
+      evento.preventDefault();
+      iniciarPressionarSegurar(botao);
+    };
+
+    const soltar = () => cancelarPressionarSegurar();
+
+    botao.addEventListener('pointerdown', iniciar);
+    botao.addEventListener('pointerup', soltar);
+    botao.addEventListener('pointerleave', soltar);
+    botao.addEventListener('pointercancel', soltar);
+    botao.addEventListener('contextmenu', (evento) => evento.preventDefault());
+  }
 
   document.getElementById('alerta-recusar')?.addEventListener('click', () => responderBuzina({ recusar: '1' }));
   document.getElementById('chamada-encerrar')?.addEventListener('click', () => encerrarChamadaSainte('usuario'));
@@ -374,6 +476,9 @@
       responderBuzina({ resposta_rapida: botao.dataset.resposta });
     });
   });
+
+  configurarSegurarParaBuzinar();
+  resetarAnelProgresso();
 
   if (document.body.dataset.usuarioAutenticado === 'true') {
     conectarWebSocket();

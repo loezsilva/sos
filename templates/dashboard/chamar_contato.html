@@ -30,31 +30,42 @@
       </p>
     </header>
 
-    <div class="relative flex items-center justify-center w-full my-xl flex-shrink-0">
-      <div id="ondas-chamada" class="hidden absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-primary/40 animacao-ripple-alerta"></div>
-        <div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-secondary/40 animacao-ripple-alerta" style="animation-delay: 0.6s;"></div>
-        <div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-primary/20 animacao-ripple-alerta" style="animation-delay: 1.2s;"></div>
-      </div>
-
-      <button
-        type="button"
-        id="botao-buzinar-contato"
-        data-buzinar="{{ membro.contato_id }}"
-        data-buzinar-nome="{{ membro.nome_exibicao }}"
-        {% if membro.contato.avatar %}data-buzinar-avatar="{{ membro.contato.avatar.url }}"{% endif %}
-        class="relative z-20 w-48 h-48 md:w-64 md:h-64 rounded-full p-2 bg-gradient-to-tr from-primary to-secondary shadow-[0_0_40px_rgba(124,58,237,0.5),inset_0_4px_10px_rgba(255,255,255,0.2)] transition-all duration-300 group {% if membro.pode_buzinar %}hover:scale-105 active:scale-95 cursor-pointer{% else %}opacity-50 cursor-not-allowed{% endif %}"
-        {% if not membro.pode_buzinar %}disabled{% endif %}
-        aria-label="Buzinar {{ membro.nome_exibicao }}"
-      >
-        <div class="w-full h-full rounded-full overflow-hidden border-4 border-surface-container-highest relative bg-surface-container-high flex items-center justify-center">
-          {% if membro.contato.avatar %}
-            <img class="w-full h-full object-cover pointer-events-none" src="{{ membro.contato.avatar.url }}" alt="{{ membro.nome_exibicao }}">
-          {% else %}
-            <span class="material-symbols-outlined text-outline text-6xl pointer-events-none">person</span>
-          {% endif %}
+    <div class="relative flex flex-col items-center justify-center w-full my-xl flex-shrink-0 gap-md">
+      <div class="relative flex items-center justify-center w-56 h-56 md:w-72 md:h-72">
+        <div id="ondas-chamada" class="hidden absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-primary/40 animacao-ripple-alerta"></div>
+          <div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-secondary/40 animacao-ripple-alerta" style="animation-delay: 0.6s;"></div>
+          <div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-primary/20 animacao-ripple-alerta" style="animation-delay: 1.2s;"></div>
         </div>
-      </button>
+
+        <svg class="anel-progresso-buzina absolute inset-0 w-full h-full pointer-events-none -rotate-90" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="anel-progresso-fundo" cx="50" cy="50" r="46" fill="none" stroke-width="3"></circle>
+          <circle id="anel-progresso-carga" class="anel-progresso-carga" cx="50" cy="50" r="46" fill="none" stroke-width="3"></circle>
+        </svg>
+
+        <button
+          type="button"
+          id="botao-buzinar-contato"
+          data-buzinar="{{ membro.contato_id }}"
+          data-buzinar-nome="{{ membro.nome_exibicao }}"
+          data-segurar-buzina="2"
+          {% if membro.contato.avatar %}data-buzinar-avatar="{{ membro.contato.avatar.url }}"{% endif %}
+          class="relative z-20 w-48 h-48 md:w-64 md:h-64 rounded-full p-2 bg-gradient-to-tr from-primary to-secondary shadow-[0_0_40px_rgba(124,58,237,0.5),inset_0_4px_10px_rgba(255,255,255,0.2)] transition-transform duration-200 group select-none touch-none {% if membro.pode_buzinar %}hover:scale-105 active:scale-95 cursor-pointer{% else %}opacity-50 cursor-not-allowed{% endif %}"
+          {% if not membro.pode_buzinar %}disabled{% endif %}
+          aria-label="Segure 2 segundos para buzinar {{ membro.nome_exibicao }}"
+        >
+          <div class="w-full h-full rounded-full overflow-hidden border-4 border-surface-container-highest relative bg-surface-container-high flex items-center justify-center pointer-events-none">
+            {% if membro.contato.avatar %}
+              <img class="w-full h-full object-cover" src="{{ membro.contato.avatar.url }}" alt="{{ membro.nome_exibicao }}">
+            {% else %}
+              <span class="material-symbols-outlined text-outline text-6xl">person</span>
+            {% endif %}
+          </div>
+        </button>
+      </div>
+      <p id="dica-segurar" class="text-center text-xs font-label-bold text-on-surface-variant uppercase tracking-wide">
+        Segure 2s para chamar
+      </p>
     </div>
 
     <div class="flex justify-center w-full mb-xl flex-shrink-0">

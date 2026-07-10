@@ -89,6 +89,27 @@
   .animacao-ripple-alerta {
     animation: ripple-alerta 2s infinite ease-out;
   }
+
+  .anel-progresso-buzina {
+    z-index: 25;
+  }
+
+  .anel-progresso-fundo {
+    stroke: rgba(76, 215, 246, 0.15);
+  }
+
+  .anel-progresso-carga {
+    stroke: theme('colors.secondary');
+    stroke-linecap: round;
+    stroke-dasharray: 289.027;
+    stroke-dashoffset: 289.027;
+    filter: drop-shadow(0 0 6px rgba(76, 215, 246, 0.7));
+    transition: stroke-dashoffset 0.05s linear;
+  }
+
+  .anel-progresso-carga.carregando {
+    transition: none;
+  }
 }
 
 @keyframes efeito-ripple {
