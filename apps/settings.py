@@ -30,10 +30,16 @@ SECRET_KEY = 'django-insecure-j&8*f3d)2abrq*vcvto#&gl2(c)7jb%_ee80ncf6ub@$+g(qn0
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
+# ngrok / proxy reverso em dev — Django precisa enxergar HTTPS para cookies CSRF/sessão
+if DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default=[], cast=Csv())
 
 CSRF_TRUSTED_ORIGINS = config(
-    'CSRF_TRUSTED_ORIGINS', default='http://*,https://*', cast=Csv()
+    'CSRF_TRUSTED_ORIGINS',
+    default='http://127.0.0.1:8000,http://localhost:8000,http://127.0.0.1,http://localhost',
+    cast=Csv(),
 )
 
 CORS_ALLOWED_ORIGINS = config(
@@ -326,3 +332,7 @@ if SENTRY_DSN and not DEBUG:
     )
 
 OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
+
+VAPID_PUBLIC_KEY = config("VAPID_PUBLIC_KEY", default="")
+VAPID_PRIVATE_KEY = config("VAPID_PRIVATE_KEY", default="").replace("\\n", "\n")
+VAPID_ADMIN_EMAIL = config("VAPID_ADMIN_EMAIL", default="suporte@buzz.app")

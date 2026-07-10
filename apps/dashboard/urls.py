@@ -3,9 +3,13 @@ from django.urls import path
 from apps.dashboard.views import (
     AlternarDisponibilidadeView,
     AlternarFavoritoView,
+    BuzinasPendentesView,
+    ChaveVapidView,
+    DesinscreverPushView,
     EncerrarBuzinaView,
     EnviarBuzinaFavoritosView,
     EnviarBuzinaView,
+    InscreverPushView,
     MarcarNotificacoesLidasView,
     NotificacoesView,
     PaginaChamarContatoView,
@@ -14,6 +18,7 @@ from apps.dashboard.views import (
     PaginaInicioView,
     RedirecionarPerfilParaChamarView,
     ResponderBuzinaView,
+    ServiceWorkerView,
 )
 
 app_name = 'dashboard'
@@ -32,4 +37,9 @@ urlpatterns = [
     path('api/membros/<uuid:membro_id>/favorito/', AlternarFavoritoView.as_view(), name='alternar_favorito'),
     path('api/notificacoes/', NotificacoesView.as_view(), name='notificacoes'),
     path('api/notificacoes/marcar-lidas/', MarcarNotificacoesLidasView.as_view(), name='marcar_notificacoes_lidas'),
+    path('api/buzina/pendentes/', BuzinasPendentesView.as_view(), name='buzinas_pendentes'),
+    path('api/push/vapid/', ChaveVapidView.as_view(), name='push_vapid'),
+    path('api/push/inscrever/', InscreverPushView.as_view(), name='push_inscrever'),
+    path('api/push/desinscrever/', DesinscreverPushView.as_view(), name='push_desinscrever'),
+    path('sw.js', ServiceWorkerView.as_view(), name='service_worker'),
 ]

@@ -258,6 +258,7 @@
     vibrar();
     SomBuzz.iniciarRecebido();
     incrementarContadorNotificacoes();
+    window.BuzzPush?.fecharNotificacoesPorTag(dados.buzina_id);
   }
 
   function ocultarAlertaRecebido() {
@@ -1271,6 +1272,8 @@
     document.addEventListener('pointerdown', desbloquearAudio, { once: true });
     document.addEventListener('keydown', desbloquearAudio, { once: true });
     conectarWebSocket();
+    window.mostrarToastPush = mostrarToast;
+    window.BuzzPush?.iniciar(mostrarAlertaRecebido);
   }
 
   // Mantém TTL da presença no Redis enquanto a aba estiver aberta

@@ -1,11 +1,15 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import JsonResponse
+from django.conf import settings
+from django.http import HttpResponse, JsonResponse
 from django.urls import reverse
 from django.views import View
 from django.views.generic import DetailView, RedirectView, TemplateView
+import json
+import os
 
-from apps.dashboard.models import Buzina, MembroCirculo, StatusPresenca
+from apps.dashboard.models import Buzina, InscricaoPush, MembroCirculo, StatusPresenca
 from apps.dashboard.presenca import Presenca
+from apps.dashboard.push import ServicoPush
 
 
 class PaginaInicioView(TemplateView):
@@ -55,8 +59,16 @@ class PaginaCirculosView(TemplateView):
         return contexto
 
 
-class PaginaConfiguracoesView(TemplateView):
+class PaginaConfiguracoesView(LoginRequiredMixin, TemplateView):
     template_name = 'dashboard/configuracoes.html'
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto['push_configurado'] = ServicoPush.configurado()
+        contexto['push_ativo'] = InscricaoPush.objects.filter(
+            usuario=self.request.user,
+        ).exists()
+        return contexto
 
 
 class RedirecionarPerfilParaChamarView(LoginRequiredMixin, RedirectView):
@@ -216,3 +228,78 @@ class EncerrarBuzinaView(LoginRequiredMixin, View):
             'status': buzina.status,
             'encerrada': ok,
         })
+
+
+class ServiceWorkerView(View):
+    def get(self, request):
+        caminho = os.path.join(settings.BASE_DIR, 'static', 'sw.js')
+        with open(caminho, 'rb') as arquivo:
+            conteudo = arquivo.read()
+        resposta = HttpResponse(conteudo, content_type='application/javascript')
+        resposta['Service-Worker-Allowed'] = '/'
+        resposta['Cache-Control'] = 'no-cache'
+        return resposta
+
+
+class ChaveVapidView(LoginRequiredMixin, View):
+    def get(self, request):
+        if not ServicoPush.configurado():
+            return JsonResponse({'erro': 'Push não configurado no servidor.'}, status=503)
+        return JsonResponse({
+            'ok': True,
+            'chave_publica': settings.VAPID_PUBLIC_KEY,
+        })
+
+
+class InscreverPushView(LoginRequiredMixin, View):
+    def post(self, request):
+        if not ServicoPush.configurado():
+            return JsonResponse({'erro': 'Push não configurado no servidor.'}, status=503)
+
+        endpoint = request.POST.get('endpoint')
+        p256dh = request.POST.get('p256dh')
+        auth = request.POST.get('auth')
+
+        if not endpoint:
+            try:
+                dados = json.loads(request.body or '{}')
+            except json.JSONDecodeError:
+                dados = {}
+            endpoint = dados.get('endpoint')
+            chaves = dados.get('keys') or {}
+            p256dh = p256dh or chaves.get('p256dh')
+            auth = auth or chaves.get('auth')
+
+        if not endpoint or not p256dh or not auth:
+            return JsonResponse({'erro': 'Inscrição push incompleta.'}, status=400)
+
+        ServicoPush.inscrever(
+            request.user,
+            endpoint=endpoint,
+            p256dh=p256dh,
+            auth=auth,
+            user_agent=request.META.get('HTTP_USER_AGENT', ''),
+        )
+        return JsonResponse({'ok': True})
+
+
+class DesinscreverPushView(LoginRequiredMixin, View):
+    def post(self, request):
+        endpoint = request.POST.get('endpoint')
+        if not endpoint:
+            try:
+                dados = json.loads(request.body or '{}')
+            except json.JSONDecodeError:
+                dados = {}
+            endpoint = dados.get('endpoint')
+        removidas = ServicoPush.desinscrever(request.user, endpoint=endpoint)
+        return JsonResponse({'ok': True, 'removidas': removidas})
+
+
+class BuzinasPendentesView(LoginRequiredMixin, View):
+    def get(self, request):
+        pendentes = [
+            b.payload_recebida()
+            for b in Buzina.pendentes_ativas_para(request.user)
+        ]
+        return JsonResponse({'ok': True, 'pendentes': pendentes})

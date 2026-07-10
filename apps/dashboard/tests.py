@@ -1,6 +1,7 @@
 import pytest
 from django.urls import reverse
 from unittest.mock import patch
+import json
 
 from apps.accounts.models import User
 from apps.dashboard.models import Buzina, MembroCirculo, StatusPresenca
@@ -218,3 +219,73 @@ class TestNaoPerturbe:
         buzina_vip = Buzina.enviar(bob, alice.id)
         assert buzina_vip.silenciada is False
         mock_notificar.assert_called_once()
+
+
+@pytest.mark.django_db
+class TestPushApi:
+    SUBSCRIPTION = {
+        'endpoint': 'https://push.example.com/sub/abc',
+        'keys': {
+            'p256dh': 'BGxYx' + 'a' * 80,
+            'auth': 'authkey123',
+        },
+    }
+
+    def test_chave_vapid(self, client, usuarios):
+        alice, _ = usuarios
+        client.force_login(alice)
+        resposta = client.get(reverse('dashboard:push_vapid'))
+        assert resposta.status_code == 200
+        assert resposta.json()['chave_publica']
+
+    def test_inscrever_e_desinscrever(self, client, usuarios):
+        from apps.dashboard.models import InscricaoPush
+
+        alice, _ = usuarios
+        client.force_login(alice)
+
+        resposta = client.post(
+            reverse('dashboard:push_inscrever'),
+            {
+                'endpoint': self.SUBSCRIPTION['endpoint'],
+                'p256dh': self.SUBSCRIPTION['keys']['p256dh'],
+                'auth': self.SUBSCRIPTION['keys']['auth'],
+            },
+        )
+        assert resposta.status_code == 200
+        assert InscricaoPush.objects.filter(usuario=alice).count() == 1
+
+        resposta = client.post(
+            reverse('dashboard:push_desinscrever'),
+            {'endpoint': self.SUBSCRIPTION['endpoint']},
+        )
+        assert resposta.status_code == 200
+        assert InscricaoPush.objects.filter(usuario=alice).count() == 0
+
+    @patch('apps.dashboard.push.ServicoPush.enviar_buzina')
+    @patch.object(Buzina, '_notificar')
+    def test_push_nao_enviado_em_buzina_silenciada(
+        self, mock_notificar, mock_push, usuarios, circulo_bidirecional,
+    ):
+        alice, bob = usuarios
+        MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OCUPADO)
+
+        buzina = Buzina.enviar(alice, bob.id)
+        assert buzina.silenciada is True
+        mock_push.assert_not_called()
+
+    @patch('apps.dashboard.push.ServicoPush.enviar_buzina')
+    @patch.object(Buzina, '_notificar')
+    def test_push_enviado_em_buzina_normal(
+        self, mock_notificar, mock_enviar, usuarios, circulo_bidirecional,
+    ):
+        alice, bob = usuarios
+        buzina = Buzina.enviar(alice, bob.id)
+        assert buzina.silenciada is False
+        mock_enviar.assert_called_once_with(buzina)
+
+    def test_service_worker_na_raiz(self, client):
+        resposta = client.get(reverse('dashboard:service_worker'))
+        assert resposta.status_code == 200
+        assert 'workbox' in resposta.content.decode().lower()
+        assert resposta['Service-Worker-Allowed'] == '/'

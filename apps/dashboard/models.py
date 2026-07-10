@@ -311,6 +311,18 @@ class Buzina(BaseModel):
             'mensagem': self.mensagem,
         }
 
+    def payload_push(self):
+        nome = self.remetente.name or self.remetente.username
+        return {
+            'tipo': 'buzina_recebida',
+            'buzina_id': str(self.id),
+            'remetente_nome': nome,
+            'mensagem': self.mensagem,
+            'titulo': f'Buzz — {nome}',
+            'corpo': self.mensagem or 'Alguém está te chamando.',
+            'url': f'/?buzina={self.id}',
+        }
+
     @classmethod
     def enviar(cls, remetente, destinatario_id, mensagem=''):
         membro = MembroCirculo.objects.filter(
@@ -340,6 +352,8 @@ class Buzina(BaseModel):
         buzina.silenciada = silenciada
         if not silenciada:
             cls._notificar(str(destinatario_id), 'buzina_recebida', buzina.payload_recebida())
+            from apps.dashboard.push import ServicoPush
+            ServicoPush.enviar_buzina(buzina)
         return buzina
 
     @classmethod
@@ -465,3 +479,23 @@ class Buzina(BaseModel):
             f'buzz_{usuario_id}',
             {'type': tipo_evento, 'payload': payload},
         )
+
+
+class InscricaoPush(BaseModel):
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='inscricoes_push',
+        verbose_name='Usuário',
+    )
+    endpoint = models.URLField('Endpoint', max_length=500, unique=True)
+    p256dh = models.CharField('Chave p256dh', max_length=255)
+    auth = models.CharField('Chave auth', max_length=255)
+    user_agent = models.CharField('User agent', max_length=255, blank=True, default='')
+
+    class Meta:
+        verbose_name = 'Inscrição push'
+        verbose_name_plural = 'Inscrições push'
+
+    def __str__(self):
+        return f'Push de {self.usuario}'

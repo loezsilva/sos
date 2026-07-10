@@ -1,0 +1,63 @@
+{
+  "id": "/",
+  "scope": "/",
+  "name": "Buzz — Atenção imediata",
+  "short_name": "Buzz",
+  "description": "Chame quem importa com um toque. Atenção imediata para o seu círculo íntimo.",
+  "start_url": "/?source=pwa",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "theme_color": "#0b1326",
+  "background_color": "#0b1326",
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "categories": ["social", "lifestyle"],
+  "icons": [
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/static/icons/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Buzz — tela inicial"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Meus círculos",
+      "short_name": "Círculos",
+      "description": "Ver contatos do seu círculo",
+      "url": "/circulos/",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Configurações",
+      "short_name": "Config",
+      "description": "Notificações e preferências",
+      "url": "/configuracoes/",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}
