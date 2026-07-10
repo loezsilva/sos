@@ -148,20 +148,32 @@
     });
   }
 
-  function configurarVisibilityChange(mostrarAlerta) {
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState !== 'visible') return;
-      sincronizarPendentes(mostrarAlerta);
-      if (registroSw?.active) {
-        registroSw.active.postMessage({ tipo: 'app_visivel' });
+  function configurarMensagensServiceWorker(mostrarAlerta) {
+    navigator.serviceWorker?.addEventListener('message', async (evento) => {
+      const dados = evento.data || {};
+
+      if (dados.tipo === 'buzina_push') {
+        if (document.hidden) {
+          await window.BuzzSom?.tocarRecebido();
+        }
+        return;
+      }
+
+      if (dados.tipo === 'notificacao_clicada') {
+        await window.BuzzSom?.desbloquear();
+        await sincronizarPendentes(mostrarAlerta);
       }
     });
   }
 
-  function configurarCliqueNotificacao(mostrarAlerta) {
-    navigator.serviceWorker?.addEventListener('message', (evento) => {
-      if (evento.data?.tipo !== 'notificacao_clicada') return;
-      sincronizarPendentes(mostrarAlerta);
+  function configurarVisibilityChange(mostrarAlerta) {
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState !== 'visible') return;
+      await window.BuzzSom?.desbloquear();
+      await sincronizarPendentes(mostrarAlerta);
+      if (registroSw?.active) {
+        registroSw.active.postMessage({ tipo: 'app_visivel' });
+      }
     });
   }
 
@@ -291,8 +303,8 @@
 
     try {
       await registrarServiceWorker();
+      configurarMensagensServiceWorker(mostrarAlerta);
       configurarVisibilityChange(mostrarAlerta);
-      configurarCliqueNotificacao(mostrarAlerta);
       configurarPaginaConfiguracoes();
       await configurarAlertaInicio();
 

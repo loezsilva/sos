@@ -313,13 +313,20 @@ class Buzina(BaseModel):
 
     def payload_push(self):
         nome = self.remetente.name or self.remetente.username
+        msg = (self.mensagem or '').strip()
+        if msg:
+            titulo = f'{nome} te buzinou'
+            corpo = f'"{msg}" — toque para responder agora'
+        else:
+            titulo = f'Chamada urgente — {nome}'
+            corpo = f'{nome} precisa da sua atenção. Toque para abrir.'
         return {
             'tipo': 'buzina_recebida',
             'buzina_id': str(self.id),
             'remetente_nome': nome,
             'mensagem': self.mensagem,
-            'titulo': f'Buzz — {nome}',
-            'corpo': self.mensagem or 'Alguém está te chamando.',
+            'titulo': titulo,
+            'corpo': corpo,
             'url': f'/?buzina={self.id}',
         }
 

@@ -45,8 +45,19 @@
     return resposta.json();
   }
 
+  let gestoDoUsuarioAtivo = false;
+
+  function marcarGestoDoUsuario() {
+    gestoDoUsuarioAtivo = true;
+  }
+
   function vibrar() {
-    if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
+    if (!gestoDoUsuarioAtivo || !navigator.vibrate) return;
+    try {
+      navigator.vibrate([200, 100, 200, 100, 400]);
+    } catch {
+      /* Chrome bloqueia sem gesto prévio no frame */
+    }
   }
 
   const SomBuzz = (() => {
@@ -125,18 +136,15 @@
 
     return {
       obterContexto,
-      iniciarSainte() {
-        loopSainte = iniciarPadrao(
-          pararSainte,
-          0.14,
-          1800,
-          [
-            [392, 0, 0.2, 0.4],
-            [523.25, 0.24, 0.22, 0.38],
-          ],
-        );
-      },
-      iniciarRecebido() {
+      async iniciarRecebido() {
+        const ctx = obterContexto();
+        if (ctx?.state === 'suspended') {
+          try {
+            await ctx.resume();
+          } catch {
+            /* autoplay bloqueado até gesto do usuário */
+          }
+        }
         loopRecebido = iniciarPadrao(
           pararRecebido,
           0.2,
@@ -148,14 +156,59 @@
           ],
         );
       },
+      iniciarSainte() {
+        loopSainte = iniciarPadrao(
+          pararSainte,
+          0.14,
+          1800,
+          [
+            [392, 0, 0.2, 0.4],
+            [523.25, 0.24, 0.22, 0.38],
+          ],
+        );
+      },
       pararSainte,
       pararRecebido,
       pararTodos,
     };
   })();
 
-  function desbloquearAudio() {
-    SomBuzz.obterContexto();
+  async function desbloquearAudio() {
+    marcarGestoDoUsuario();
+    const ctx = SomBuzz.obterContexto();
+    if (ctx?.state === 'suspended') {
+      try {
+        await ctx.resume();
+      } catch {
+        /* ignora */
+      }
+    }
+  }
+
+  let audioFallbackRecebido = null;
+
+  async function tocarSomAlertaRecebido() {
+    await desbloquearAudio();
+    await SomBuzz.iniciarRecebido();
+
+    if (!audioFallbackRecebido) {
+      audioFallbackRecebido = new Audio('/static/sounds/buzina.wav');
+      audioFallbackRecebido.loop = true;
+    }
+    try {
+      audioFallbackRecebido.currentTime = 0;
+      await audioFallbackRecebido.play();
+    } catch {
+      /* Web Audio ou gesto do usuário cobre depois */
+    }
+  }
+
+  function pararSomAlertaRecebido() {
+    SomBuzz.pararRecebido();
+    if (audioFallbackRecebido) {
+      audioFallbackRecebido.pause();
+      audioFallbackRecebido.currentTime = 0;
+    }
   }
 
   function bloquearScroll() {
@@ -256,13 +309,14 @@
     alerta.classList.remove('hidden');
     bloquearScroll();
     vibrar();
-    SomBuzz.iniciarRecebido();
+    tocarSomAlertaRecebido();
+    alerta.addEventListener('pointerdown', () => tocarSomAlertaRecebido(), { once: true });
     incrementarContadorNotificacoes();
     window.BuzzPush?.fecharNotificacoesPorTag(dados.buzina_id);
   }
 
   function ocultarAlertaRecebido() {
-    SomBuzz.pararRecebido();
+    pararSomAlertaRecebido();
     document.getElementById('alerta-buzina')?.classList.add('hidden');
     if (!document.getElementById('chamada-sainte')?.classList.contains('hidden')) return;
     liberarScroll();
@@ -1269,10 +1323,18 @@
   resetarAnelProgresso();
 
   if (document.body.dataset.usuarioAutenticado === 'true') {
+    const ativarGesto = () => marcarGestoDoUsuario();
+    document.addEventListener('pointerdown', ativarGesto, { once: true });
+    document.addEventListener('keydown', ativarGesto, { once: true });
     document.addEventListener('pointerdown', desbloquearAudio, { once: true });
     document.addEventListener('keydown', desbloquearAudio, { once: true });
     conectarWebSocket();
     window.mostrarToastPush = mostrarToast;
+    window.BuzzSom = {
+      desbloquear: desbloquearAudio,
+      tocarRecebido: tocarSomAlertaRecebido,
+      pararRecebido: pararSomAlertaRecebido,
+    };
     window.BuzzPush?.iniciar(mostrarAlertaRecebido);
   }
 

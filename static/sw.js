@@ -20,21 +20,39 @@ self.addEventListener('push', (event) => {
     dados = { titulo: 'Buzz', corpo: event.data.text() };
   }
 
-  const titulo = dados.titulo || `Buzz — ${dados.remetente_nome || 'Chamada'}`;
+  const nome = dados.remetente_nome || 'Alguém';
+  const msg = (dados.mensagem || '').trim();
+  const titulo = dados.titulo || (msg ? `${nome} te buzinou` : `Chamada urgente — ${nome}`);
+  const corpo = dados.corpo || (msg ? `"${msg}" — toque para responder agora` : `${nome} precisa da sua atenção. Toque para abrir.`);
+
   const opcoes = {
-    body: dados.corpo || dados.mensagem || 'Alguém está te chamando.',
+    body: corpo,
     tag: dados.buzina_id || 'buzz-chamada',
     renotify: true,
     requireInteraction: true,
+    silent: false,
+    sound: '/static/sounds/buzina.wav',
+    vibrate: [200, 100, 200, 100, 400],
     icon: '/static/icons/icon-192.png',
     badge: '/static/icons/icon-192.png',
     data: {
       url: dados.url || '/',
       buzina_id: dados.buzina_id,
+      remetente_nome: dados.remetente_nome,
+      mensagem: dados.mensagem,
     },
   };
 
-  event.waitUntil(self.registration.showNotification(titulo, opcoes));
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(titulo, opcoes),
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientes) => {
+        clientes.forEach((cliente) => {
+          cliente.postMessage({ tipo: 'buzina_push', ...dados, titulo, corpo });
+        });
+      }),
+    ]),
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
@@ -89,6 +107,8 @@ self.addEventListener('activate', (event) => {
 const PRECACHE = [
   { url: '/static/css/buzz.css', revision: null },
   { url: '/static/js/buzz.js', revision: null },
+  { url: '/static/js/push.js', revision: null },
+  { url: '/static/sounds/buzina.wav', revision: null },
   { url: '/static/icons/icon-192.png', revision: null },
   { url: '/', revision: null },
 ];
