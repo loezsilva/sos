@@ -24,8 +24,9 @@ class ServicoPush:
     @classmethod
     def inscrever(cls, usuario, endpoint, p256dh, auth, user_agent=''):
         from apps.dashboard.models import InscricaoPush
+        from apps.dashboard.presenca import Presenca
 
-        return InscricaoPush.objects.update_or_create(
+        resultado = InscricaoPush.objects.update_or_create(
             endpoint=endpoint,
             defaults={
                 'usuario': usuario,
@@ -34,15 +35,20 @@ class ServicoPush:
                 'user_agent': (user_agent or '')[:255],
             },
         )
+        Presenca.sincronizar_por_push(usuario.id)
+        return resultado
 
     @classmethod
     def desinscrever(cls, usuario, endpoint=None):
         from apps.dashboard.models import InscricaoPush
+        from apps.dashboard.presenca import Presenca
 
         filtro = InscricaoPush.objects.filter(usuario=usuario)
         if endpoint:
             filtro = filtro.filter(endpoint=endpoint)
-        return filtro.delete()[0]
+        removidas = filtro.delete()[0]
+        Presenca.sincronizar_por_push(usuario.id)
+        return removidas
 
     @classmethod
     def enviar_buzina(cls, buzina):

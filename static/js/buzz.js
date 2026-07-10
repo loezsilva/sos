@@ -52,6 +52,10 @@
   }
 
   function vibrar() {
+    if (window.BuzzNativo?.ehAppNativo) {
+      window.BuzzPushNativo?.vibrarNativo?.();
+      return;
+    }
     if (!gestoDoUsuarioAtivo || !navigator.vibrate) return;
     try {
       navigator.vibrate([200, 100, 200, 100, 400]);
@@ -1324,10 +1328,15 @@
 
   if (document.body.dataset.usuarioAutenticado === 'true') {
     const ativarGesto = () => marcarGestoDoUsuario();
-    document.addEventListener('pointerdown', ativarGesto, { once: true });
-    document.addEventListener('keydown', ativarGesto, { once: true });
-    document.addEventListener('pointerdown', desbloquearAudio, { once: true });
-    document.addEventListener('keydown', desbloquearAudio, { once: true });
+    if (!window.Capacitor?.isNativePlatform?.()) {
+      document.addEventListener('pointerdown', ativarGesto, { once: true });
+      document.addEventListener('keydown', ativarGesto, { once: true });
+      document.addEventListener('pointerdown', desbloquearAudio, { once: true });
+      document.addEventListener('keydown', desbloquearAudio, { once: true });
+    } else {
+      marcarGestoDoUsuario();
+      desbloquearAudio();
+    }
     conectarWebSocket();
     window.mostrarToastPush = mostrarToast;
     window.BuzzSom = {
@@ -1335,6 +1344,7 @@
       tocarRecebido: tocarSomAlertaRecebido,
       pararRecebido: pararSomAlertaRecebido,
     };
+    window.BuzzPushNativo?.iniciar(mostrarAlertaRecebido);
     window.BuzzPush?.iniciar(mostrarAlertaRecebido);
   }
 

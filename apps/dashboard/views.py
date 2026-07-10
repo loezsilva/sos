@@ -7,9 +7,10 @@ from django.views.generic import DetailView, RedirectView, TemplateView
 import json
 import os
 
-from apps.dashboard.models import Buzina, InscricaoPush, MembroCirculo, StatusPresenca
+from apps.dashboard.models import Buzina, InscricaoNativa, InscricaoPush, MembroCirculo, StatusPresenca
 from apps.dashboard.presenca import Presenca
 from apps.dashboard.push import ServicoPush
+from apps.dashboard.push_nativo import ServicoPushNativo
 
 
 class PaginaInicioView(TemplateView):
@@ -65,7 +66,11 @@ class PaginaConfiguracoesView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         contexto['push_configurado'] = ServicoPush.configurado()
+        contexto['push_nativo_configurado'] = ServicoPushNativo.configurado()
         contexto['push_ativo'] = InscricaoPush.objects.filter(
+            usuario=self.request.user,
+        ).exists()
+        contexto['push_nativo_ativo'] = InscricaoNativa.objects.filter(
             usuario=self.request.user,
         ).exists()
         return contexto
@@ -303,3 +308,46 @@ class BuzinasPendentesView(LoginRequiredMixin, View):
             for b in Buzina.pendentes_ativas_para(request.user)
         ]
         return JsonResponse({'ok': True, 'pendentes': pendentes})
+
+
+class InscreverPushNativoView(LoginRequiredMixin, View):
+    def post(self, request):
+        if not ServicoPushNativo.configurado():
+            return JsonResponse({'erro': 'Push nativo não configurado no servidor.'}, status=503)
+
+        token = request.POST.get('token')
+        plataforma = request.POST.get('plataforma')
+        device_id = request.POST.get('device_id', '')
+
+        if not token:
+            try:
+                dados = json.loads(request.body or '{}')
+            except json.JSONDecodeError:
+                dados = {}
+            token = dados.get('token')
+            plataforma = plataforma or dados.get('plataforma')
+            device_id = device_id or dados.get('device_id', '')
+
+        if not token or plataforma not in ('android', 'ios'):
+            return JsonResponse({'erro': 'Token ou plataforma inválidos.'}, status=400)
+
+        ServicoPushNativo.inscrever(
+            request.user,
+            token=token,
+            plataforma=plataforma,
+            device_id=device_id,
+        )
+        return JsonResponse({'ok': True})
+
+
+class DesinscreverPushNativoView(LoginRequiredMixin, View):
+    def post(self, request):
+        token = request.POST.get('token')
+        if not token:
+            try:
+                dados = json.loads(request.body or '{}')
+            except json.JSONDecodeError:
+                dados = {}
+            token = dados.get('token')
+        removidas = ServicoPushNativo.desinscrever(request.user, token=token)
+        return JsonResponse({'ok': True, 'removidas': removidas})

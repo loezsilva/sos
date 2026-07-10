@@ -6,6 +6,7 @@ import json
 from apps.accounts.models import User
 from apps.dashboard.models import Buzina, MembroCirculo, StatusPresenca
 from apps.dashboard.presenca import Presenca
+from apps.dashboard.push_nativo import ServicoPushNativo
 
 
 @pytest.fixture
@@ -118,7 +119,8 @@ def circulo_bidirecional(usuarios):
 
 @pytest.mark.django_db
 class TestNaoPerturbe:
-    def test_pode_buzinar_ocupado_apenas_favorito(self, usuarios, circulo_bidirecional):
+    @patch('apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True)
+    def test_pode_buzinar_ocupado_apenas_favorito(self, mock_alcancavel, usuarios, circulo_bidirecional):
         alice, bob = usuarios
         alice_bob, bob_alice = circulo_bidirecional
         MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OCUPADO)
@@ -130,8 +132,8 @@ class TestNaoPerturbe:
         bob_alice.save(update_fields=['eh_vip'])
         assert alice_bob.pode_buzinar is True
 
-    @patch('apps.dashboard.presenca.Presenca.esta_conectado', return_value=True)
-    def test_favoritos_mutuos_veem_online_em_nao_perturbe(self, mock_conectado, usuarios, circulo_bidirecional):
+    @patch('apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True)
+    def test_favoritos_mutuos_veem_online_em_nao_perturbe(self, mock_alcancavel, usuarios, circulo_bidirecional):
         alice, bob = usuarios
         alice_bob, bob_alice = circulo_bidirecional
         alice_bob.eh_vip = True
@@ -146,8 +148,11 @@ class TestNaoPerturbe:
             bob.id, alice.id, StatusPresenca.OCUPADO,
         ) == StatusPresenca.ONLINE
 
+    @patch('apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True)
     @patch.object(Buzina, '_notificar')
-    def test_enviar_silenciada_quando_ocupado_nao_vip(self, mock_notificar, usuarios, circulo_bidirecional):
+    def test_enviar_silenciada_quando_ocupado_nao_vip(
+        self, mock_notificar, mock_alcancavel, usuarios, circulo_bidirecional,
+    ):
         alice, bob = usuarios
         alice_bob, _ = circulo_bidirecional
         MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OCUPADO)
@@ -158,8 +163,11 @@ class TestNaoPerturbe:
         assert buzina.lida_em is None
         mock_notificar.assert_not_called()
 
+    @patch('apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True)
     @patch.object(Buzina, '_notificar')
-    def test_enviar_normal_quando_vip_em_nao_perturbe(self, mock_notificar, usuarios, circulo_bidirecional):
+    def test_enviar_normal_quando_vip_em_nao_perturbe(
+        self, mock_notificar, mock_alcancavel, usuarios, circulo_bidirecional,
+    ):
         alice, bob = usuarios
         alice_bob, bob_alice = circulo_bidirecional
         MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OCUPADO)
@@ -197,9 +205,11 @@ class TestNaoPerturbe:
 
     @patch.object(Buzina, '_notificar')
     @patch('apps.dashboard.presenca.Presenca.notificar_circulo')
+    @patch('apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True)
     @patch('apps.dashboard.presenca.Presenca.esta_conectado', return_value=True)
     def test_fluxo_nao_perturbe_integracao(
-        self, mock_conectado, mock_presenca, mock_notificar, client, usuarios, circulo_bidirecional,
+        self, mock_conectado, mock_alcancavel, mock_presenca, mock_notificar,
+        client, usuarios, circulo_bidirecional,
     ):
         alice, bob = usuarios
         alice_bob, bob_alice = circulo_bidirecional
@@ -219,6 +229,84 @@ class TestNaoPerturbe:
         buzina_vip = Buzina.enviar(bob, alice.id)
         assert buzina_vip.silenciada is False
         mock_notificar.assert_called_once()
+
+
+@pytest.mark.django_db
+class TestPresencaPush:
+    @patch('apps.dashboard.presenca.Presenca.notificar_circulo')
+    @patch('apps.dashboard.presenca.Presenca.esta_conectado', return_value=False)
+    def test_push_mantem_online_sem_websocket(
+        self, mock_conectado, mock_notificar, usuarios, circulo_bidirecional,
+    ):
+        from apps.dashboard.models import InscricaoPush
+
+        alice, bob = usuarios
+        alice_bob, _ = circulo_bidirecional
+        MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OFFLINE)
+        alice_bob.refresh_from_db()
+
+        assert alice_bob.status_para_dono() == StatusPresenca.OFFLINE
+        assert alice_bob.pode_buzinar is False
+
+        InscricaoPush.objects.create(
+            usuario=bob,
+            endpoint='https://push.example.com/bob',
+            p256dh='chave',
+            auth='auth',
+        )
+        Presenca.sincronizar_por_push(bob.id)
+        alice_bob.refresh_from_db()
+
+        assert Presenca.esta_alcancavel(bob.id) is True
+        assert alice_bob.status_para_dono() == StatusPresenca.ONLINE
+        assert alice_bob.pode_buzinar is True
+        assert alice_bob.status == StatusPresenca.ONLINE
+        mock_notificar.assert_called()
+
+    @patch('apps.dashboard.presenca.Presenca.notificar_circulo')
+    @patch('apps.dashboard.presenca.Presenca.esta_conectado', return_value=False)
+    def test_confirmar_offline_nao_apaga_quem_tem_push(
+        self, mock_conectado, mock_notificar, usuarios, circulo_bidirecional,
+    ):
+        from apps.dashboard.models import InscricaoPush
+
+        _, bob = usuarios
+        InscricaoPush.objects.create(
+            usuario=bob,
+            endpoint='https://push.example.com/bob2',
+            p256dh='chave',
+            auth='auth',
+        )
+        MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.ONLINE)
+
+        assert Presenca.confirmar_offline(bob.id) is False
+        assert MembroCirculo.objects.filter(
+            contato=bob, status=StatusPresenca.ONLINE,
+        ).exists()
+
+    @patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_buzina')
+    @patch('apps.dashboard.push.ServicoPush.enviar_buzina')
+    @patch.object(Buzina, '_notificar')
+    @patch('apps.dashboard.presenca.Presenca.esta_conectado', return_value=False)
+    def test_buzina_para_usuario_so_com_push(
+        self, mock_conectado, mock_notificar, mock_push, mock_nativo,
+        usuarios, circulo_bidirecional,
+    ):
+        from apps.dashboard.models import InscricaoPush
+
+        alice, bob = usuarios
+        MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OFFLINE)
+        InscricaoPush.objects.create(
+            usuario=bob,
+            endpoint='https://push.example.com/bob3',
+            p256dh='chave',
+            auth='auth',
+        )
+
+        buzina = Buzina.enviar(alice, bob.id)
+        assert buzina.silenciada is False
+        mock_notificar.assert_called_once()
+        mock_push.assert_called_once_with(buzina)
 
 
 @pytest.mark.django_db
@@ -262,10 +350,11 @@ class TestPushApi:
         assert resposta.status_code == 200
         assert InscricaoPush.objects.filter(usuario=alice).count() == 0
 
+    @patch('apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True)
     @patch('apps.dashboard.push.ServicoPush.enviar_buzina')
     @patch.object(Buzina, '_notificar')
     def test_push_nao_enviado_em_buzina_silenciada(
-        self, mock_notificar, mock_push, usuarios, circulo_bidirecional,
+        self, mock_notificar, mock_push, mock_alcancavel, usuarios, circulo_bidirecional,
     ):
         alice, bob = usuarios
         MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OCUPADO)
@@ -274,10 +363,11 @@ class TestPushApi:
         assert buzina.silenciada is True
         mock_push.assert_not_called()
 
+    @patch('apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True)
     @patch('apps.dashboard.push.ServicoPush.enviar_buzina')
     @patch.object(Buzina, '_notificar')
     def test_push_enviado_em_buzina_normal(
-        self, mock_notificar, mock_enviar, usuarios, circulo_bidirecional,
+        self, mock_notificar, mock_enviar, mock_alcancavel, usuarios, circulo_bidirecional,
     ):
         alice, bob = usuarios
         buzina = Buzina.enviar(alice, bob.id)
@@ -289,3 +379,52 @@ class TestPushApi:
         assert resposta.status_code == 200
         assert 'workbox' in resposta.content.decode().lower()
         assert resposta['Service-Worker-Allowed'] == '/'
+
+
+@pytest.mark.django_db
+class TestPushNativoApi:
+    TOKEN = 'fcm-token-exemplo-abc123'
+
+    def test_inscrever_sem_firebase(self, client, usuarios):
+        alice, _ = usuarios
+        client.force_login(alice)
+        with patch.object(ServicoPushNativo, 'configurado', return_value=False):
+            resposta = client.post(
+                reverse('dashboard:push_nativo_inscrever'),
+                {'token': self.TOKEN, 'plataforma': 'android'},
+            )
+        assert resposta.status_code == 503
+
+    def test_inscrever_e_desinscrever(self, client, usuarios):
+        from apps.dashboard.models import InscricaoNativa
+
+        alice, _ = usuarios
+        client.force_login(alice)
+
+        with patch.object(ServicoPushNativo, 'configurado', return_value=True):
+            resposta = client.post(
+                reverse('dashboard:push_nativo_inscrever'),
+                {'token': self.TOKEN, 'plataforma': 'android'},
+            )
+        assert resposta.status_code == 200
+        assert InscricaoNativa.objects.filter(usuario=alice, token=self.TOKEN).exists()
+
+        resposta = client.post(
+            reverse('dashboard:push_nativo_desinscrever'),
+            {'token': self.TOKEN},
+        )
+        assert resposta.status_code == 200
+        assert InscricaoNativa.objects.filter(usuario=alice).count() == 0
+
+    @patch('apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True)
+    @patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_buzina')
+    @patch('apps.dashboard.push.ServicoPush.enviar_buzina')
+    @patch.object(Buzina, '_notificar')
+    def test_buzina_dispara_push_nativo(
+        self, mock_notificar, mock_push_web, mock_push_nativo, mock_alcancavel,
+        usuarios, circulo_bidirecional,
+    ):
+        alice, bob = usuarios
+        buzina = Buzina.enviar(alice, bob.id)
+        mock_push_web.assert_called_once_with(buzina)
+        mock_push_nativo.assert_called_once_with(buzina)

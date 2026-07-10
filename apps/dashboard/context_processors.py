@@ -32,16 +32,18 @@ def disponibilidade(request):
         .values_list('status', flat=True)
         .first()
     ) or StatusPresenca.OFFLINE
-    conectado = Presenca.esta_conectado(request.user.id)
+    alcancavel = Presenca.esta_alcancavel(request.user.id)
 
-    if not conectado:
+    if not alcancavel:
         status_efetivo = StatusPresenca.OFFLINE
+    elif status_orm == StatusPresenca.OFFLINE:
+        status_efetivo = StatusPresenca.ONLINE
     else:
         status_efetivo = status_orm
 
     return {
         'disponibilidade_status': status_efetivo,
         'disponibilidade_preferencia': status_orm,
-        'disponibilidade_conectado': conectado,
+        'disponibilidade_conectado': alcancavel,
         'disponibilidade_usuario_id': str(request.user.id),
     }

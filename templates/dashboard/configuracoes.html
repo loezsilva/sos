@@ -11,19 +11,26 @@
     <p>Para receber chamadas em segundo plano, adicione o Buzz à <strong>Tela de Início</strong> (ícone Compartilhar → “Adicionar à Tela de Início”) e abra o app por lá.</p>
   </div>
 
+  <div id="banner-app-nativo" class="hidden mb-lg p-lg rounded-xl bg-surface-container border border-secondary/30 text-on-surface-variant text-sm">
+    <p class="font-label-bold text-on-surface mb-1">App Buzz instalado</p>
+    <p>Notificações nativas com <strong>som da buzina</strong> e vibração — sem limitações do navegador.</p>
+  </div>
+
   <section id="secao-push" class="p-lg rounded-xl bg-surface-container border border-white/5 sombra-neumorfica max-w-lg flex flex-col gap-sm">
     <h2 class="font-headline-md text-headline-md text-on-surface">Notificações em segundo plano</h2>
     <p id="status-push" class="text-on-surface-variant font-body-md">
-      {% if not push_configurado %}
+      {% if not push_configurado and not push_nativo_configurado %}
         Push ainda não configurado no servidor.
+      {% elif push_nativo_ativo %}
+        App nativo — notificações ativas com som do sistema.
       {% elif push_ativo %}
-        Ativo neste dispositivo.
+        Ativo neste dispositivo (navegador).
       {% else %}
-        Receba buzinas mesmo com a aba em segundo plano.
+        Receba buzinas mesmo com o app em segundo plano.
       {% endif %}
     </p>
 
-    {% if push_configurado %}
+    {% if push_configurado or push_nativo_configurado %}
       <button
         id="botao-push"
         type="button"

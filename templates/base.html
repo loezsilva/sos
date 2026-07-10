@@ -41,6 +41,7 @@
 
   {% block extra_js %}{% endblock %}
   {% if user.is_authenticated %}
+    <script src="{% static 'js/push-nativo.js' %}"></script>
     <script src="{% static 'js/push.js' %}"></script>
     <script src="{% static 'js/buzz.js' %}"></script>
   {% endif %}

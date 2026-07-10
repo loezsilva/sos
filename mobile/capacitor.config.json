@@ -1,0 +1,21 @@
+{
+  "appId": "com.buzz.app",
+  "appName": "Buzz",
+  "webDir": "dist",
+  "server": {
+    "url": "http://10.0.2.2:8000",
+    "cleartext": true,
+    "androidScheme": "https"
+  },
+  "android": {
+    "appendUserAgent": " BuzzApp/1.0"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  }
+}

@@ -336,3 +336,6 @@ OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
 VAPID_PUBLIC_KEY = config("VAPID_PUBLIC_KEY", default="")
 VAPID_PRIVATE_KEY = config("VAPID_PRIVATE_KEY", default="").replace("\\n", "\n")
 VAPID_ADMIN_EMAIL = config("VAPID_ADMIN_EMAIL", default="suporte@buzz.app")
+
+FIREBASE_CREDENTIALS_JSON = config("FIREBASE_CREDENTIALS_JSON", default="")
+GOOGLE_APPLICATION_CREDENTIALS = config("GOOGLE_APPLICATION_CREDENTIALS", default="")

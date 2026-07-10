@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "SUBSTITUA",
+    "project_id": "buzz-app-demo",
+    "storage_bucket": "buzz-app-demo.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:SUBSTITUA:android:SUBSTITUA",
+        "android_client_info": {
+          "package_name": "com.buzz.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "SUBSTITUA_PELA_CHAVE_DO_FIREBASE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

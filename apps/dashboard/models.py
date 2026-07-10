@@ -125,9 +125,12 @@ class MembroCirculo(BaseModel):
         """Status exibido ao dono do círculo (oculta não perturbe entre favoritos mútuos)."""
         from apps.dashboard.presenca import Presenca
 
+        if not Presenca.esta_alcancavel(self.contato_id):
+            return StatusPresenca.OFFLINE
+        if self.status == StatusPresenca.OFFLINE:
+            return StatusPresenca.ONLINE
         if (
             self.status == StatusPresenca.OCUPADO
-            and Presenca.esta_conectado(self.contato_id)
             and self.sao_favoritos_mutuos(self.contato_id, self.dono_id)
         ):
             return StatusPresenca.ONLINE
@@ -332,10 +335,12 @@ class Buzina(BaseModel):
 
     @classmethod
     def enviar(cls, remetente, destinatario_id, mensagem=''):
+        from apps.dashboard.presenca import Presenca
+
         membro = MembroCirculo.objects.filter(
             dono=remetente, contato_id=destinatario_id
         ).select_related('contato').first()
-        if not membro or membro.status == StatusPresenca.OFFLINE:
+        if not membro or not Presenca.esta_alcancavel(destinatario_id):
             raise ValueError('Contato indisponível para buzina.')
 
         eh_favorito = MembroCirculo.remetente_eh_favorito_de(destinatario_id, remetente.pk)
@@ -360,18 +365,21 @@ class Buzina(BaseModel):
         if not silenciada:
             cls._notificar(str(destinatario_id), 'buzina_recebida', buzina.payload_recebida())
             from apps.dashboard.push import ServicoPush
+            from apps.dashboard.push_nativo import ServicoPushNativo
+
             ServicoPush.enviar_buzina(buzina)
+            ServicoPushNativo.enviar_buzina(buzina)
         return buzina
 
     @classmethod
     def enviar_favoritos(cls, remetente, mensagem=''):
-        favoritos = (
-            MembroCirculo.objects.do_usuario(remetente)
-            .filter(eh_vip=True)
-            .exclude(status=StatusPresenca.OFFLINE)
-        )
+        from apps.dashboard.presenca import Presenca
+
+        favoritos = MembroCirculo.objects.do_usuario(remetente).filter(eh_vip=True)
         enviadas = []
         for membro in favoritos:
+            if not Presenca.esta_alcancavel(membro.contato_id):
+                continue
             try:
                 enviadas.append(cls.enviar(remetente, membro.contato_id, mensagem=mensagem))
             except ValueError:
@@ -486,6 +494,34 @@ class Buzina(BaseModel):
             f'buzz_{usuario_id}',
             {'type': tipo_evento, 'payload': payload},
         )
+
+
+class PlataformaNativa(models.TextChoices):
+    ANDROID = 'android', 'Android'
+    IOS = 'ios', 'iOS'
+
+
+class InscricaoNativa(BaseModel):
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='inscricoes_push_nativo',
+        verbose_name='Usuário',
+    )
+    token = models.CharField('Token FCM/APNs', max_length=512, unique=True)
+    plataforma = models.CharField(
+        'Plataforma',
+        max_length=10,
+        choices=PlataformaNativa.choices,
+    )
+    device_id = models.CharField('ID do dispositivo', max_length=255, blank=True, default='')
+
+    class Meta:
+        verbose_name = 'Inscrição push nativo'
+        verbose_name_plural = 'Inscrições push nativo'
+
+    def __str__(self):
+        return f'Push nativo ({self.plataforma}) de {self.usuario}'
 
 
 class InscricaoPush(BaseModel):

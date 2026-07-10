@@ -1,4 +1,6 @@
-# Byte-compiled / optimized / DLL files
+# Local tooling (JDK portátil, Android SDK)
+.tools/
+
 __pycache__/
 *.py[cod]
 *$py.class

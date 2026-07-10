@@ -7,7 +7,7 @@ from apps.dashboard.models import MembroCirculo, StatusPresenca
 
 
 class Presenca:
-    """Presença efetiva baseada em conexões WebSocket (Redis)."""
+    """Presença efetiva: WebSocket (Redis) e/ou push ativo."""
 
     DEBOUNCE_SEGUNDOS = 2
     TTL_SEGUNDOS = 90
@@ -29,6 +29,30 @@ class Presenca:
     @classmethod
     def esta_conectado(cls, usuario_id):
         return cls._redis().scard(cls._chave(usuario_id)) > 0
+
+    @classmethod
+    def tem_push(cls, usuario_id):
+        from apps.dashboard.models import InscricaoNativa, InscricaoPush
+
+        return (
+            InscricaoPush.objects.filter(usuario_id=usuario_id).exists()
+            or InscricaoNativa.objects.filter(usuario_id=usuario_id).exists()
+        )
+
+    @classmethod
+    def esta_alcancavel(cls, usuario_id):
+        """Online efetivo: aba conectada ou push cadastrado."""
+        return cls.esta_conectado(usuario_id) or cls.tem_push(usuario_id)
+
+    @classmethod
+    def sincronizar_por_push(cls, usuario_id):
+        """Atualiza espelho/notificação após inscrever ou desinscrever push."""
+        if cls.tem_push(usuario_id):
+            cls.espelhar_online(usuario_id)
+            cls.notificar_circulo(usuario_id)
+            return
+        if not cls.esta_conectado(usuario_id):
+            cls.confirmar_offline(usuario_id)
 
     @classmethod
     def renovar(cls, usuario_id):
@@ -82,8 +106,8 @@ class Presenca:
 
     @classmethod
     def confirmar_offline(cls, usuario_id):
-        """Marca offline se ainda não houver conexões. Retorna True se aplicou."""
-        if cls.esta_conectado(usuario_id):
+        """Marca offline se não houver WS nem push. Retorna True se aplicou."""
+        if cls.esta_alcancavel(usuario_id):
             return False
         cls.espelhar_offline(usuario_id)
         cls.notificar_circulo(usuario_id, forcar_status=StatusPresenca.OFFLINE)
@@ -123,11 +147,13 @@ class Presenca:
         return status
 
     @classmethod
-    def status_para_espectador(cls, usuario_id, espectador_id, status, conectado=None):
-        if conectado is None:
-            conectado = cls.esta_conectado(usuario_id)
-        if not conectado:
+    def status_para_espectador(cls, usuario_id, espectador_id, status, alcancavel=None):
+        if alcancavel is None:
+            alcancavel = cls.esta_alcancavel(usuario_id)
+        if not alcancavel:
             return StatusPresenca.OFFLINE
+        if status == StatusPresenca.OFFLINE:
+            return StatusPresenca.ONLINE
         if (
             status == StatusPresenca.OCUPADO
             and MembroCirculo.sao_favoritos_mutuos(usuario_id, espectador_id)
@@ -145,14 +171,14 @@ class Presenca:
             .only('status', 'contato_id', 'contato__name', 'contato__username')
         )
         for membro in membros:
-            conectado = cls.esta_conectado(membro.contato_id)
-            if conectado and membro.status == StatusPresenca.OFFLINE:
+            alcancavel = cls.esta_alcancavel(membro.contato_id)
+            if alcancavel and membro.status == StatusPresenca.OFFLINE:
                 # Corrige espelho atrasado sem tocar em ocupado
                 MembroCirculo.objects.filter(pk=membro.pk).exclude(
                     status=StatusPresenca.OCUPADO,
                 ).update(status=StatusPresenca.ONLINE, updated_at=timezone.now())
                 status = StatusPresenca.ONLINE
-            elif not conectado:
+            elif not alcancavel:
                 # Exibe offline ao círculo, mas preserva ocupado (não perturbe) no espelho
                 if membro.status != StatusPresenca.OCUPADO:
                     MembroCirculo.objects.filter(pk=membro.pk).update(
@@ -163,7 +189,9 @@ class Presenca:
             else:
                 status = membro.status
 
-            status = cls.status_para_espectador(membro.contato_id, dono_id, status, conectado)
+            status = cls.status_para_espectador(
+                membro.contato_id, dono_id, status, alcancavel,
+            )
             contato = membro.contato
             payloads.append({
                 'tipo': 'presenca_atualizada',
@@ -188,11 +216,13 @@ class Presenca:
 
         nome = usuario.name or usuario.username
         membros = MembroCirculo.objects.filter(contato_id=usuario_id).only('dono_id', 'status')
+        alcancavel = cls.esta_alcancavel(usuario_id)
 
         for membro in membros:
             status = forcar_status or membro.status
-            conectado = cls.esta_conectado(usuario_id)
-            status = cls.status_para_espectador(usuario_id, membro.dono_id, status, conectado)
+            status = cls.status_para_espectador(
+                usuario_id, membro.dono_id, status, alcancavel,
+            )
             async_to_sync(canal.group_send)(
                 f'buzz_{membro.dono_id}',
                 {

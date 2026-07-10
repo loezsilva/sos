@@ -299,6 +299,10 @@
 
   async function iniciar(mostrarAlerta) {
     if (document.body.dataset.usuarioAutenticado !== 'true') return;
+    if (window.BuzzPushNativo?.ehAppNativo?.()) {
+      window.BuzzPushNativo.iniciar(mostrarAlerta);
+      return;
+    }
     if (!suportaPush()) return;
 
     try {
