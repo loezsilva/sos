@@ -10,6 +10,7 @@ requests==2.31.0
 dj-database-url==0.5.0
 psycopg2-binary==2.9.3
 django-redis
+redis==5.2.1
 channels[daphne]
 channels-redis
 uvicorn[standard]
