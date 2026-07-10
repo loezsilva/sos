@@ -11,6 +11,7 @@
   {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-background text-on-background min-h-screen font-body-md relative flex flex-col selection:bg-primary-container selection:text-on-primary-container {% block body_overflow %}overflow-hidden{% endblock %}"{% if user.is_authenticated %} data-usuario-autenticado="true"{% endif %}>
+  {% if user.is_authenticated %}{% csrf_token %}{% endif %}
   <div class="absolute inset-0 pointer-events-none overflow-hidden z-[-1]">
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[100px]"></div>
   </div>

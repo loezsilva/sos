@@ -5,8 +5,8 @@
   data-status="{{ membro.status }}"
   data-chamar-url="{% url 'dashboard:chamar_contato' membro.id %}"
 >
-  <a href="{% url 'dashboard:chamar_contato' membro.id %}" class="flex items-center justify-between gap-4 no-underline {% if not membro.pode_buzinar %}pointer-events-none{% endif %}">
-    <div class="flex items-center gap-4 min-w-0">
+  <div class="flex items-center justify-between gap-4">
+    <a href="{% url 'dashboard:chamar_contato' membro.id %}" class="flex items-center gap-4 min-w-0 flex-1 no-underline {% if not membro.pode_buzinar %}pointer-events-none{% endif %}">
       <div class="relative shrink-0">
         {% if membro.contato.avatar %}
           <img class="w-14 h-14 rounded-full object-cover border-2 border-surface-container-lowest" src="{{ membro.contato.avatar.url }}" alt="{{ membro.nome_exibicao }}">
@@ -21,9 +21,24 @@
         <h3 class="font-button-text text-button-text text-on-surface truncate">{{ membro.nome_exibicao }}</h3>
         <p class="card-membro-status font-label-bold text-label-bold {{ membro.classe_cor_status }} mt-1">{{ membro.get_status_display }}</p>
       </div>
+    </a>
+    <div class="flex items-center gap-2 shrink-0">
+      <button
+        type="button"
+        class="botao-favorito w-10 h-10 rounded-full flex items-center justify-center sombra-neumorfica transition-colors {% if membro.eh_vip %}bg-tertiary-container text-on-tertiary-container{% else %}bg-surface-container text-outline hover:text-tertiary{% endif %}"
+        data-alternar-favorito="{{ membro.id }}"
+        aria-label="{% if membro.eh_vip %}Remover dos favoritos{% else %}Marcar como favorito{% endif %}"
+        aria-pressed="{{ membro.eh_vip|yesno:'true,false' }}"
+      >
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' {% if membro.eh_vip %}1{% else %}0{% endif %};">star</span>
+      </button>
+      <a
+        href="{% url 'dashboard:chamar_contato' membro.id %}"
+        class="card-membro-bolt shrink-0 w-10 h-10 rounded-full flex items-center justify-center sombra-neumorfica no-underline {% if membro.pode_buzinar %}bg-primary-container text-on-primary-container pulso-buzz{% else %}bg-surface-container text-outline pointer-events-none{% endif %}"
+        aria-label="Chamar {{ membro.nome_exibicao }}"
+      >
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' {% if membro.pode_buzinar %}1{% else %}0{% endif %};">bolt</span>
+      </a>
     </div>
-    <div class="card-membro-bolt shrink-0 w-10 h-10 rounded-full flex items-center justify-center sombra-neumorfica {% if membro.pode_buzinar %}bg-primary-container text-on-primary-container pulso-buzz{% else %}bg-surface-container text-outline{% endif %}">
-      <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' {% if membro.pode_buzinar %}1{% else %}0{% endif %};">bolt</span>
-    </div>
-  </a>
+  </div>
 </div>

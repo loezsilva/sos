@@ -13,18 +13,20 @@ class PaginaInicioView(TemplateView):
         contexto = super().get_context_data(**kwargs)
         if self.request.user.is_authenticated:
             membros = MembroCirculo.objects.do_usuario(self.request.user)
+            favoritos = membros.filter(eh_vip=True)
             contexto['total_chamadas'] = Buzina.objects.filter(
                 destinatario=self.request.user,
             ).count()
             contexto['total_online'] = membros.filter(status=StatusPresenca.ONLINE).count()
-            contexto['contato_principal'] = (
-                membros.filter(status=StatusPresenca.ONLINE).first()
-                or membros.first()
-            )
+            contexto['favoritos'] = favoritos
+            contexto['pode_buzinar_favoritos'] = favoritos.exclude(
+                status=StatusPresenca.OFFLINE,
+            ).exists()
         else:
             contexto['total_chamadas'] = 0
             contexto['total_online'] = 0
-            contexto['contato_principal'] = None
+            contexto['favoritos'] = MembroCirculo.objects.none()
+            contexto['pode_buzinar_favoritos'] = False
         return contexto
 
 
@@ -82,6 +84,40 @@ class EnviarBuzinaView(LoginRequiredMixin, View):
                 buzina.destinatario.avatar.url if buzina.destinatario.avatar else ''
             ),
         })
+
+
+class EnviarBuzinaFavoritosView(LoginRequiredMixin, View):
+    def post(self, request):
+        mensagem = request.POST.get('mensagem', '').strip()[:80]
+        try:
+            buzinas = Buzina.enviar_favoritos(request.user, mensagem=mensagem)
+        except ValueError as erro:
+            return JsonResponse({'erro': str(erro)}, status=400)
+
+        return JsonResponse({
+            'ok': True,
+            'buzinas': [
+                {
+                    'buzina_id': str(b.id),
+                    'destinatario_nome': b.destinatario.name or b.destinatario.username,
+                    'destinatario_avatar': (
+                        b.destinatario.avatar.url if b.destinatario.avatar else ''
+                    ),
+                }
+                for b in buzinas
+            ],
+        })
+
+
+class AlternarFavoritoView(LoginRequiredMixin, View):
+    def post(self, request, membro_id):
+        membro = MembroCirculo.objects.do_usuario(request.user).filter(pk=membro_id).first()
+        if not membro:
+            return JsonResponse({'erro': 'Membro não encontrado.'}, status=404)
+
+        membro.eh_vip = not membro.eh_vip
+        membro.save(update_fields=['eh_vip', 'updated_at'])
+        return JsonResponse({'ok': True, 'eh_favorito': membro.eh_vip})
 
 
 class ResponderBuzinaView(LoginRequiredMixin, View):

@@ -47,7 +47,7 @@ class MembroCirculo(BaseModel):
         choices=StatusPresenca.choices,
         default=StatusPresenca.OFFLINE,
     )
-    eh_vip = models.BooleanField('VIP', default=False)
+    eh_vip = models.BooleanField('Favorito', default=False)
 
     objects = MembroCirculoQuerySet.as_manager()
 
@@ -185,6 +185,23 @@ class Buzina(BaseModel):
         )
         cls._notificar(str(destinatario_id), 'buzina_recebida', buzina.payload_recebida())
         return buzina
+
+    @classmethod
+    def enviar_favoritos(cls, remetente, mensagem=''):
+        favoritos = (
+            MembroCirculo.objects.do_usuario(remetente)
+            .filter(eh_vip=True)
+            .exclude(status=StatusPresenca.OFFLINE)
+        )
+        enviadas = []
+        for membro in favoritos:
+            try:
+                enviadas.append(cls.enviar(remetente, membro.contato_id, mensagem=mensagem))
+            except ValueError:
+                continue
+        if not enviadas:
+            raise ValueError('Nenhum favorito disponível para buzinar.')
+        return enviadas
 
     def responder(self, resposta_rapida=None, recusar=False, atender=False):
         if recusar:

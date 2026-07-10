@@ -110,6 +110,14 @@
   .anel-progresso-carga.carregando {
     transition: none;
   }
+
+  .slider-nome-ativo {
+    animation: slider-nome-entrar 0.45s ease-out;
+  }
+
+  .slider-nome-sair {
+    animation: slider-nome-sair 0.35s ease-in forwards;
+  }
 }
 
 @keyframes efeito-ripple {
@@ -158,5 +166,27 @@
   100% {
     transform: scale(2.5);
     opacity: 0;
+  }
+}
+
+@keyframes slider-nome-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slider-nome-sair {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-12px);
   }
 }

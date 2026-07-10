@@ -2,25 +2,45 @@
   const csrfToken = document.cookie.match(/csrftoken=([^;]+)/)?.[1];
   const TEMPO_MAXIMO_ESPERA_MS = 45000;
   const CIRCUNFERENCIA_ANEL = 2 * Math.PI * 46;
+  const INTERVALO_SLIDER_MS = 2200;
   let buzinaRecebida = null;
   let buzinaSainte = null;
+  let buzinasSaintes = [];
   let socket = null;
   let timeoutFecharChamada = null;
   let timeoutChamada = null;
   let pressionarSegurar = null;
+  let intervaloSlider = null;
+  let indiceSlider = 0;
 
   function obterCookie(nome) {
     return document.cookie.match(new RegExp(`${nome}=([^;]+)`))?.[1];
   }
 
+  function obterCsrfToken() {
+    return (
+      obterCookie('csrftoken')
+      || csrfToken
+      || document.querySelector('[name=csrfmiddlewaretoken]')?.value
+      || ''
+    );
+  }
+
   async function postForm(url, dados) {
     const form = new FormData();
     Object.entries(dados).forEach(([chave, valor]) => form.append(chave, valor));
+    const token = obterCsrfToken();
+    if (token) form.append('csrfmiddlewaretoken', token);
     const resposta = await fetch(url, {
       method: 'POST',
-      headers: { 'X-CSRFToken': obterCookie('csrftoken') || csrfToken },
+      headers: token ? { 'X-CSRFToken': token } : {},
       body: form,
+      credentials: 'same-origin',
     });
+    const tipo = resposta.headers.get('content-type') || '';
+    if (!tipo.includes('application/json')) {
+      return { erro: resposta.ok ? 'Resposta inválida.' : `Erro ${resposta.status}` };
+    }
     return resposta.json();
   }
 
@@ -48,6 +68,56 @@
   function limparTimerChamada() {
     clearTimeout(timeoutChamada);
     timeoutChamada = null;
+  }
+
+  function pararSliderNomes() {
+    clearInterval(intervaloSlider);
+    intervaloSlider = null;
+    indiceSlider = 0;
+    const slider = document.getElementById('chamada-slider');
+    const destinatario = document.getElementById('chamada-destinatario');
+    if (slider) slider.classList.add('hidden');
+    if (destinatario) destinatario.classList.remove('hidden');
+  }
+
+  function mostrarNomeSlider(nome) {
+    const el = document.getElementById('chamada-slider-nome');
+    if (!el) return;
+    el.classList.remove('slider-nome-ativo', 'slider-nome-sair');
+    // Força reflow para reiniciar animação
+    void el.offsetWidth;
+    el.textContent = nome;
+    el.classList.add('slider-nome-ativo');
+  }
+
+  function iniciarSliderNomes(nomes) {
+    pararSliderNomes();
+    const lista = (nomes || []).filter(Boolean);
+    const slider = document.getElementById('chamada-slider');
+    const destinatario = document.getElementById('chamada-destinatario');
+    if (!lista.length) return;
+
+    if (lista.length === 1) {
+      if (destinatario) {
+        destinatario.textContent = lista[0];
+        destinatario.classList.remove('hidden');
+      }
+      if (slider) slider.classList.add('hidden');
+      return;
+    }
+
+    if (destinatario) destinatario.classList.add('hidden');
+    if (slider) slider.classList.remove('hidden');
+    indiceSlider = 0;
+    mostrarNomeSlider(lista[0]);
+    intervaloSlider = setInterval(() => {
+      indiceSlider = (indiceSlider + 1) % lista.length;
+      const el = document.getElementById('chamada-slider-nome');
+      if (!el) return;
+      el.classList.remove('slider-nome-ativo');
+      el.classList.add('slider-nome-sair');
+      setTimeout(() => mostrarNomeSlider(lista[indiceSlider]), 320);
+    }, INTERVALO_SLIDER_MS);
   }
 
   function mostrarAlertaRecebido(dados) {
@@ -87,6 +157,11 @@
 
   function mostrarChamadaSainte(dados) {
     buzinaSainte = dados.buzina_id;
+    buzinasSaintes = dados.buzinas || [{
+      buzina_id: dados.buzina_id,
+      destinatario_nome: dados.destinatario_nome,
+      destinatario_avatar: dados.destinatario_avatar,
+    }];
     const tela = document.getElementById('chamada-sainte');
     const titulo = document.getElementById('chamada-titulo');
     const subtitulo = document.getElementById('chamada-subtitulo');
@@ -101,11 +176,16 @@
     limparTimerChamada();
     clearTimeout(timeoutFecharChamada);
 
-    titulo.textContent = 'Buzinando...';
-    subtitulo.textContent = 'Aguardando resposta';
+    const nomes = buzinasSaintes.map((b) => b.destinatario_nome);
+    const multi = buzinasSaintes.length > 1;
+
+    titulo.textContent = multi ? 'Buzinando favoritos...' : 'Buzinando...';
+    subtitulo.textContent = multi
+      ? `${buzinasSaintes.length} contatos`
+      : 'Aguardando resposta';
     subtitulo.classList.add('animate-pulse', 'text-secondary');
     subtitulo.classList.remove('text-error', 'text-outline');
-    destinatario.textContent = dados.destinatario_nome;
+    destinatario.textContent = nomes[0] || '—';
     const textoMensagem = (dados.mensagem || '').trim();
     if (textoMensagem) {
       mensagem.textContent = textoMensagem;
@@ -119,9 +199,11 @@
     encerrarLabel.textContent = 'Encerrar';
     definirAvatar(
       document.getElementById('chamada-avatar'),
-      dados.destinatario_nome,
-      dados.destinatario_avatar,
+      nomes[0] || 'Contato',
+      buzinasSaintes[0]?.destinatario_avatar || '',
     );
+
+    iniciarSliderNomes(nomes);
 
     tela.classList.remove('hidden');
     bloquearScroll();
@@ -130,12 +212,31 @@
   }
 
   function mostrarRespostaNaChamada(dados) {
-    if (!buzinaSainte || dados.buzina_id !== buzinaSainte) return;
+    if (!chamadaSainteAtiva()) return;
+    const aindaPendente = buzinasSaintes.some((b) => b.buzina_id === dados.buzina_id);
+    if (!aindaPendente && dados.buzina_id !== buzinaSainte) return;
+
+    // Em lote: remove quem respondeu e continua se restarem
+    if (buzinasSaintes.length > 1) {
+      buzinasSaintes = buzinasSaintes.filter((b) => b.buzina_id !== dados.buzina_id);
+      if (buzinasSaintes.length) {
+        buzinaSainte = buzinasSaintes[0].buzina_id;
+        iniciarSliderNomes(buzinasSaintes.map((b) => b.destinatario_nome));
+        const subtitulo = document.getElementById('chamada-subtitulo');
+        if (subtitulo) {
+          subtitulo.textContent = `${buzinasSaintes.length} aguardando · ${dados.resposta_rotulo || 'respondeu'}`;
+        }
+        if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+        return;
+      }
+    }
 
     limparTimerChamada();
+    pararSliderNomes();
 
     if (estaNaPaginaChamar()) {
       buzinaSainte = null;
+      buzinasSaintes = [];
       restaurarPaginaChamar();
       const status = document.getElementById('status-chamada');
       if (status) {
@@ -152,11 +253,16 @@
     const respostaBox = document.getElementById('chamada-resposta');
     const respostaTexto = document.getElementById('chamada-resposta-texto');
     const encerrarLabel = document.getElementById('chamada-encerrar-label');
+    const destinatario = document.getElementById('chamada-destinatario');
 
     titulo.textContent = 'Resposta recebida';
     subtitulo.textContent = dados.destinatario_nome;
     subtitulo.classList.remove('animate-pulse', 'text-error');
     subtitulo.classList.add('text-secondary');
+    if (destinatario) {
+      destinatario.textContent = dados.destinatario_nome || '—';
+      destinatario.classList.remove('hidden');
+    }
     mensagem.classList.add('hidden');
     respostaTexto.textContent = dados.resposta_rotulo;
     respostaBox.classList.remove('hidden');
@@ -169,9 +275,10 @@
   }
 
   function mostrarDesfechoChamada(motivo) {
-    if (!buzinaSainte) return;
+    if (!chamadaSainteAtiva()) return;
 
     limparTimerChamada();
+    pararSliderNomes();
 
     const titulo = document.getElementById('chamada-titulo');
     const subtitulo = document.getElementById('chamada-subtitulo');
@@ -179,6 +286,7 @@
     const respostaBox = document.getElementById('chamada-resposta');
     const respostaTexto = document.getElementById('chamada-resposta-texto');
     const encerrarLabel = document.getElementById('chamada-encerrar-label');
+    const destinatario = document.getElementById('chamada-destinatario');
 
     const perdida = motivo === 'perdida';
     titulo.textContent = perdida ? 'Chamada perdida' : 'Chamada cancelada';
@@ -187,6 +295,7 @@
       : 'Você encerrou a chamada';
     subtitulo.classList.remove('animate-pulse', 'text-secondary');
     subtitulo.classList.add(perdida ? 'text-error' : 'text-outline');
+    if (destinatario) destinatario.classList.remove('hidden');
     mensagem.classList.add('hidden');
     respostaTexto.textContent = perdida
       ? 'A pessoa não respondeu'
@@ -206,9 +315,15 @@
       if (status.dataset.classeOriginal) status.className = status.dataset.classeOriginal;
     }
     const dica = document.getElementById('dica-segurar');
-    if (dica) dica.textContent = 'Segure 2s para chamar';
+    if (dica) {
+      dica.textContent = document.getElementById('botao-buzz-inicio')
+        ? (document.getElementById('botao-buzz-inicio').disabled
+          ? dica.dataset.dicaOriginal || 'Marque favoritos em Círculos'
+          : 'Segure 2s para chamar favoritos')
+        : 'Segure 2s para chamar';
+    }
     resetarAnelProgresso();
-    document.querySelectorAll('[data-buzinar]').forEach((botao) => {
+    document.querySelectorAll('[data-buzinar], [data-buzinar-favoritos]').forEach((botao) => {
       if (!botao.dataset.manterDesabilitado) botao.disabled = false;
     });
   }
@@ -282,27 +397,31 @@
   }
 
   function chamadaSainteAtiva() {
-    return Boolean(buzinaSainte);
+    return Boolean(buzinaSainte) || buzinasSaintes.length > 0;
   }
 
   function ocultarChamadaSainte() {
     limparTimerChamada();
     clearTimeout(timeoutFecharChamada);
+    pararSliderNomes();
     document.getElementById('chamada-sainte')?.classList.add('hidden');
     if (document.getElementById('alerta-buzina')?.classList.contains('hidden')) {
       liberarScroll();
     }
     buzinaSainte = null;
+    buzinasSaintes = [];
     restaurarPaginaChamar();
   }
 
   async function encerrarChamadaSainte(motivo = 'usuario') {
-    if (!buzinaSainte) {
+    if (!chamadaSainteAtiva()) {
       ocultarChamadaSainte();
       return;
     }
 
-    const id = buzinaSainte;
+    const ids = buzinasSaintes.length
+      ? buzinasSaintes.map((b) => b.buzina_id)
+      : [buzinaSainte].filter(Boolean);
     limparTimerChamada();
 
     // Já em desfecho (Fechar após resposta/perda): só fecha UI
@@ -313,9 +432,10 @@
     }
 
     if (motivo === 'timeout') {
-      await postForm(`/api/buzina/${id}/encerrar/`, { motivo });
+      await Promise.all(ids.map((id) => postForm(`/api/buzina/${id}/encerrar/`, { motivo })));
       if (estaNaPaginaChamar()) {
         buzinaSainte = null;
+        buzinasSaintes = [];
         restaurarPaginaChamar();
         const status = document.getElementById('status-chamada');
         if (status) {
@@ -330,7 +450,12 @@
 
     // Cancela já: limpa estado antes do WS para não reabrir desfecho
     buzinaSainte = null;
-    await postForm(`/api/buzina/${id}/encerrar/`, { motivo: 'usuario' });
+    buzinasSaintes = [];
+    await Promise.all(ids.map((id) => postForm(`/api/buzina/${id}/encerrar/`, { motivo: 'usuario' })));
+    if (estaNaPaginaChamar()) {
+      restaurarPaginaChamar();
+      return;
+    }
     ocultarChamadaSainte();
   }
 
@@ -338,16 +463,31 @@
     if (buzinaRecebida && dados.buzina_id === buzinaRecebida) {
       ocultarAlertaRecebido();
     }
-    if (buzinaSainte && dados.buzina_id === buzinaSainte) {
-      const encerrarLabel = document.getElementById('chamada-encerrar-label');
-      if (encerrarLabel?.textContent === 'Fechar') return;
-      if (estaNaPaginaChamar()) {
-        buzinaSainte = null;
-        restaurarPaginaChamar();
+    if (!chamadaSainteAtiva()) return;
+
+    const estavaNoLote = buzinasSaintes.some((b) => b.buzina_id === dados.buzina_id)
+      || dados.buzina_id === buzinaSainte;
+    if (!estavaNoLote) return;
+
+    const encerrarLabel = document.getElementById('chamada-encerrar-label');
+    if (encerrarLabel?.textContent === 'Fechar') return;
+
+    if (buzinasSaintes.length > 1) {
+      buzinasSaintes = buzinasSaintes.filter((b) => b.buzina_id !== dados.buzina_id);
+      if (buzinasSaintes.length) {
+        buzinaSainte = buzinasSaintes[0].buzina_id;
+        iniciarSliderNomes(buzinasSaintes.map((b) => b.destinatario_nome));
         return;
       }
-      mostrarDesfechoChamada(dados.motivo);
     }
+
+    if (estaNaPaginaChamar()) {
+      buzinaSainte = null;
+      buzinasSaintes = [];
+      restaurarPaginaChamar();
+      return;
+    }
+    mostrarDesfechoChamada(dados.motivo);
   }
 
   function estaNaPaginaChamar() {
@@ -373,6 +513,11 @@
     // Segundo clique enquanto buzina: cancela a chamada
     if (chamadaSainteAtiva()) {
       await encerrarChamadaSainte('usuario');
+      return;
+    }
+
+    if (botao.dataset.buzinarFavoritos) {
+      await enviarBuzinaFavoritos(botao);
       return;
     }
 
@@ -402,6 +547,7 @@
     // Na página de chamar: fica na tela e permite cancelar no 2º clique
     if (estaNaPaginaChamar()) {
       buzinaSainte = payload.buzina_id;
+      buzinasSaintes = [payload];
       limparTimerChamada();
       timeoutChamada = setTimeout(() => encerrarChamadaSainte('timeout'), TEMPO_MAXIMO_ESPERA_MS);
       return;
@@ -410,10 +556,53 @@
     mostrarChamadaSainte(payload);
   }
 
+  async function enviarBuzinaFavoritos() {
+    ativarOndasChamada();
+
+    const resultado = await postForm('/api/buzina/enviar-favoritos/', {});
+
+    if (resultado.erro) {
+      restaurarPaginaChamar();
+      const dica = document.getElementById('dica-segurar');
+      if (dica) dica.textContent = resultado.erro;
+      return;
+    }
+
+    const buzinas = resultado.buzinas || [];
+    if (!buzinas.length) {
+      restaurarPaginaChamar();
+      return;
+    }
+
+    mostrarChamadaSainte({
+      buzina_id: buzinas[0].buzina_id,
+      destinatario_nome: buzinas[0].destinatario_nome,
+      destinatario_avatar: buzinas[0].destinatario_avatar,
+      buzinas,
+    });
+  }
+
   async function responderBuzina(opcoes = {}) {
     if (!buzinaRecebida) return;
     await postForm(`/api/buzina/${buzinaRecebida}/responder/`, opcoes);
     ocultarAlertaRecebido();
+  }
+
+  async function alternarFavorito(botao) {
+    const membroId = botao.dataset.alternarFavorito;
+    if (!membroId) return;
+    const resultado = await postForm(`/api/membros/${membroId}/favorito/`, {});
+    if (resultado.erro) return;
+
+    const ativo = Boolean(resultado.eh_favorito);
+    botao.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+    botao.setAttribute('aria-label', ativo ? 'Remover dos favoritos' : 'Marcar como favorito');
+    botao.classList.toggle('bg-tertiary-container', ativo);
+    botao.classList.toggle('text-on-tertiary-container', ativo);
+    botao.classList.toggle('bg-surface-container', !ativo);
+    botao.classList.toggle('text-outline', !ativo);
+    const icone = botao.querySelector('.material-symbols-outlined');
+    if (icone) icone.style.fontVariationSettings = `'FILL' ${ativo ? 1 : 0}`;
   }
 
   const statusConhecidos = {};
@@ -479,7 +668,7 @@
     const indicador = card.querySelector('.card-membro-indicador');
     const statusEl = card.querySelector('.card-membro-status');
     const bolt = card.querySelector('.card-membro-bolt');
-    const link = card.querySelector('a');
+    const link = card.querySelector('a[href*="/chamar/"]');
     const pode = status !== 'offline';
 
     if (indicador) {
@@ -495,10 +684,10 @@
     if (link) link.classList.toggle('pointer-events-none', !pode);
 
     if (bolt) {
-      bolt.className = `card-membro-bolt shrink-0 w-10 h-10 rounded-full flex items-center justify-center sombra-neumorfica ${
+      bolt.className = `card-membro-bolt shrink-0 w-10 h-10 rounded-full flex items-center justify-center sombra-neumorfica no-underline ${
         pode
           ? 'bg-primary-container text-on-primary-container pulso-buzz'
-          : 'bg-surface-container text-outline'
+          : 'bg-surface-container text-outline pointer-events-none'
       }`;
       const icone = bolt.querySelector('.material-symbols-outlined');
       if (icone) icone.style.fontVariationSettings = `'FILL' ${pode ? 1 : 0}`;
@@ -583,10 +772,18 @@
   }
 
   document.addEventListener('click', (evento) => {
-    const botaoBuzinar = evento.target.closest('[data-buzinar]');
+    const botaoFavorito = evento.target.closest('[data-alternar-favorito]');
+    if (botaoFavorito) {
+      evento.preventDefault();
+      evento.stopPropagation();
+      alternarFavorito(botaoFavorito);
+      return;
+    }
+
+    const botaoBuzinar = evento.target.closest('[data-buzinar], [data-buzinar-favoritos]');
     if (!botaoBuzinar || botaoBuzinar.disabled) return;
 
-    // Página chamar: clique simples só cancela se já estiver buzinando
+    // Hold 2s: clique simples só cancela se já estiver buzinando
     if (botaoBuzinar.dataset.segurarBuzina) {
       if (chamadaSainteAtiva()) encerrarChamadaSainte('usuario');
       return;
@@ -596,24 +793,23 @@
   });
 
   function configurarSegurarParaBuzinar() {
-    const botao = document.getElementById('botao-buzinar-contato');
-    if (!botao || !botao.dataset.segurarBuzina) return;
+    document.querySelectorAll('[data-segurar-buzina]').forEach((botao) => {
+      const iniciar = (evento) => {
+        if (evento.button != null && evento.button !== 0) return;
+        if (botao.disabled) return;
+        if (chamadaSainteAtiva()) return;
+        evento.preventDefault();
+        iniciarPressionarSegurar(botao);
+      };
 
-    const iniciar = (evento) => {
-      if (evento.button != null && evento.button !== 0) return;
-      if (botao.disabled) return;
-      if (chamadaSainteAtiva()) return;
-      evento.preventDefault();
-      iniciarPressionarSegurar(botao);
-    };
+      const soltar = () => cancelarPressionarSegurar();
 
-    const soltar = () => cancelarPressionarSegurar();
-
-    botao.addEventListener('pointerdown', iniciar);
-    botao.addEventListener('pointerup', soltar);
-    botao.addEventListener('pointerleave', soltar);
-    botao.addEventListener('pointercancel', soltar);
-    botao.addEventListener('contextmenu', (evento) => evento.preventDefault());
+      botao.addEventListener('pointerdown', iniciar);
+      botao.addEventListener('pointerup', soltar);
+      botao.addEventListener('pointerleave', soltar);
+      botao.addEventListener('pointercancel', soltar);
+      botao.addEventListener('contextmenu', (evento) => evento.preventDefault());
+    });
   }
 
   document.getElementById('alerta-recusar')?.addEventListener('click', () => responderBuzina({ recusar: '1' }));
