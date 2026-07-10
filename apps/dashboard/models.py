@@ -98,6 +98,43 @@ class MembroCirculo(BaseModel):
         return self.status != StatusPresenca.OFFLINE
 
 
+class BuzinaQuerySet(models.QuerySet):
+    STATUS_NOTIFICACAO_REMETENTE = (
+        'respondida',
+        'atendida',
+        'recusada',
+        'perdida',
+    )
+
+    def historico_de(self, usuario):
+        return (
+            self.filter(Q(remetente=usuario) | Q(destinatario=usuario))
+            .select_related('remetente', 'destinatario')
+            .order_by('-created_at')
+        )
+
+    def entre(self, usuario, contato):
+        return (
+            self.filter(
+                Q(remetente=usuario, destinatario=contato)
+                | Q(remetente=contato, destinatario=usuario),
+            )
+            .select_related('remetente', 'destinatario')
+            .order_by('-created_at')
+        )
+
+    def nao_lidas_de(self, usuario):
+        return self.filter(lida_em__isnull=True).filter(
+            Q(destinatario=usuario)
+            | Q(remetente=usuario, status__in=self.STATUS_NOTIFICACAO_REMETENTE),
+        )
+
+    def atividades_recentes(self, usuario, limite=15):
+        return self.historico_de(usuario).exclude(
+            status='cancelada',
+        )[:limite]
+
+
 class Buzina(BaseModel):
     TEMPO_MAXIMO_ESPERA = timedelta(seconds=45)
 
@@ -140,6 +177,9 @@ class Buzina(BaseModel):
         null=True,
     )
     mensagem = models.CharField('Mensagem', max_length=80, blank=True, default='')
+    lida_em = models.DateTimeField('Lida em', null=True, blank=True)
+
+    objects = BuzinaQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'Buzina'
@@ -152,6 +192,66 @@ class Buzina(BaseModel):
     @property
     def expirada(self):
         return self.created_at <= timezone.now() - self.TEMPO_MAXIMO_ESPERA
+
+    def contato_para(self, usuario):
+        if self.destinatario_id == usuario.id:
+            return self.remetente
+        return self.destinatario
+
+    def direcao_para(self, usuario):
+        return 'enviada' if self.remetente_id == usuario.id else 'recebida'
+
+    def tipo_atividade(self, usuario):
+        if self.destinatario_id == usuario.id:
+            if self.status == self.Status.PENDENTE:
+                return 'buzina_recebida'
+            return 'buzina_recebida'
+        if self.status == self.Status.PERDIDA:
+            return 'chamada_perdida'
+        if self.status in (
+            self.Status.RESPONDIDA,
+            self.Status.ATENDIDA,
+            self.Status.RECUSADA,
+        ):
+            return 'resposta_recebida'
+        return 'chamada_enviada'
+
+    def rotulo_atividade(self, usuario):
+        mapa = {
+            'buzina_recebida': 'Buzina recebida',
+            'resposta_recebida': self.get_resposta_rapida_display()
+            if self.status == self.Status.RESPONDIDA and self.resposta_rapida
+            else self.get_status_display(),
+            'chamada_perdida': 'Chamada perdida',
+            'chamada_enviada': self.get_status_display(),
+        }
+        return mapa.get(self.tipo_atividade(usuario), self.get_status_display())
+
+    def membro_id_para(self, usuario):
+        contato = self.contato_para(usuario)
+        membro = MembroCirculo.objects.filter(
+            dono=usuario, contato=contato,
+        ).values_list('id', flat=True).first()
+        return str(membro) if membro else None
+
+    def serializar_notificacao(self, usuario):
+        contato = self.contato_para(usuario)
+        return {
+            'buzina_id': str(self.id),
+            'tipo': self.tipo_atividade(usuario),
+            'rotulo': self.rotulo_atividade(usuario),
+            'contato_nome': contato.name or contato.username,
+            'contato_avatar': contato.avatar.url if contato.avatar else '',
+            'membro_id': self.membro_id_para(usuario),
+            'horario': self.created_at.isoformat(),
+            'lida': self.lida_em is not None,
+            'status': self.status,
+            'direcao': self.direcao_para(usuario),
+        }
+
+    @classmethod
+    def marcar_lidas(cls, usuario):
+        return cls.objects.nao_lidas_de(usuario).update(lida_em=timezone.now())
 
     def payload_recebida(self):
         return {

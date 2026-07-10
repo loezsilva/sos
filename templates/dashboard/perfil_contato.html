@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}Buzz — {{ membro.nome_exibicao }}{% endblock %}
+
+{% block body_overflow %}overflow-x-hidden overflow-y-auto{% endblock %}
+
+{% block main %}
+<div class="w-full max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop pt-8 md:pt-24 pb-8">
+  <a href="{% url 'dashboard:circulos' %}" class="inline-flex items-center gap-2 text-on-surface-variant hover:text-secondary transition-colors font-label-bold text-sm mb-lg">
+    <span class="material-symbols-outlined text-lg">arrow_back</span>
+    Voltar ao círculo
+  </a>
+
+  <div class="max-w-md mx-auto flex flex-col items-center">
+    <header class="w-full text-center mb-xl">
+      <div class="relative inline-block mb-md">
+        {% if membro.contato.avatar %}
+          <img class="w-24 h-24 rounded-full object-cover border-4 border-surface-container-highest sombra-neumorfica" src="{{ membro.contato.avatar.url }}" alt="{{ membro.nome_exibicao }}">
+        {% else %}
+          <div class="w-24 h-24 rounded-full bg-surface-container-high flex items-center justify-center border-4 border-surface-container-highest sombra-neumorfica">
+            <span class="material-symbols-outlined text-outline text-5xl">person</span>
+          </div>
+        {% endif %}
+        <div id="perfil-indicador-status" class="perfil-indicador-status absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-surface-container-highest {{ membro.classe_indicador_status }}"></div>
+      </div>
+      <h1 class="font-display-lg-mobile text-display-lg-mobile text-on-surface tracking-tighter">{{ membro.nome_exibicao }}</h1>
+      <p
+        id="status-chamada"
+        class="font-headline-md text-headline-md {{ membro.classe_cor_status }} mt-2"
+        data-contato-id="{{ membro.contato_id }}"
+        data-status="{{ membro.status }}"
+      >
+        {{ membro.get_status_display }}
+      </p>
+    </header>
+
+    <div class="relative flex flex-col items-center justify-center w-full mb-xl gap-md">
+      <div class="relative flex items-center justify-center w-56 h-56 md:w-64 md:h-64">
+        <div id="ondas-chamada" class="hidden absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-primary/40 animacao-ripple-alerta"></div>
+          <div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-secondary/40 animacao-ripple-alerta" style="animation-delay: 0.6s;"></div>
+          <div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-primary/20 animacao-ripple-alerta" style="animation-delay: 1.2s;"></div>
+        </div>
+
+        <svg class="anel-progresso-buzina absolute inset-0 w-full h-full pointer-events-none -rotate-90" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="anel-progresso-fundo" cx="50" cy="50" r="46" fill="none" stroke-width="3"></circle>
+          <circle id="anel-progresso-carga" class="anel-progresso-carga" cx="50" cy="50" r="46" fill="none" stroke-width="3"></circle>
+        </svg>
+
+        <button
+          type="button"
+          id="botao-buzinar-contato"
+          data-buzinar="{{ membro.contato_id }}"
+          data-buzinar-nome="{{ membro.nome_exibicao }}"
+          data-segurar-buzina="2"
+          {% if membro.contato.avatar %}data-buzinar-avatar="{{ membro.contato.avatar.url }}"{% endif %}
+          class="relative z-20 w-40 h-40 md:w-48 md:h-48 rounded-full p-2 bg-gradient-to-tr from-primary to-secondary shadow-[0_0_40px_rgba(124,58,237,0.5),inset_0_4px_10px_rgba(255,255,255,0.2)] transition-transform duration-200 group select-none touch-none {% if membro.pode_buzinar %}hover:scale-105 active:scale-95 cursor-pointer{% else %}opacity-50 cursor-not-allowed{% endif %}"
+          {% if not membro.pode_buzinar %}disabled{% endif %}
+          aria-label="Segure 2 segundos para buzinar {{ membro.nome_exibicao }}"
+        >
+          <div class="w-full h-full rounded-full overflow-hidden border-4 border-surface-container-highest relative bg-surface-container-high flex items-center justify-center pointer-events-none">
+            {% if membro.contato.avatar %}
+              <img class="w-full h-full object-cover" src="{{ membro.contato.avatar.url }}" alt="{{ membro.nome_exibicao }}">
+            {% else %}
+              <span class="material-symbols-outlined text-outline text-5xl">person</span>
+            {% endif %}
+          </div>
+        </button>
+      </div>
+      <p id="dica-segurar" class="text-center text-xs font-label-bold text-on-surface-variant uppercase tracking-wide">
+        {% if membro.pode_buzinar %}Segure 2s para chamar{% else %}Contato offline{% endif %}
+      </p>
+    </div>
+
+    <div class="w-full efeito-vidro rounded-xl sombra-neumorfica border border-white/5 overflow-hidden">
+      <div class="px-4 py-3 border-b border-white/10">
+        <h2 class="font-label-bold text-label-bold text-on-surface-variant uppercase text-xs">Histórico de chamadas</h2>
+      </div>
+      {% if historico %}
+        <div class="divide-y divide-white/5">
+          {% for buzina in historico %}
+            {% include 'partials/item_historico.html' %}
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="px-4 py-8 text-center text-on-surface-variant font-body-md text-sm">
+          Ainda não houve chamadas com este contato.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

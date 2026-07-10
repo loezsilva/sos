@@ -1,0 +1,23 @@
+<div class="item-historico flex items-center justify-between gap-4 px-4 py-3 border-b border-white/5 last:border-b-0">
+  <div class="flex items-center gap-3 min-w-0">
+    <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 sombra-neumorfica-inset {% if buzina.remetente_id == request.user.id %}bg-primary-container/30 text-on-primary-container{% else %}bg-secondary-container/30 text-on-secondary-container{% endif %}">
+      <span class="material-symbols-outlined text-lg">
+        {% if buzina.remetente_id == request.user.id %}call_made{% else %}call_received{% endif %}
+      </span>
+    </div>
+    <div class="min-w-0">
+      <p class="font-button-text text-button-text text-on-surface text-sm">
+        {% if buzina.remetente_id == request.user.id %}Enviada{% else %}Recebida{% endif %}
+      </p>
+      <p class="font-label-bold text-label-bold text-on-surface-variant text-xs mt-0.5">
+        {{ buzina.get_status_display }}
+        {% if buzina.status == 'respondida' and buzina.resposta_rapida %}
+          · {{ buzina.get_resposta_rapida_display }}
+        {% endif %}
+      </p>
+    </div>
+  </div>
+  <time class="font-label-bold text-label-bold text-outline text-xs shrink-0" datetime="{{ buzina.created_at|date:'c' }}">
+    {{ buzina.created_at|date:"d/m H:i" }}
+  </time>
+</div>

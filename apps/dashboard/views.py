@@ -5,6 +5,8 @@ from django.views.generic import DetailView, TemplateView
 
 from apps.dashboard.models import Buzina, MembroCirculo, StatusPresenca
 
+LIMITE_HISTORICO = 50
+
 
 class PaginaInicioView(TemplateView):
     template_name = 'dashboard/index.html'
@@ -51,6 +53,24 @@ class PaginaCirculosView(TemplateView):
 
 class PaginaConfiguracoesView(TemplateView):
     template_name = 'dashboard/configuracoes.html'
+
+
+class PerfilContatoView(LoginRequiredMixin, DetailView):
+    model = MembroCirculo
+    template_name = 'dashboard/perfil_contato.html'
+    context_object_name = 'membro'
+    pk_url_kwarg = 'membro_id'
+
+    def get_queryset(self):
+        return MembroCirculo.objects.do_usuario(self.request.user)
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        membro = self.object
+        contexto['historico'] = (
+            Buzina.objects.entre(self.request.user, membro.contato)[:LIMITE_HISTORICO]
+        )
+        return contexto
 
 
 class PaginaChamarContatoView(LoginRequiredMixin, DetailView):
@@ -118,6 +138,22 @@ class AlternarFavoritoView(LoginRequiredMixin, View):
         membro.eh_vip = not membro.eh_vip
         membro.save(update_fields=['eh_vip', 'updated_at'])
         return JsonResponse({'ok': True, 'eh_favorito': membro.eh_vip})
+
+
+class NotificacoesView(LoginRequiredMixin, View):
+    def get(self, request):
+        itens = Buzina.objects.atividades_recentes(request.user, 15)
+        return JsonResponse({
+            'ok': True,
+            'nao_lidas': Buzina.objects.nao_lidas_de(request.user).count(),
+            'itens': [b.serializar_notificacao(request.user) for b in itens],
+        })
+
+
+class MarcarNotificacoesLidasView(LoginRequiredMixin, View):
+    def post(self, request):
+        Buzina.marcar_lidas(request.user)
+        return JsonResponse({'ok': True, 'nao_lidas': 0})
 
 
 class ResponderBuzinaView(LoginRequiredMixin, View):

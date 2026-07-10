@@ -146,6 +146,7 @@
     alerta.classList.remove('hidden');
     bloquearScroll();
     vibrar();
+    incrementarContadorNotificacoes();
   }
 
   function ocultarAlertaRecebido() {
@@ -227,6 +228,7 @@
           subtitulo.textContent = `${buzinasSaintes.length} aguardando · ${dados.resposta_rotulo || 'respondeu'}`;
         }
         if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+        incrementarContadorNotificacoes();
         return;
       }
     }
@@ -244,6 +246,7 @@
         status.className = 'font-headline-md text-headline-md text-secondary';
       }
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+      incrementarContadorNotificacoes();
       return;
     }
 
@@ -272,6 +275,7 @@
 
     clearTimeout(timeoutFecharChamada);
     timeoutFecharChamada = setTimeout(ocultarChamadaSainte, 8000);
+    incrementarContadorNotificacoes();
   }
 
   function mostrarDesfechoChamada(motivo) {
@@ -463,6 +467,12 @@
     if (buzinaRecebida && dados.buzina_id === buzinaRecebida) {
       ocultarAlertaRecebido();
     }
+    if (
+      dados.motivo === 'perdida'
+      && (chamadaSainteAtiva() || !document.getElementById('chamada-sainte')?.classList.contains('hidden'))
+    ) {
+      incrementarContadorNotificacoes();
+    }
     if (!chamadaSainteAtiva()) return;
 
     const estavaNoLote = buzinasSaintes.some((b) => b.buzina_id === dados.buzina_id)
@@ -605,6 +615,102 @@
     if (icone) icone.style.fontVariationSettings = `'FILL' ${ativo ? 1 : 0}`;
   }
 
+  function definirContadorNotificacoes(total) {
+    const valor = Math.max(0, total);
+    document.querySelectorAll('.central-notificacoes-contador').forEach((el) => {
+      el.textContent = String(valor);
+      el.classList.toggle('hidden', valor === 0);
+    });
+    document.querySelectorAll('.central-notificacoes-botao').forEach((btn) => {
+      btn.setAttribute(
+        'aria-label',
+        valor ? `Notificações (${valor} não lidas)` : 'Notificações',
+      );
+    });
+  }
+
+  function incrementarContadorNotificacoes(delta = 1) {
+    const el = document.querySelector('.central-notificacoes-contador:not(.hidden)');
+    const atual = el ? Number(el.textContent || 0) : 0;
+    definirContadorNotificacoes(atual + delta);
+  }
+
+  function formatarTempoRelativo(iso) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return 'agora';
+    if (min < 60) return `${min} min atrás`;
+    const h = Math.floor(min / 60);
+    if (h < 24) return `${h} h atrás`;
+    return `${Math.floor(h / 24)} d atrás`;
+  }
+
+  function renderizarItemNotificacao(item) {
+    const avatar = item.contato_avatar
+      ? `<img class="w-full h-full object-cover" src="${item.contato_avatar}" alt="${item.contato_nome}">`
+      : '<span class="material-symbols-outlined text-outline">person</span>';
+    const href = item.membro_id ? `/circulos/${item.membro_id}/` : '#';
+    const naoLida = !item.lida;
+    return `<a href="${href}" class="item-notificacao flex items-center gap-3 px-4 py-3 hover:bg-surface-container-low transition-colors no-underline ${naoLida ? 'bg-primary-container/10' : ''}" data-buzina-id="${item.buzina_id}">
+      <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden border border-white/10">${avatar}</div>
+      <div class="min-w-0 flex-1">
+        <p class="font-button-text text-button-text text-on-surface truncate">${item.contato_nome}</p>
+        <p class="font-label-bold text-label-bold text-on-surface-variant text-xs mt-0.5 truncate">${item.rotulo}</p>
+      </div>
+      <time class="font-label-bold text-label-bold text-outline text-xs shrink-0">${formatarTempoRelativo(item.horario)}</time>
+    </a>`;
+  }
+
+  async function carregarNotificacoes() {
+    const listas = document.querySelectorAll('.central-notificacoes-lista');
+    if (!listas.length) return null;
+
+    const resposta = await fetch('/api/notificacoes/', { credentials: 'same-origin' });
+    const dados = await resposta.json();
+    if (dados.erro) return null;
+
+    definirContadorNotificacoes(dados.nao_lidas || 0);
+    const html = !dados.itens?.length
+      ? '<p class="central-notificacoes-vazio px-4 py-8 text-center text-on-surface-variant font-body-md text-sm">Nenhuma atividade recente</p>'
+      : dados.itens.map(renderizarItemNotificacao).join('');
+    listas.forEach((lista) => { lista.innerHTML = html; });
+    return dados;
+  }
+
+  async function alternarCentralNotificacoes(botao) {
+    const container = botao.closest('.central-notificacoes');
+    if (!container) return;
+
+    const painel = container.querySelector('.central-notificacoes-painel');
+    const aberto = painel && !painel.classList.contains('hidden');
+
+    document.querySelectorAll('.central-notificacoes-painel').forEach((p) => p.classList.add('hidden'));
+    document.querySelectorAll('.central-notificacoes-botao').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+
+    if (aberto) return;
+
+    painel.classList.remove('hidden');
+    botao.setAttribute('aria-expanded', 'true');
+    await postForm('/api/notificacoes/marcar-lidas/', {});
+    definirContadorNotificacoes(0);
+    await carregarNotificacoes();
+  }
+
+  function configurarCentralNotificacoes() {
+    document.querySelectorAll('.central-notificacoes-botao').forEach((botao) => {
+      botao.addEventListener('click', (evento) => {
+        evento.stopPropagation();
+        alternarCentralNotificacoes(botao);
+      });
+    });
+
+    document.addEventListener('click', (evento) => {
+      if (evento.target.closest('.central-notificacoes')) return;
+      document.querySelectorAll('.central-notificacoes-painel').forEach((p) => p.classList.add('hidden'));
+      document.querySelectorAll('.central-notificacoes-botao').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+    });
+  }
+
   const statusConhecidos = {};
 
   function estilosPresenca(status) {
@@ -668,7 +774,7 @@
     const indicador = card.querySelector('.card-membro-indicador');
     const statusEl = card.querySelector('.card-membro-status');
     const bolt = card.querySelector('.card-membro-bolt');
-    const link = card.querySelector('a[href*="/chamar/"]');
+    const link = card.querySelector('a.flex-1');
     const pode = status !== 'offline';
 
     if (indicador) {
@@ -709,6 +815,10 @@
 
     const botao = document.getElementById('botao-buzinar-contato');
     const dica = document.getElementById('dica-segurar');
+    const indicadorPerfil = document.getElementById('perfil-indicador-status');
+    if (indicadorPerfil) {
+      indicadorPerfil.className = `perfil-indicador-status absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-surface-container-highest ${estilo.indicador}`;
+    }
     if (!botao) return;
 
     const pode = status !== 'offline';
@@ -822,6 +932,7 @@
   });
 
   configurarSegurarParaBuzinar();
+  configurarCentralNotificacoes();
   resetarAnelProgresso();
 
   if (document.body.dataset.usuarioAutenticado === 'true') {
