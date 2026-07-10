@@ -132,6 +132,18 @@
 
     limparTimerChamada();
 
+    if (estaNaPaginaChamar()) {
+      buzinaSainte = null;
+      restaurarPaginaChamar();
+      const status = document.getElementById('status-chamada');
+      if (status) {
+        status.textContent = dados.resposta_rotulo || 'Resposta recebida';
+        status.className = 'font-headline-md text-headline-md text-secondary';
+      }
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+      return;
+    }
+
     const titulo = document.getElementById('chamada-titulo');
     const subtitulo = document.getElementById('chamada-subtitulo');
     const mensagem = document.getElementById('chamada-mensagem');
@@ -184,6 +196,22 @@
     timeoutFecharChamada = setTimeout(ocultarChamadaSainte, 5000);
   }
 
+  function restaurarPaginaChamar() {
+    document.getElementById('ondas-chamada')?.classList.add('hidden');
+    const status = document.getElementById('status-chamada');
+    if (status) {
+      if (status.dataset.statusOriginal) status.textContent = status.dataset.statusOriginal;
+      if (status.dataset.classeOriginal) status.className = status.dataset.classeOriginal;
+    }
+    document.querySelectorAll('[data-buzinar]').forEach((botao) => {
+      if (!botao.dataset.manterDesabilitado) botao.disabled = false;
+    });
+  }
+
+  function chamadaSainteAtiva() {
+    return Boolean(buzinaSainte);
+  }
+
   function ocultarChamadaSainte() {
     limparTimerChamada();
     clearTimeout(timeoutFecharChamada);
@@ -192,6 +220,7 @@
       liberarScroll();
     }
     buzinaSainte = null;
+    restaurarPaginaChamar();
   }
 
   async function encerrarChamadaSainte(motivo = 'usuario') {
@@ -210,12 +239,26 @@
       return;
     }
 
-    await postForm(`/api/buzina/${id}/encerrar/`, { motivo });
     if (motivo === 'timeout') {
+      await postForm(`/api/buzina/${id}/encerrar/`, { motivo });
+      if (estaNaPaginaChamar()) {
+        buzinaSainte = null;
+        restaurarPaginaChamar();
+        const status = document.getElementById('status-chamada');
+        if (status) {
+          status.textContent = 'Sem resposta';
+          status.className = 'font-headline-md text-headline-md text-error';
+        }
+        return;
+      }
       mostrarDesfechoChamada('perdida');
-    } else {
-      mostrarDesfechoChamada('cancelada');
+      return;
     }
+
+    // Cancela já: limpa estado antes do WS para não reabrir desfecho
+    buzinaSainte = null;
+    await postForm(`/api/buzina/${id}/encerrar/`, { motivo: 'usuario' });
+    ocultarChamadaSainte();
   }
 
   function tratarBuzinaEncerrada(dados) {
@@ -225,20 +268,39 @@
     if (buzinaSainte && dados.buzina_id === buzinaSainte) {
       const encerrarLabel = document.getElementById('chamada-encerrar-label');
       if (encerrarLabel?.textContent === 'Fechar') return;
+      if (estaNaPaginaChamar()) {
+        buzinaSainte = null;
+        restaurarPaginaChamar();
+        return;
+      }
       mostrarDesfechoChamada(dados.motivo);
     }
+  }
+
+  function estaNaPaginaChamar() {
+    return Boolean(document.getElementById('status-chamada'));
   }
 
   function ativarOndasChamada() {
     document.getElementById('ondas-chamada')?.classList.remove('hidden');
     const status = document.getElementById('status-chamada');
     if (status) {
+      if (!status.dataset.statusOriginal) {
+        status.dataset.statusOriginal = status.textContent.trim();
+        status.dataset.classeOriginal = status.className;
+      }
       status.textContent = 'Buzinando...';
       status.className = 'font-headline-md text-headline-md text-secondary animate-pulse';
     }
   }
 
   async function enviarBuzina(botao) {
+    // Segundo clique enquanto buzina: cancela a chamada
+    if (chamadaSainteAtiva()) {
+      await encerrarChamadaSainte('usuario');
+      return;
+    }
+
     const destinatarioId = botao.dataset.buzinar;
     const dados = { destinatario_id: destinatarioId };
     const campoMensagem = document.getElementById('mensagem-buzina');
@@ -247,21 +309,30 @@
     }
 
     ativarOndasChamada();
-    botao.disabled = true;
 
     const resultado = await postForm('/api/buzina/enviar/', dados);
 
     if (resultado.erro) {
-      botao.disabled = false;
+      restaurarPaginaChamar();
       return;
     }
 
-    mostrarChamadaSainte({
+    const payload = {
       buzina_id: resultado.buzina_id,
       destinatario_nome: resultado.destinatario_nome || botao.dataset.buzinarNome || 'Contato',
       destinatario_avatar: resultado.destinatario_avatar || botao.dataset.buzinarAvatar || '',
       mensagem: dados.mensagem || '',
-    });
+    };
+
+    // Na página de chamar: fica na tela e permite cancelar no 2º clique
+    if (estaNaPaginaChamar()) {
+      buzinaSainte = payload.buzina_id;
+      limparTimerChamada();
+      timeoutChamada = setTimeout(() => encerrarChamadaSainte('timeout'), TEMPO_MAXIMO_ESPERA_MS);
+      return;
+    }
+
+    mostrarChamadaSainte(payload);
   }
 
   async function responderBuzina(opcoes = {}) {
