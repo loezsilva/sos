@@ -105,10 +105,13 @@
     subtitulo.classList.remove('text-error', 'text-outline');
     destinatario.textContent = dados.destinatario_nome;
     const textoMensagem = (dados.mensagem || '').trim();
-    mensagem.textContent = textoMensagem || 'chamando a atenção de';
-    mensagem.classList.toggle('text-on-surface', Boolean(textoMensagem));
-    mensagem.classList.toggle('text-on-surface-variant', !textoMensagem);
-    mensagem.classList.remove('hidden');
+    if (textoMensagem) {
+      mensagem.textContent = textoMensagem;
+      mensagem.classList.remove('hidden');
+    } else {
+      mensagem.textContent = '';
+      mensagem.classList.add('hidden');
+    }
     respostaBox.classList.add('hidden');
     respostaTexto.textContent = '';
     encerrarLabel.textContent = 'Encerrar';
@@ -292,7 +295,6 @@
     }
   });
 
-  document.getElementById('alerta-atender')?.addEventListener('click', () => responderBuzina({}));
   document.getElementById('alerta-recusar')?.addEventListener('click', () => responderBuzina({ recusar: '1' }));
   document.getElementById('chamada-encerrar')?.addEventListener('click', () => encerrarChamadaSainte('usuario'));
 
