@@ -12,6 +12,7 @@
   let pressionarSegurar = null;
   let intervaloSlider = null;
   let indiceSlider = 0;
+  let suprimirCliqueAposSegurar = false;
 
   function obterCookie(nome) {
     return document.cookie.match(new RegExp(`${nome}=([^;]+)`))?.[1];
@@ -395,6 +396,9 @@
       atualizarAnelProgresso(1);
       if (navigator.vibrate) navigator.vibrate(40);
       if (dica) dica.textContent = 'Chamando...';
+      // Evita que o pointerup/click ao soltar cancele a chamada recém-iniciada
+      suprimirCliqueAposSegurar = true;
+      setTimeout(() => { suprimirCliqueAposSegurar = false; }, 500);
       enviarBuzina(botao);
       pressionarSegurar = null;
     }, duracaoMs);
@@ -1103,6 +1107,7 @@
 
     // Hold 2s: clique simples só cancela se já estiver buzinando
     if (botaoBuzinar.dataset.segurarBuzina) {
+      if (suprimirCliqueAposSegurar) return;
       if (chamadaSainteAtiva()) encerrarChamadaSainte('usuario');
       return;
     }
