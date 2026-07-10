@@ -18,7 +18,9 @@ Including another URLconf
 from django.urls import path
 
 from apps.dashboard.views import (
+    EncerrarBuzinaView,
     EnviarBuzinaView,
+    PaginaChamarContatoView,
     PaginaCirculosView,
     PaginaConfiguracoesView,
     PaginaInicioView,
@@ -30,7 +32,9 @@ app_name = 'dashboard'
 urlpatterns = [
     path('', PaginaInicioView.as_view(), name='index'),
     path('circulos/', PaginaCirculosView.as_view(), name='circulos'),
+    path('circulos/<uuid:membro_id>/chamar/', PaginaChamarContatoView.as_view(), name='chamar_contato'),
     path('configuracoes/', PaginaConfiguracoesView.as_view(), name='configuracoes'),
     path('api/buzina/enviar/', EnviarBuzinaView.as_view(), name='enviar_buzina'),
     path('api/buzina/<uuid:buzina_id>/responder/', ResponderBuzinaView.as_view(), name='responder_buzina'),
+    path('api/buzina/<uuid:buzina_id>/encerrar/', EncerrarBuzinaView.as_view(), name='encerrar_buzina'),
 ]

@@ -1,7 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 from django.views import View
-from django.views.generic import TemplateView
+from django.views.generic import DetailView, TemplateView
 
 from apps.dashboard.models import Buzina, MembroCirculo, StatusPresenca
 
@@ -51,14 +51,26 @@ class PaginaConfiguracoesView(TemplateView):
     template_name = 'dashboard/configuracoes.html'
 
 
+class PaginaChamarContatoView(LoginRequiredMixin, DetailView):
+    model = MembroCirculo
+    template_name = 'dashboard/chamar_contato.html'
+    context_object_name = 'membro'
+    pk_url_kwarg = 'membro_id'
+
+    def get_queryset(self):
+        return MembroCirculo.objects.do_usuario(self.request.user)
+
+
 class EnviarBuzinaView(LoginRequiredMixin, View):
     def post(self, request):
         destinatario_id = request.POST.get('destinatario_id')
         if not destinatario_id:
             return JsonResponse({'erro': 'Destinatário obrigatório.'}, status=400)
 
+        mensagem = request.POST.get('mensagem', '').strip()[:80]
+
         try:
-            buzina = Buzina.enviar(request.user, destinatario_id)
+            buzina = Buzina.enviar(request.user, destinatario_id, mensagem=mensagem)
         except ValueError as erro:
             return JsonResponse({'erro': str(erro)}, status=400)
 
@@ -87,10 +99,39 @@ class ResponderBuzinaView(LoginRequiredMixin, View):
         resposta = request.POST.get('resposta_rapida')
 
         if recusar:
-            buzina.responder(recusar=True)
+            ok = buzina.responder(recusar=True)
         elif resposta in Buzina.RespostaRapida.values:
-            buzina.responder(resposta_rapida=resposta)
+            ok = buzina.responder(resposta_rapida=resposta)
         else:
-            buzina.responder(atender=True)
+            ok = buzina.responder(atender=True)
+
+        if not ok:
+            return JsonResponse({'erro': 'Buzina já foi encerrada.'}, status=409)
 
         return JsonResponse({'ok': True})
+
+
+class EncerrarBuzinaView(LoginRequiredMixin, View):
+    def post(self, request, buzina_id):
+        buzina = Buzina.objects.filter(
+            id=buzina_id,
+            remetente=request.user,
+        ).first()
+
+        if not buzina:
+            return JsonResponse({'erro': 'Buzina não encontrada.'}, status=404)
+
+        if buzina.status != Buzina.Status.PENDENTE:
+            return JsonResponse({'ok': True, 'status': buzina.status, 'ja_encerrada': True})
+
+        motivo = request.POST.get('motivo', 'usuario')
+        if motivo not in ('usuario', 'timeout'):
+            motivo = 'usuario'
+
+        ok = buzina.encerrar(motivo=motivo)
+        buzina.refresh_from_db()
+        return JsonResponse({
+            'ok': True,
+            'status': buzina.status,
+            'encerrada': ok,
+        })

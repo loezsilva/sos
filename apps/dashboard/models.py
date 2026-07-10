@@ -1,7 +1,10 @@
+from datetime import timedelta
+
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.db import models
 from django.db.models import Q
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
+from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.core.models import BaseModel
@@ -96,11 +99,15 @@ class MembroCirculo(BaseModel):
 
 
 class Buzina(BaseModel):
+    TEMPO_MAXIMO_ESPERA = timedelta(seconds=45)
+
     class Status(models.TextChoices):
         PENDENTE = 'pendente', 'Pendente'
         ATENDIDA = 'atendida', 'Atendida'
         RECUSADA = 'recusada', 'Recusada'
         RESPONDIDA = 'respondida', 'Respondida'
+        CANCELADA = 'cancelada', 'Cancelada'
+        PERDIDA = 'perdida', 'Perdida'
 
     class RespostaRapida(models.TextChoices):
         JA_VOU = 'ja_vou', 'Já vou'
@@ -132,6 +139,7 @@ class Buzina(BaseModel):
         blank=True,
         null=True,
     )
+    mensagem = models.CharField('Mensagem', max_length=80, blank=True, default='')
 
     class Meta:
         verbose_name = 'Buzina'
@@ -141,48 +149,126 @@ class Buzina(BaseModel):
     def __str__(self):
         return f'{self.remetente} → {self.destinatario}'
 
+    @property
+    def expirada(self):
+        return self.created_at <= timezone.now() - self.TEMPO_MAXIMO_ESPERA
+
+    def payload_recebida(self):
+        return {
+            'tipo': 'buzina_recebida',
+            'buzina_id': str(self.id),
+            'remetente_id': str(self.remetente_id),
+            'remetente_nome': self.remetente.name or self.remetente.username,
+            'remetente_avatar': self.remetente.avatar.url if self.remetente.avatar else '',
+            'mensagem': self.mensagem,
+        }
+
     @classmethod
-    def enviar(cls, remetente, destinatario_id):
+    def enviar(cls, remetente, destinatario_id, mensagem=''):
         membro = MembroCirculo.objects.filter(
             dono=remetente, contato_id=destinatario_id
         ).select_related('contato').first()
         if not membro or not membro.pode_buzinar:
             raise ValueError('Contato indisponível para buzina.')
 
+        # Uma pendente por par: cancela anteriores sem notificar (nova sobrescreve)
+        cls.objects.filter(
+            remetente=remetente,
+            destinatario_id=destinatario_id,
+            status=cls.Status.PENDENTE,
+        ).update(status=cls.Status.CANCELADA, updated_at=timezone.now())
+
         buzina = cls.objects.create(
             remetente=remetente,
             destinatario_id=destinatario_id,
+            mensagem=(mensagem or '')[:80],
         )
-        cls._notificar(
-            str(destinatario_id),
-            'buzina_recebida',
-            {
-                'tipo': 'buzina_recebida',
-                'buzina_id': str(buzina.id),
-                'remetente_id': str(remetente.id),
-                'remetente_nome': remetente.name or remetente.username,
-                'remetente_avatar': buzina.remetente.avatar.url if buzina.remetente.avatar else '',
-            },
-        )
+        cls._notificar(str(destinatario_id), 'buzina_recebida', buzina.payload_recebida())
         return buzina
 
     def responder(self, resposta_rapida=None, recusar=False, atender=False):
         if recusar:
-            self.status = self.Status.RECUSADA
+            novo_status = self.Status.RECUSADA
             rotulo = 'Recusou a buzina'
-            campos = ['status', 'updated_at']
+            extras = {}
         elif atender:
-            self.status = self.Status.ATENDIDA
+            novo_status = self.Status.ATENDIDA
             rotulo = 'Atendeu a buzina'
-            campos = ['status', 'updated_at']
+            extras = {}
         else:
-            self.resposta_rapida = resposta_rapida
-            self.status = self.Status.RESPONDIDA
-            rotulo = self.get_resposta_rapida_display()
-            campos = ['resposta_rapida', 'status', 'updated_at']
+            novo_status = self.Status.RESPONDIDA
+            extras = {'resposta_rapida': resposta_rapida}
 
-        self.save(update_fields=campos)
+        atualizadas = Buzina.objects.filter(
+            pk=self.pk, status=self.Status.PENDENTE,
+        ).update(status=novo_status, updated_at=timezone.now(), **extras)
+        if not atualizadas:
+            return False
+
+        self.refresh_from_db()
+        if novo_status == self.Status.RESPONDIDA:
+            rotulo = self.get_resposta_rapida_display()
         self.notificar_remetente(rotulo, self.resposta_rapida or '')
+        return True
+
+    def cancelar(self):
+        return self._encerrar(self.Status.CANCELADA)
+
+    def marcar_perdida(self):
+        return self._encerrar(self.Status.PERDIDA)
+
+    def _encerrar(self, novo_status):
+        atualizadas = Buzina.objects.filter(
+            pk=self.pk, status=self.Status.PENDENTE,
+        ).update(status=novo_status, updated_at=timezone.now())
+        if not atualizadas:
+            return False
+
+        self.refresh_from_db()
+        payload = {
+            'tipo': 'buzina_encerrada',
+            'buzina_id': str(self.id),
+            'motivo': novo_status,
+        }
+        self._notificar(str(self.destinatario_id), 'buzina_encerrada', payload)
+        self._notificar(str(self.remetente_id), 'buzina_encerrada', payload)
+        return True
+
+    def encerrar(self, motivo='usuario'):
+        if motivo == 'timeout':
+            return self.marcar_perdida()
+        return self.cancelar()
+
+    @classmethod
+    def limpar_expiradas(cls, destinatario=None):
+        filtro = cls.objects.filter(
+            status=cls.Status.PENDENTE,
+            created_at__lte=timezone.now() - cls.TEMPO_MAXIMO_ESPERA,
+        )
+        if destinatario is not None:
+            filtro = filtro.filter(destinatario=destinatario)
+
+        expiradas = list(filtro.select_related('remetente', 'destinatario'))
+        for buzina in expiradas:
+            buzina.marcar_perdida()
+        return expiradas
+
+    @classmethod
+    def pendentes_ativas_para(cls, usuario):
+        cls.limpar_expiradas(destinatario=usuario)
+        # Uma por remetente: a mais recente
+        vistas = set()
+        ativas = []
+        for buzina in (
+            cls.objects.filter(destinatario=usuario, status=cls.Status.PENDENTE)
+            .select_related('remetente')
+            .order_by('-created_at')
+        ):
+            if buzina.remetente_id in vistas:
+                continue
+            vistas.add(buzina.remetente_id)
+            ativas.append(buzina)
+        return ativas
 
     def notificar_remetente(self, resposta_rotulo, resposta=''):
         self._notificar(

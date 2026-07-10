@@ -1,29 +1,31 @@
-<article class="efeito-vidro rounded-xl p-lg flex items-center justify-between sombra-neumorfica hover:shadow-[6px_6px_20px_rgba(0,0,0,0.3)] transition-shadow {{ membro.classe_borda_status }} {{ membro.classe_card }}">
-  <div class="flex items-center gap-4 min-w-0">
-    <div class="relative shrink-0">
-      {% if membro.contato.avatar %}
-        <img class="w-14 h-14 rounded-full object-cover border-2 border-surface-container-lowest" src="{{ membro.contato.avatar.url }}" alt="{{ membro.nome_exibicao }}">
-      {% else %}
-        <div class="w-14 h-14 rounded-full bg-surface-container-high flex items-center justify-center border-2 border-surface-container-lowest">
-          <span class="material-symbols-outlined text-outline text-2xl">person</span>
-        </div>
-      {% endif %}
-      <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-surface-container-highest {{ membro.classe_indicador_status }}"></div>
+{% if membro.pode_buzinar %}
+<a href="{% url 'dashboard:chamar_contato' membro.id %}" class="block efeito-vidro rounded-xl p-lg sombra-neumorfica hover:shadow-[6px_6px_20px_rgba(0,0,0,0.3)] transition-shadow {{ membro.classe_borda_status }} no-underline">
+{% else %}
+<article class="efeito-vidro rounded-xl p-lg sombra-neumorfica {{ membro.classe_borda_status }} {{ membro.classe_card }} cursor-not-allowed">
+{% endif %}
+  <div class="flex items-center justify-between gap-4">
+    <div class="flex items-center gap-4 min-w-0">
+      <div class="relative shrink-0">
+        {% if membro.contato.avatar %}
+          <img class="w-14 h-14 rounded-full object-cover border-2 border-surface-container-lowest" src="{{ membro.contato.avatar.url }}" alt="{{ membro.nome_exibicao }}">
+        {% else %}
+          <div class="w-14 h-14 rounded-full bg-surface-container-high flex items-center justify-center border-2 border-surface-container-lowest">
+            <span class="material-symbols-outlined text-outline text-2xl">person</span>
+          </div>
+        {% endif %}
+        <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-surface-container-highest {{ membro.classe_indicador_status }}"></div>
+      </div>
+      <div class="min-w-0">
+        <h3 class="font-button-text text-button-text text-on-surface truncate">{{ membro.nome_exibicao }}</h3>
+        <p class="font-label-bold text-label-bold {{ membro.classe_cor_status }} mt-1">{{ membro.get_status_display }}</p>
+      </div>
     </div>
-    <div class="min-w-0">
-      <h3 class="font-button-text text-button-text text-on-surface truncate">{{ membro.nome_exibicao }}</h3>
-      <p class="font-label-bold text-label-bold {{ membro.classe_cor_status }} mt-1">{{ membro.get_status_display }}</p>
+    <div class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center sombra-neumorfica {% if membro.pode_buzinar %}bg-primary-container text-on-primary-container pulso-buzz{% else %}bg-surface-container text-outline{% endif %}">
+      <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' {% if membro.pode_buzinar %}1{% else %}0{% endif %};">bolt</span>
     </div>
   </div>
-  <button
-    type="button"
-    data-buzinar="{{ membro.contato_id }}"
-    data-buzinar-nome="{{ membro.nome_exibicao }}"
-    {% if membro.contato.avatar %}data-buzinar-avatar="{{ membro.contato.avatar.url }}"{% endif %}
-    class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center sombra-neumorfica transition-all {% if membro.pode_buzinar %}bg-primary-container text-on-primary-container pulso-buzz hover:scale-105 active:scale-95{% else %}bg-surface-container text-outline cursor-not-allowed{% endif %}"
-    {% if not membro.pode_buzinar %}disabled{% endif %}
-    aria-label="Buzinar {{ membro.nome_exibicao }}"
-  >
-    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' {% if membro.pode_buzinar %}1{% else %}0{% endif %};">bolt</span>
-  </button>
+{% if membro.pode_buzinar %}
+</a>
+{% else %}
 </article>
+{% endif %}
