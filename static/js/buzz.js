@@ -501,7 +501,24 @@
   }
 
   function estaNaPaginaChamar() {
-    return Boolean(document.getElementById('status-chamada'));
+    return Boolean(document.getElementById('mensagem-buzina'));
+  }
+
+  function atualizarPerfilPresenca(status, rotulo) {
+    const statusEl = document.getElementById('status-chamada');
+    if (!statusEl) return;
+
+    const estilo = estilosPresenca(status);
+    statusEl.dataset.status = status;
+    if (!chamadaSainteAtiva()) {
+      statusEl.textContent = rotulo || estilo.rotulo;
+      statusEl.className = `font-headline-md text-headline-md ${estilo.cor} mt-2`;
+    }
+
+    const indicador = document.getElementById('perfil-indicador-status');
+    if (indicador) {
+      indicador.className = `perfil-indicador-status absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-surface-container-highest ${estilo.indicador}`;
+    }
   }
 
   function ativarOndasChamada() {
@@ -679,7 +696,7 @@
     const avatar = item.contato_avatar
       ? `<img class="w-full h-full object-cover" src="${item.contato_avatar}" alt="${item.contato_nome}">`
       : '<span class="material-symbols-outlined text-outline">person</span>';
-    const href = item.membro_id ? `/circulos/${item.membro_id}/` : '#';
+    const href = item.membro_id ? `/circulos/${item.membro_id}/chamar/` : '#';
     const naoLida = !item.lida;
     return `<a href="${href}" class="item-notificacao flex items-center gap-3 px-4 py-3 hover:bg-surface-container-low transition-colors no-underline ${naoLida ? 'bg-primary-container/10' : ''}" data-buzina-id="${item.buzina_id}">
       <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden border border-white/10">${avatar}</div>
@@ -752,18 +769,32 @@
     return true;
   }
 
-  function carregarFavoritosPresenca() {
+  function carregarPresencaInicial() {
+    const circulo = document.getElementById('circulo-presenca');
+    if (circulo) {
+      try {
+        JSON.parse(circulo.textContent).forEach((membro) => {
+          statusConhecidos[String(membro.contato_id)] = membro.status || 'offline';
+        });
+      } catch {
+        /* ignora JSON inválido */
+      }
+    }
+
+    document.querySelectorAll('.card-membro[data-contato-id]').forEach((card) => {
+      statusConhecidos[card.dataset.contatoId] = card.dataset.status || 'offline';
+    });
+
     const el = document.getElementById('favoritos-presenca');
     if (!el) return;
     try {
-      const lista = JSON.parse(el.textContent);
-      lista.forEach((fav) => {
+      JSON.parse(el.textContent).forEach((fav) => {
         const id = String(fav.contato_id);
         favoritosMeta[id] = {
           souFavorito: fav.sou_favorito,
           mutuos: fav.mutuos,
         };
-        statusConhecidos[id] = fav.status || 'offline';
+        statusConhecidos[id] = fav.status || statusConhecidos[id] || 'offline';
       });
     } catch {
       /* ignora JSON inválido */
@@ -951,6 +982,8 @@
 
     card.classList.toggle('opacity-75', offline);
     card.classList.toggle('grayscale-[0.2]', offline);
+    card.classList.toggle('border-l-4', status === 'ocupado');
+    card.classList.toggle('border-l-tertiary', status === 'ocupado');
     if (link) link.classList.toggle('pointer-events-none', offline);
 
     if (bolt) {
@@ -1012,7 +1045,6 @@
       }
     }
 
-    const anterior = statusConhecidos[usuarioId];
     statusConhecidos[usuarioId] = status;
 
     document.querySelectorAll(`.card-membro[data-contato-id="${usuarioId}"]`).forEach((card) => {
@@ -1021,17 +1053,11 @@
 
     const statusChamada = document.getElementById('status-chamada');
     if (statusChamada && statusChamada.dataset.contatoId === usuarioId) {
-      atualizarPaginaChamarPresenca(status, rotulo);
-    }
-
-    const inicio = document.getElementById('contador-online-inicio');
-    if (inicio && !document.querySelector('.card-membro') && anterior !== undefined) {
-      let total = Number(inicio.dataset.total || 0);
-      if (anterior === 'online' && status !== 'online') total = Math.max(0, total - 1);
-      if (anterior !== 'online' && status === 'online') total += 1;
-      inicio.dataset.total = String(total);
-      inicio.textContent = `${total} online`;
-      return;
+      if (estaNaPaginaChamar()) {
+        atualizarPaginaChamarPresenca(status, rotulo);
+      } else {
+        atualizarPerfilPresenca(status, rotulo);
+      }
     }
 
     atualizarContadorOnline();
@@ -1116,7 +1142,7 @@
   configurarSegurarParaBuzinar();
   configurarCentralNotificacoes();
   configurarPillDisponibilidade();
-  carregarFavoritosPresenca();
+  carregarPresencaInicial();
   atualizarBotaoBuzzInicio();
   resetarAnelProgresso();
 

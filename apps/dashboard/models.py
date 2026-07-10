@@ -75,15 +75,15 @@ class MembroCirculo(BaseModel):
             StatusPresenca.ONLINE: 'text-secondary',
             StatusPresenca.OCUPADO: 'text-tertiary',
             StatusPresenca.OFFLINE: 'text-outline',
-        }[self.status]
+        }[self.status_para_dono()]
 
     @property
     def classe_borda_status(self):
-        return 'border-l-4 border-l-tertiary' if self.status == StatusPresenca.OCUPADO else ''
+        return 'border-l-4 border-l-tertiary' if self.status_para_dono() == StatusPresenca.OCUPADO else ''
 
     @property
     def classe_card(self):
-        return 'opacity-75 grayscale-[0.2]' if self.status == StatusPresenca.OFFLINE else ''
+        return 'opacity-75 grayscale-[0.2]' if self.status_para_dono() == StatusPresenca.OFFLINE else ''
 
     @property
     def classe_indicador_status(self):
@@ -91,7 +91,11 @@ class MembroCirculo(BaseModel):
             StatusPresenca.ONLINE: 'bg-secondary shadow-[0_0_8px_#4cd7f6]',
             StatusPresenca.OCUPADO: 'bg-tertiary shadow-[0_0_8px_#ffb784]',
             StatusPresenca.OFFLINE: 'bg-outline',
-        }[self.status]
+        }[self.status_para_dono()]
+
+    @property
+    def rotulo_status_exibicao(self):
+        return dict(StatusPresenca.choices).get(self.status_para_dono(), self.status_para_dono())
 
     @classmethod
     def remetente_eh_favorito_de(cls, destinatario_id, remetente_id):

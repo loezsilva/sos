@@ -69,18 +69,18 @@ class TestBuzinaQuerySet:
 
 
 @pytest.mark.django_db
-class TestPerfilContatoView:
+class TestRedirecionarPerfil:
+    def test_perfil_redireciona_para_chamar(self, client, membro):
+        alice = membro.dono
+        client.force_login(alice)
+        resposta = client.get(reverse('dashboard:perfil_contato', args=[membro.id]))
+        assert resposta.status_code == 302
+        assert resposta.url == reverse('dashboard:chamar_contato', args=[membro.id])
+
     def test_perfil_requer_login(self, client, membro):
         resposta = client.get(reverse('dashboard:perfil_contato', args=[membro.id]))
         assert resposta.status_code == 302
-
-    def test_perfil_exibe_historico(self, client, usuarios, membro, buzina_recebida):
-        alice, _ = usuarios
-        client.force_login(alice)
-        resposta = client.get(reverse('dashboard:perfil_contato', args=[membro.id]))
-        assert resposta.status_code == 200
-        assert 'Histórico de chamadas' in resposta.content.decode()
-        assert 'Recebida' in resposta.content.decode()
+        assert 'login' in resposta.url
 
 
 @pytest.mark.django_db

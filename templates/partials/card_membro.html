@@ -2,13 +2,13 @@
   class="card-membro block efeito-vidro rounded-xl p-lg sombra-neumorfica transition-shadow {% if membro.pode_buzinar %}hover:shadow-[6px_6px_20px_rgba(0,0,0,0.3)]{% else %}{{ membro.classe_card }}{% endif %} {{ membro.classe_borda_status }}"
   data-contato-id="{{ membro.contato_id }}"
   data-membro-id="{{ membro.id }}"
-  data-status="{{ membro.status }}"
+  data-status="{{ membro.status_para_dono }}"
   data-sou-favorito="{{ membro.sou_favorito_do_contato|yesno:'true,false' }}"
   data-favoritos-mutuos="{{ membro.favoritos_mutuos|yesno:'true,false' }}"
   data-chamar-url="{% url 'dashboard:chamar_contato' membro.id %}"
 >
   <div class="flex items-center justify-between gap-4">
-    <a href="{% url 'dashboard:perfil_contato' membro.id %}" class="flex items-center gap-4 min-w-0 flex-1 no-underline">
+    <a href="{% url 'dashboard:chamar_contato' membro.id %}" class="flex items-center gap-4 min-w-0 flex-1 no-underline {% if not membro.pode_buzinar %}pointer-events-none{% endif %}">
       <div class="relative shrink-0">
         {% if membro.contato.avatar %}
           <img class="w-14 h-14 rounded-full object-cover border-2 border-surface-container-lowest" src="{{ membro.contato.avatar.url }}" alt="{{ membro.nome_exibicao }}">
@@ -21,7 +21,7 @@
       </div>
       <div class="min-w-0">
         <h3 class="font-button-text text-button-text text-on-surface truncate">{{ membro.nome_exibicao }}</h3>
-        <p class="card-membro-status font-label-bold text-label-bold {{ membro.classe_cor_status }} mt-1">{{ membro.get_status_display }}</p>
+        <p class="card-membro-status font-label-bold text-label-bold {{ membro.classe_cor_status }} mt-1">{{ membro.rotulo_status_exibicao }}</p>
       </div>
     </a>
     <div class="flex items-center gap-2 shrink-0">

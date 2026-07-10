@@ -12,7 +12,7 @@ from apps.dashboard.views import (
     PaginaCirculosView,
     PaginaConfiguracoesView,
     PaginaInicioView,
-    PerfilContatoView,
+    RedirecionarPerfilParaChamarView,
     ResponderBuzinaView,
 )
 
@@ -21,7 +21,7 @@ app_name = 'dashboard'
 urlpatterns = [
     path('', PaginaInicioView.as_view(), name='index'),
     path('circulos/', PaginaCirculosView.as_view(), name='circulos'),
-    path('circulos/<uuid:membro_id>/', PerfilContatoView.as_view(), name='perfil_contato'),
+    path('circulos/<uuid:membro_id>/', RedirecionarPerfilParaChamarView.as_view(), name='perfil_contato'),
     path('circulos/<uuid:membro_id>/chamar/', PaginaChamarContatoView.as_view(), name='chamar_contato'),
     path('configuracoes/', PaginaConfiguracoesView.as_view(), name='configuracoes'),
     path('api/disponibilidade/', AlternarDisponibilidadeView.as_view(), name='alternar_disponibilidade'),

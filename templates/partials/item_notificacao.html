@@ -1,5 +1,5 @@
 <a
-  href="{% if item.membro_id %}{% url 'dashboard:perfil_contato' item.membro_id %}{% else %}#{% endif %}"
+  href="{% if item.membro_id %}{% url 'dashboard:chamar_contato' item.membro_id %}{% else %}#{% endif %}"
   class="item-notificacao flex items-center gap-3 px-4 py-3 hover:bg-surface-container-low transition-colors no-underline {% if not item.lida %}bg-primary-container/10{% endif %}"
   data-buzina-id="{{ item.buzina.id }}"
 >
