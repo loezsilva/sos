@@ -4,6 +4,7 @@ from django.views import View
 from django.views.generic import DetailView, TemplateView
 
 from apps.dashboard.models import Buzina, MembroCirculo, StatusPresenca
+from apps.dashboard.presenca import Presenca
 
 LIMITE_HISTORICO = 50
 
@@ -21,9 +22,7 @@ class PaginaInicioView(TemplateView):
             ).count()
             contexto['total_online'] = membros.filter(status=StatusPresenca.ONLINE).count()
             contexto['favoritos'] = favoritos
-            contexto['pode_buzinar_favoritos'] = favoritos.exclude(
-                status=StatusPresenca.OFFLINE,
-            ).exists()
+            contexto['pode_buzinar_favoritos'] = any(m.pode_buzinar for m in favoritos)
         else:
             contexto['total_chamadas'] = 0
             contexto['total_online'] = 0
@@ -103,6 +102,7 @@ class EnviarBuzinaView(LoginRequiredMixin, View):
             'destinatario_avatar': (
                 buzina.destinatario.avatar.url if buzina.destinatario.avatar else ''
             ),
+            'silenciada': getattr(buzina, 'silenciada', False),
         })
 
 
@@ -126,6 +126,21 @@ class EnviarBuzinaFavoritosView(LoginRequiredMixin, View):
                 }
                 for b in buzinas
             ],
+        })
+
+
+class AlternarDisponibilidadeView(LoginRequiredMixin, View):
+    def post(self, request):
+        modo = request.POST.get('modo', '').strip()
+        try:
+            status = Presenca.alternar_disponibilidade(request.user.id, modo)
+        except ValueError as erro:
+            return JsonResponse({'erro': str(erro)}, status=400)
+
+        return JsonResponse({
+            'ok': True,
+            'status': status,
+            'modo': 'nao_perturbe' if status == StatusPresenca.OCUPADO else 'disponivel',
         })
 
 

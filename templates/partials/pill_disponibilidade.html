@@ -1,0 +1,22 @@
+<button
+  type="button"
+  class="pill-disponibilidade flex items-center gap-xs px-3 py-1 rounded-full bg-surface-container-high border border-white/5 sombra-neumorfica text-xs font-label-bold transition-colors
+    {% if disponibilidade_status == 'online' %}pill-disponivel text-on-surface-variant{% elif disponibilidade_status == 'ocupado' %}pill-nao-perturbe text-on-surface-variant{% else %}pill-offline text-outline cursor-not-allowed opacity-80{% endif %}"
+  data-pill-disponibilidade
+  data-status="{{ disponibilidade_status }}"
+  data-conectado="{{ disponibilidade_conectado|yesno:'true,false' }}"
+  data-preferencia="{{ disponibilidade_preferencia }}"
+  data-usuario-id="{{ disponibilidade_usuario_id }}"
+  {% if not disponibilidade_conectado %}disabled aria-disabled="true"{% endif %}
+  aria-label="{% if disponibilidade_status == 'online' %}Disponível — clique para ativar não perturbe{% elif disponibilidade_status == 'ocupado' %}Não perturbe — clique para ficar disponível{% else %}Offline{% endif %}"
+>
+  <div class="pill-disponibilidade-indicador w-2 h-2 rounded-full
+    {% if disponibilidade_status == 'online' %}bg-secondary shadow-[0_0_8px_rgba(76,215,246,0.6)] animate-pulse
+    {% elif disponibilidade_status == 'ocupado' %}bg-tertiary shadow-[0_0_8px_rgba(255,183,132,0.6)]
+    {% else %}bg-outline{% endif %}"></div>
+  <span class="pill-disponibilidade-texto">
+    {% if disponibilidade_status == 'online' %}Disponível
+    {% elif disponibilidade_status == 'ocupado' %}Não perturbe
+    {% else %}Offline{% endif %}
+  </span>
+</button>

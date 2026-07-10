@@ -519,6 +519,30 @@
     if (dica) dica.textContent = 'Toque para cancelar';
   }
 
+  function mensagemDicaChamar(status, souFavorito, mutuos = false) {
+    if (status === 'offline') return 'Contato offline';
+    if (status === 'ocupado' && !podeBuzinarContato(status, souFavorito, mutuos)) {
+      return 'Em não perturbe — só favoritos podem chamar';
+    }
+    return 'Segure 2s para chamar';
+  }
+
+  let timeoutToast = null;
+
+  function mostrarToast(mensagem) {
+    const toast = document.getElementById('toast-buzz');
+    if (!toast) return;
+    clearTimeout(timeoutToast);
+    toast.textContent = mensagem;
+    toast.classList.remove('hidden', 'visivel');
+    void toast.offsetWidth;
+    toast.classList.add('visivel');
+    timeoutToast = setTimeout(() => {
+      toast.classList.add('hidden');
+      toast.classList.remove('visivel');
+    }, 3200);
+  }
+
   async function enviarBuzina(botao) {
     // Segundo clique enquanto buzina: cancela a chamada
     if (chamadaSainteAtiva()) {
@@ -544,6 +568,12 @@
 
     if (resultado.erro) {
       restaurarPaginaChamar();
+      return;
+    }
+
+    if (resultado.silenciada) {
+      restaurarPaginaChamar();
+      mostrarToast('Mensagem registrada — contato em não perturbe');
       return;
     }
 
@@ -712,6 +742,65 @@
   }
 
   const statusConhecidos = {};
+  const favoritosMeta = {};
+
+  function podeBuzinarContato(status, souFavorito, mutuos = false) {
+    if (status === 'offline') return false;
+    if (status === 'ocupado') {
+      return souFavorito === true || souFavorito === 'true' || mutuos === true || mutuos === 'true';
+    }
+    return true;
+  }
+
+  function carregarFavoritosPresenca() {
+    const el = document.getElementById('favoritos-presenca');
+    if (!el) return;
+    try {
+      const lista = JSON.parse(el.textContent);
+      lista.forEach((fav) => {
+        const id = String(fav.contato_id);
+        favoritosMeta[id] = {
+          souFavorito: fav.sou_favorito,
+          mutuos: fav.mutuos,
+        };
+        statusConhecidos[id] = fav.status || 'offline';
+      });
+    } catch {
+      /* ignora JSON inválido */
+    }
+  }
+
+  function atualizarBotaoBuzzInicio() {
+    const botao = document.getElementById('botao-buzz-inicio');
+    const dica = document.getElementById('dica-segurar');
+    if (!botao) return;
+
+    const ids = Object.keys(favoritosMeta);
+    if (!ids.length) return;
+
+    const algumDisponivel = ids.some((id) => {
+      const meta = favoritosMeta[id];
+      const status = statusConhecidos[id] || 'offline';
+      return podeBuzinarContato(status, meta.souFavorito, meta.mutuos);
+    });
+
+    botao.disabled = !algumDisponivel;
+    if (algumDisponivel) {
+      botao.removeAttribute('data-manter-desabilitado');
+      botao.classList.remove('opacity-50', 'cursor-not-allowed');
+      botao.classList.add('hover:scale-105', 'active:scale-95', 'cursor-pointer');
+    } else {
+      botao.setAttribute('data-manter-desabilitado', '1');
+      botao.classList.add('opacity-50', 'cursor-not-allowed');
+      botao.classList.remove('hover:scale-105', 'active:scale-95', 'cursor-pointer');
+    }
+
+    if (dica) {
+      dica.textContent = algumDisponivel
+        ? 'Segure 2s para chamar favoritos'
+        : 'Favoritos offline';
+    }
+  }
 
   function estilosPresenca(status) {
     const mapa = {
@@ -767,6 +856,78 @@
     }
   }
 
+  function atualizarPillDisponibilidade(status, conectado) {
+    const mapa = {
+      online: {
+        classePill: 'pill-disponivel text-on-surface-variant',
+        indicador: 'bg-secondary shadow-[0_0_8px_rgba(76,215,246,0.6)] animate-pulse',
+        texto: 'Disponível',
+        aria: 'Disponível — clique para ativar não perturbe',
+      },
+      ocupado: {
+        classePill: 'pill-nao-perturbe text-on-surface-variant',
+        indicador: 'bg-tertiary shadow-[0_0_8px_rgba(255,183,132,0.6)]',
+        texto: 'Não perturbe',
+        aria: 'Não perturbe — clique para ficar disponível',
+      },
+      offline: {
+        classePill: 'pill-offline text-outline cursor-not-allowed opacity-80',
+        indicador: 'bg-outline',
+        texto: 'Offline',
+        aria: 'Offline',
+      },
+    };
+    const estilo = mapa[status] || mapa.offline;
+
+    document.querySelectorAll('[data-pill-disponibilidade]').forEach((pill) => {
+      pill.dataset.status = status;
+      if (conectado !== undefined) {
+        pill.dataset.conectado = conectado ? 'true' : 'false';
+        pill.disabled = !conectado;
+        pill.setAttribute('aria-disabled', conectado ? 'false' : 'true');
+      }
+      if (status === 'ocupado') pill.dataset.preferencia = 'ocupado';
+      else if (status === 'online') pill.dataset.preferencia = 'online';
+
+      pill.className = `pill-disponibilidade flex items-center gap-xs px-3 py-1 rounded-full bg-surface-container-high border border-white/5 sombra-neumorfica text-xs font-label-bold transition-colors ${estilo.classePill}`;
+
+      const indicador = pill.querySelector('.pill-disponibilidade-indicador');
+      const texto = pill.querySelector('.pill-disponibilidade-texto');
+      if (indicador) indicador.className = `pill-disponibilidade-indicador w-2 h-2 rounded-full ${estilo.indicador}`;
+      if (texto) texto.textContent = estilo.texto;
+      pill.setAttribute('aria-label', estilo.aria);
+    });
+  }
+
+  function sincronizarPillAoConectar() {
+    document.querySelectorAll('[data-pill-disponibilidade]').forEach((pill) => {
+      const pref = pill.dataset.preferencia === 'ocupado' ? 'ocupado' : 'online';
+      atualizarPillDisponibilidade(pref, true);
+    });
+  }
+
+  function sincronizarPillAoDesconectar() {
+    atualizarPillDisponibilidade('offline', false);
+  }
+
+  async function alternarDisponibilidadePill(pill) {
+    if (pill.disabled || pill.dataset.conectado !== 'true') return;
+    const modo = pill.dataset.status === 'ocupado' ? 'disponivel' : 'nao_perturbe';
+    const resultado = await postForm('/api/disponibilidade/', { modo });
+    if (resultado.erro) {
+      mostrarToast(resultado.erro);
+      return;
+    }
+    const status = resultado.status || (modo === 'nao_perturbe' ? 'ocupado' : 'online');
+    atualizarPillDisponibilidade(status, true);
+  }
+
+  function configurarPillDisponibilidade() {
+    document.querySelectorAll('[data-pill-disponibilidade]').forEach((pill) => {
+      pill.addEventListener('click', () => alternarDisponibilidadePill(pill));
+    });
+  }
+
   function atualizarCardPresenca(card, status, rotulo) {
     const estilo = estilosPresenca(status);
     card.dataset.status = status;
@@ -775,7 +936,10 @@
     const statusEl = card.querySelector('.card-membro-status');
     const bolt = card.querySelector('.card-membro-bolt');
     const link = card.querySelector('a.flex-1');
-    const pode = status !== 'offline';
+    const souFavorito = card.dataset.souFavorito === 'true';
+    const mutuos = card.dataset.favoritosMutuos === 'true';
+    const pode = podeBuzinarContato(status, souFavorito, mutuos);
+    const offline = status === 'offline';
 
     if (indicador) {
       indicador.className = `card-membro-indicador absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-surface-container-highest ${estilo.indicador}`;
@@ -785,9 +949,9 @@
       statusEl.className = `card-membro-status font-label-bold text-label-bold ${estilo.cor} mt-1`;
     }
 
-    card.classList.toggle('opacity-75', !pode);
-    card.classList.toggle('grayscale-[0.2]', !pode);
-    if (link) link.classList.toggle('pointer-events-none', !pode);
+    card.classList.toggle('opacity-75', offline);
+    card.classList.toggle('grayscale-[0.2]', offline);
+    if (link) link.classList.toggle('pointer-events-none', offline);
 
     if (bolt) {
       bolt.className = `card-membro-bolt shrink-0 w-10 h-10 rounded-full flex items-center justify-center sombra-neumorfica no-underline ${
@@ -821,14 +985,16 @@
     }
     if (!botao) return;
 
-    const pode = status !== 'offline';
+    const souFavorito = statusEl?.dataset.souFavorito === 'true';
+    const mutuos = statusEl?.dataset.favoritosMutuos === 'true';
+    const pode = podeBuzinarContato(status, souFavorito, mutuos);
     if (!chamadaSainteAtiva()) botao.disabled = !pode;
     botao.classList.toggle('opacity-50', !pode);
     botao.classList.toggle('cursor-not-allowed', !pode);
     botao.classList.toggle('cursor-pointer', pode);
     botao.classList.toggle('hover:scale-105', pode);
     if (dica && !chamadaSainteAtiva()) {
-      dica.textContent = pode ? 'Segure 2s para chamar' : 'Contato offline';
+      dica.textContent = mensagemDicaChamar(status, souFavorito, mutuos);
     }
   }
 
@@ -836,6 +1002,16 @@
     const usuarioId = String(dados.usuario_id);
     const status = dados.status;
     const rotulo = dados.status_rotulo;
+    const meuId = document.body.dataset.usuarioId;
+
+    if (meuId && usuarioId === meuId) {
+      if (status === 'offline') {
+        sincronizarPillAoDesconectar();
+      } else {
+        atualizarPillDisponibilidade(status, true);
+      }
+    }
+
     const anterior = statusConhecidos[usuarioId];
     statusConhecidos[usuarioId] = status;
 
@@ -859,11 +1035,14 @@
     }
 
     atualizarContadorOnline();
+    atualizarBotaoBuzzInicio();
   }
 
   function conectarWebSocket() {
     const protocolo = window.location.protocol === 'https:' ? 'wss' : 'ws';
     socket = new WebSocket(`${protocolo}://${window.location.host}/ws/buzz/`);
+
+    socket.onopen = () => sincronizarPillAoConectar();
 
     socket.onmessage = (evento) => {
       const dados = JSON.parse(evento.data);
@@ -878,7 +1057,10 @@
       }
     };
 
-    socket.onclose = () => setTimeout(conectarWebSocket, 3000);
+    socket.onclose = () => {
+      sincronizarPillAoDesconectar();
+      setTimeout(conectarWebSocket, 3000);
+    };
   }
 
   document.addEventListener('click', (evento) => {
@@ -933,6 +1115,9 @@
 
   configurarSegurarParaBuzinar();
   configurarCentralNotificacoes();
+  configurarPillDisponibilidade();
+  carregarFavoritosPresenca();
+  atualizarBotaoBuzzInicio();
   resetarAnelProgresso();
 
   if (document.body.dataset.usuarioAutenticado === 'true') {

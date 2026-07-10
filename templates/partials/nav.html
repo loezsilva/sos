@@ -10,10 +10,7 @@
     <span class="font-display-lg-mobile text-display-lg-mobile font-extrabold tracking-tighter">Buzz</span>
   </div>
   <div class="flex items-center gap-md">
-    <div class="flex items-center gap-xs px-3 py-1 rounded-full bg-surface-container-high border border-white/5 sombra-neumorfica text-xs font-label-bold">
-      <div class="w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_rgba(76,215,246,0.6)] animate-pulse"></div>
-      <span class="text-on-surface-variant">Disponível</span>
-    </div>
+    {% include 'partials/pill_disponibilidade.html' %}
     {% include 'partials/central_notificacoes.html' %}
     <button type="button" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container hover:bg-surface-bright active:scale-95 transition-all sombra-neumorfica text-outline hover:text-primary" aria-label="Sensores">
       <span class="material-symbols-outlined">sensors</span>
@@ -35,10 +32,7 @@
       <a href="{{ url_configuracoes }}" class="{% if rota_ativa == 'configuracoes' %}link-nav-ativo{% else %}link-nav-inativo{% endif %}">Configurações</a>
     </nav>
     <div class="flex items-center gap-md justify-self-end">
-      <div class="flex items-center gap-xs px-3 py-1 rounded-full bg-surface-container-high border border-white/5 sombra-neumorfica text-xs font-label-bold">
-        <div class="w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_rgba(76,215,246,0.6)] animate-pulse"></div>
-        <span class="text-on-surface-variant">Disponível</span>
-      </div>
+      {% include 'partials/pill_disponibilidade.html' %}
       {% include 'partials/central_notificacoes.html' %}
       <button type="button" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container hover:bg-surface-bright active:scale-95 transition-all sombra-neumorfica text-outline hover:text-primary" aria-label="Sensores">
         <span class="material-symbols-outlined">sensors</span>

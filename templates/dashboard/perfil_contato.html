@@ -29,6 +29,8 @@
         class="font-headline-md text-headline-md {{ membro.classe_cor_status }} mt-2"
         data-contato-id="{{ membro.contato_id }}"
         data-status="{{ membro.status }}"
+        data-sou-favorito="{{ membro.sou_favorito_do_contato|yesno:'true,false' }}"
+        data-favoritos-mutuos="{{ membro.favoritos_mutuos|yesno:'true,false' }}"
       >
         {{ membro.get_status_display }}
       </p>
@@ -68,7 +70,9 @@
         </button>
       </div>
       <p id="dica-segurar" class="text-center text-xs font-label-bold text-on-surface-variant uppercase tracking-wide">
-        {% if membro.pode_buzinar %}Segure 2s para chamar{% else %}Contato offline{% endif %}
+        {% if membro.status == 'ocupado' and not membro.sou_favorito_do_contato %}
+          Em não perturbe — só favoritos podem chamar
+        {% elif membro.pode_buzinar %}Segure 2s para chamar{% else %}Contato offline{% endif %}
       </p>
     </div>
 

@@ -135,6 +135,24 @@
     outline: 2px solid theme('colors.secondary');
     outline-offset: -2px;
   }
+
+  .pill-disponivel:hover:not(:disabled) {
+    border-color: rgba(76, 215, 246, 0.35);
+    background: rgba(45, 52, 73, 0.65);
+  }
+
+  .pill-nao-perturbe:hover:not(:disabled) {
+    border-color: rgba(255, 183, 132, 0.35);
+    background: rgba(45, 52, 73, 0.65);
+  }
+
+  .pill-disponibilidade:disabled {
+    pointer-events: none;
+  }
+
+  #toast-buzz.visivel {
+    animation: toast-buzz-entrar 0.25s ease-out;
+  }
 }
 
 @keyframes efeito-ripple {
@@ -216,5 +234,16 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes toast-buzz-entrar {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
   }
 }

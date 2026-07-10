@@ -1,8 +1,10 @@
 import pytest
 from django.urls import reverse
+from unittest.mock import patch
 
 from apps.accounts.models import User
 from apps.dashboard.models import Buzina, MembroCirculo, StatusPresenca
+from apps.dashboard.presenca import Presenca
 
 
 @pytest.fixture
@@ -99,3 +101,120 @@ class TestNotificacoesApi:
         resposta = client.post(reverse('dashboard:marcar_notificacoes_lidas'))
         assert resposta.status_code == 200
         assert resposta.json()['nao_lidas'] == 0
+
+
+@pytest.fixture
+def circulo_bidirecional(usuarios):
+    alice, bob = usuarios
+    alice_bob = MembroCirculo.objects.create(
+        dono=alice, contato=bob, status=StatusPresenca.ONLINE,
+    )
+    bob_alice = MembroCirculo.objects.create(
+        dono=bob, contato=alice, status=StatusPresenca.ONLINE,
+    )
+    return alice_bob, bob_alice
+
+
+@pytest.mark.django_db
+class TestNaoPerturbe:
+    def test_pode_buzinar_ocupado_apenas_favorito(self, usuarios, circulo_bidirecional):
+        alice, bob = usuarios
+        alice_bob, bob_alice = circulo_bidirecional
+        MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OCUPADO)
+        alice_bob.refresh_from_db()
+
+        assert alice_bob.pode_buzinar is False
+
+        bob_alice.eh_vip = True
+        bob_alice.save(update_fields=['eh_vip'])
+        assert alice_bob.pode_buzinar is True
+
+    @patch('apps.dashboard.presenca.Presenca.esta_conectado', return_value=True)
+    def test_favoritos_mutuos_veem_online_em_nao_perturbe(self, mock_conectado, usuarios, circulo_bidirecional):
+        alice, bob = usuarios
+        alice_bob, bob_alice = circulo_bidirecional
+        alice_bob.eh_vip = True
+        bob_alice.eh_vip = True
+        alice_bob.save(update_fields=['eh_vip'])
+        bob_alice.save(update_fields=['eh_vip'])
+        MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OCUPADO)
+        alice_bob.refresh_from_db()
+
+        assert alice_bob.status_para_dono() == StatusPresenca.ONLINE
+        assert Presenca.status_para_espectador(
+            bob.id, alice.id, StatusPresenca.OCUPADO,
+        ) == StatusPresenca.ONLINE
+
+    @patch.object(Buzina, '_notificar')
+    def test_enviar_silenciada_quando_ocupado_nao_vip(self, mock_notificar, usuarios, circulo_bidirecional):
+        alice, bob = usuarios
+        alice_bob, _ = circulo_bidirecional
+        MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OCUPADO)
+        alice_bob.refresh_from_db()
+
+        buzina = Buzina.enviar(alice, bob.id, mensagem='Oi')
+        assert buzina.silenciada is True
+        assert buzina.lida_em is None
+        mock_notificar.assert_not_called()
+
+    @patch.object(Buzina, '_notificar')
+    def test_enviar_normal_quando_vip_em_nao_perturbe(self, mock_notificar, usuarios, circulo_bidirecional):
+        alice, bob = usuarios
+        alice_bob, bob_alice = circulo_bidirecional
+        MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OCUPADO)
+        bob_alice.eh_vip = True
+        bob_alice.save(update_fields=['eh_vip'])
+        alice_bob.refresh_from_db()
+
+        buzina = Buzina.enviar(alice, bob.id)
+        assert buzina.silenciada is False
+        mock_notificar.assert_called_once()
+
+    @patch('apps.dashboard.presenca.Presenca.notificar_circulo')
+    @patch('apps.dashboard.presenca.Presenca.esta_conectado', return_value=True)
+    def test_api_alternar_disponibilidade(self, mock_conectado, mock_notificar, client, usuarios, circulo_bidirecional):
+        alice, _ = usuarios
+        client.force_login(alice)
+
+        resposta = client.post(
+            reverse('dashboard:alternar_disponibilidade'),
+            {'modo': 'nao_perturbe'},
+        )
+        assert resposta.status_code == 200
+        dados = resposta.json()
+        assert dados['ok'] is True
+        assert dados['status'] == StatusPresenca.OCUPADO
+        assert MembroCirculo.objects.filter(
+            contato=alice, status=StatusPresenca.OCUPADO,
+        ).exists()
+
+        resposta = client.post(
+            reverse('dashboard:alternar_disponibilidade'),
+            {'modo': 'disponivel'},
+        )
+        assert resposta.json()['status'] == StatusPresenca.ONLINE
+
+    @patch.object(Buzina, '_notificar')
+    @patch('apps.dashboard.presenca.Presenca.notificar_circulo')
+    @patch('apps.dashboard.presenca.Presenca.esta_conectado', return_value=True)
+    def test_fluxo_nao_perturbe_integracao(
+        self, mock_conectado, mock_presenca, mock_notificar, client, usuarios, circulo_bidirecional,
+    ):
+        alice, bob = usuarios
+        alice_bob, bob_alice = circulo_bidirecional
+
+        client.force_login(alice)
+        client.post(reverse('dashboard:alternar_disponibilidade'), {'modo': 'nao_perturbe'})
+        MembroCirculo.objects.filter(contato=alice).update(status=StatusPresenca.OCUPADO)
+
+        MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.ONLINE)
+        alice_bob.refresh_from_db()
+        buzina = Buzina.enviar(bob, alice.id)
+        assert buzina.silenciada is True
+        mock_notificar.assert_not_called()
+
+        mock_notificar.reset_mock()
+        MembroCirculo.objects.filter(dono=alice, contato=bob).update(eh_vip=True)
+        buzina_vip = Buzina.enviar(bob, alice.id)
+        assert buzina_vip.silenciada is False
+        mock_notificar.assert_called_once()

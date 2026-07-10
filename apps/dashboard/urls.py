@@ -1,6 +1,7 @@
 from django.urls import path
 
 from apps.dashboard.views import (
+    AlternarDisponibilidadeView,
     AlternarFavoritoView,
     EncerrarBuzinaView,
     EnviarBuzinaFavoritosView,
@@ -23,6 +24,7 @@ urlpatterns = [
     path('circulos/<uuid:membro_id>/', PerfilContatoView.as_view(), name='perfil_contato'),
     path('circulos/<uuid:membro_id>/chamar/', PaginaChamarContatoView.as_view(), name='chamar_contato'),
     path('configuracoes/', PaginaConfiguracoesView.as_view(), name='configuracoes'),
+    path('api/disponibilidade/', AlternarDisponibilidadeView.as_view(), name='alternar_disponibilidade'),
     path('api/buzina/enviar/', EnviarBuzinaView.as_view(), name='enviar_buzina'),
     path('api/buzina/enviar-favoritos/', EnviarBuzinaFavoritosView.as_view(), name='enviar_buzina_favoritos'),
     path('api/buzina/<uuid:buzina_id>/responder/', ResponderBuzinaView.as_view(), name='responder_buzina'),

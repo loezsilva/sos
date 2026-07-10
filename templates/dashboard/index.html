@@ -48,6 +48,18 @@
       <p class="text-center text-on-surface-variant font-label-bold text-sm mt-2 mb-md">
         {{ favoritos|length }} favorito{{ favoritos|length|pluralize }}
       </p>
+      <script type="application/json" id="favoritos-presenca">
+        [
+          {% for fav in favoritos %}
+          {
+            "contato_id": "{{ fav.contato_id }}",
+            "sou_favorito": {{ fav.sou_favorito_do_contato|yesno:"true,false" }},
+            "mutuos": {{ fav.favoritos_mutuos|yesno:"true,false" }},
+            "status": "{{ fav.status_para_dono }}"
+          }{% if not forloop.last %},{% endif %}
+          {% endfor %}
+        ]
+      </script>
     {% endif %}
 
     <div class="w-full grid grid-cols-2 gap-4">

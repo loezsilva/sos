@@ -93,9 +93,53 @@ class MembroCirculo(BaseModel):
             StatusPresenca.OFFLINE: 'bg-outline',
         }[self.status]
 
+    @classmethod
+    def remetente_eh_favorito_de(cls, destinatario_id, remetente_id):
+        """VIP do ponto de vista do destinatário (dono=destinatário, contato=remetente)."""
+        return cls.objects.filter(
+            dono_id=destinatario_id,
+            contato_id=remetente_id,
+            eh_vip=True,
+        ).exists()
+
+    @classmethod
+    def sao_favoritos_mutuos(cls, usuario_a_id, usuario_b_id):
+        return (
+            cls.objects.filter(dono_id=usuario_a_id, contato_id=usuario_b_id, eh_vip=True).exists()
+            and cls.objects.filter(dono_id=usuario_b_id, contato_id=usuario_a_id, eh_vip=True).exists()
+        )
+
+    @property
+    def sou_favorito_do_contato(self):
+        return self.remetente_eh_favorito_de(self.contato_id, self.dono_id)
+
+    @property
+    def favoritos_mutuos(self):
+        return self.sao_favoritos_mutuos(self.contato_id, self.dono_id)
+
+    def status_para_dono(self):
+        """Status exibido ao dono do círculo (oculta não perturbe entre favoritos mútuos)."""
+        from apps.dashboard.presenca import Presenca
+
+        if (
+            self.status == StatusPresenca.OCUPADO
+            and Presenca.esta_conectado(self.contato_id)
+            and self.sao_favoritos_mutuos(self.contato_id, self.dono_id)
+        ):
+            return StatusPresenca.ONLINE
+        return self.status
+
     @property
     def pode_buzinar(self):
-        return self.status != StatusPresenca.OFFLINE
+        status = self.status_para_dono()
+        if status == StatusPresenca.OFFLINE:
+            return False
+        if self.status == StatusPresenca.OCUPADO:
+            return (
+                self.sou_favorito_do_contato
+                or self.sao_favoritos_mutuos(self.contato_id, self.dono_id)
+            )
+        return True
 
 
 class BuzinaQuerySet(models.QuerySet):
@@ -268,8 +312,14 @@ class Buzina(BaseModel):
         membro = MembroCirculo.objects.filter(
             dono=remetente, contato_id=destinatario_id
         ).select_related('contato').first()
-        if not membro or not membro.pode_buzinar:
+        if not membro or membro.status == StatusPresenca.OFFLINE:
             raise ValueError('Contato indisponível para buzina.')
+
+        eh_favorito = MembroCirculo.remetente_eh_favorito_de(destinatario_id, remetente.pk)
+        mutuos = MembroCirculo.sao_favoritos_mutuos(destinatario_id, remetente.pk)
+        silenciada = (
+            membro.status == StatusPresenca.OCUPADO and not eh_favorito and not mutuos
+        )
 
         # Uma pendente por par: cancela anteriores sem notificar (nova sobrescreve)
         cls.objects.filter(
@@ -283,7 +333,9 @@ class Buzina(BaseModel):
             destinatario_id=destinatario_id,
             mensagem=(mensagem or '')[:80],
         )
-        cls._notificar(str(destinatario_id), 'buzina_recebida', buzina.payload_recebida())
+        buzina.silenciada = silenciada
+        if not silenciada:
+            cls._notificar(str(destinatario_id), 'buzina_recebida', buzina.payload_recebida())
         return buzina
 
     @classmethod
