@@ -1,6 +1,8 @@
 {
   "id": "/",
   "scope": "/",
+  "lang": "pt-BR",
+  "dir": "ltr",
   "name": "Cutuca — Atenção imediata",
   "short_name": "Cutuca",
   "description": "Cutuque quem importa com um toque. Atenção imediata para o seu círculo íntimo.",
