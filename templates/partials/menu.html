@@ -2,7 +2,7 @@
 {% url 'dashboard:proximos' as url_proximos %}
 {% url 'dashboard:configuracoes' as url_configuracoes %}
 
-<nav class="md:hidden fixed bottom-0 w-full z-50 rounded-t-xl px-4 pb-6 bg-surface/95 backdrop-blur-2xl border-t border-outline-variant/40 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] flex justify-around items-center h-20">
+<nav class="md:hidden fixed bottom-0 w-full z-50 rounded-t-xl px-4 pt-3 pb-6 bg-surface/95 backdrop-blur-2xl border-t border-outline-variant/40 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] flex justify-around items-center min-h-20">
   <a href="{{ url_inicio }}" class="flex flex-col items-center justify-center duration-150 {% if rota_ativa == 'inicio' %}item-menu-ativo{% else %}item-menu-inativo{% endif %}">
     <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' {% if rota_ativa == 'inicio' %}1{% else %}0{% endif %};">home_app_logo</span>
     <span class="font-label-bold text-[10px] mt-1">Início</span>
@@ -15,4 +15,21 @@
     <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' {% if rota_ativa == 'configuracoes' %}1{% else %}0{% endif %};">settings</span>
     <span class="font-label-bold text-[10px] mt-1">Configurações</span>
   </a>
+  {% if user.is_authenticated %}
+    <form method="post" action="{% url 'logout' %}" class="contents">
+      {% csrf_token %}
+      <button
+        type="submit"
+        class="flex flex-col items-center justify-center duration-150 item-menu-inativo bg-transparent border-0 p-0 cursor-pointer"
+      >
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">logout</span>
+        <span class="font-label-bold text-[10px] mt-1">Sair</span>
+      </button>
+    </form>
+  {% else %}
+    <a href="{% url 'login' %}" class="flex flex-col items-center justify-center duration-150 item-menu-inativo">
+      <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">login</span>
+      <span class="font-label-bold text-[10px] mt-1">Entrar</span>
+    </a>
+  {% endif %}
 </nav>

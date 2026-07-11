@@ -1,12 +1,12 @@
-<footer class="{% if user.is_authenticated %}block mb-20 md:mb-0{% else %}hidden md:block{% endif %} px-margin-mobile md:px-margin-desktop py-4 text-on-surface-variant text-sm font-label-bold text-center">
+<footer class="hidden md:flex justify-center items-center px-margin-desktop py-4 text-on-surface-variant text-sm font-label-bold">
   {% if user.is_authenticated %}
     <form method="post" action="{% url 'logout' %}">
       {% csrf_token %}
       <button
         type="submit"
-        class="inline-flex items-center gap-1 text-on-surface-variant hover:text-error transition-colors font-label-bold text-sm min-h-[48px] px-3"
+        class="inline-flex items-center gap-2 text-on-surface-variant hover:text-error transition-colors font-label-bold text-sm min-h-[48px] px-4"
       >
-        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">logout</span>
+        <span class="material-symbols-outlined text-[20px]" aria-hidden="true">logout</span>
         Sair
       </button>
     </form>
