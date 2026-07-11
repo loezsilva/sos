@@ -33,8 +33,8 @@ self.addEventListener('push', (event) => {
     silent: false,
     sound: '/static/sounds/buzina.wav',
     vibrate: [200, 100, 200, 100, 400],
-    icon: '/static/icons/icon-192.png',
-    badge: '/static/icons/icon-192.png',
+    icon: '/static/icons/web-app-manifest-192x192.png',
+    badge: '/static/icons/web-app-manifest-192x192.png',
     data: {
       url: dados.url || '/',
       buzina_id: dados.buzina_id,
@@ -121,7 +121,8 @@ const PRECACHE = [
   { url: '/static/js/buzz.js', revision: 'cutuca-v2' },
   { url: '/static/js/push.js', revision: 'cutuca-v2' },
   { url: '/static/sounds/buzina.wav', revision: null },
-  { url: '/static/icons/icon-192.png', revision: null },
+  { url: '/static/icons/web-app-manifest-192x192.png', revision: 'cutuca-v2' },
+  { url: '/static/icons/favicon.svg', revision: 'cutuca-v2' },
   { url: '/static/icons/logo-cutuca-online.png', revision: 'cutuca-v2' },
 ];
 

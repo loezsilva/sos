@@ -9,8 +9,11 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Cutuca">
   <title>{% block title %}Cutuca{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{% static 'icons/favicon-96x96.png' %}" sizes="96x96">
+  <link rel="icon" type="image/svg+xml" href="{% static 'icons/favicon.svg' %}">
+  <link rel="shortcut icon" href="{% static 'icons/favicon.ico' %}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'icons/apple-touch-icon.png' %}">
   <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
-  <link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/buzz.css' %}">
@@ -40,6 +43,11 @@
   {% endif %}
 
   {% block extra_js %}{% endblock %}
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
+    }
+  </script>
   {% if user.is_authenticated %}
     <script src="{% static 'js/push-nativo.js' %}"></script>
     <script src="{% static 'js/push.js' %}"></script>
