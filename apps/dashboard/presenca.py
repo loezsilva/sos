@@ -154,9 +154,8 @@ class Presenca:
             return StatusPresenca.OFFLINE
         if status == StatusPresenca.OFFLINE:
             return StatusPresenca.ONLINE
-        if (
-            status == StatusPresenca.OCUPADO
-            and MembroCirculo.sao_favoritos_mutuos(usuario_id, espectador_id)
+        if status == StatusPresenca.OCUPADO and MembroCirculo.sao_favoritos_mutuos(
+            usuario_id, espectador_id
         ):
             return StatusPresenca.ONLINE
         return status
@@ -190,16 +189,21 @@ class Presenca:
                 status = membro.status
 
             status = cls.status_para_espectador(
-                membro.contato_id, dono_id, status, alcancavel,
+                membro.contato_id,
+                dono_id,
+                status,
+                alcancavel,
             )
             contato = membro.contato
-            payloads.append({
-                'tipo': 'presenca_atualizada',
-                'usuario_id': str(membro.contato_id),
-                'status': status,
-                'status_rotulo': cls.ROTULOS.get(status, status),
-                'nome': contato.name or contato.username,
-            })
+            payloads.append(
+                {
+                    'tipo': 'presenca_atualizada',
+                    'usuario_id': str(membro.contato_id),
+                    'status': status,
+                    'status_rotulo': cls.ROTULOS.get(status, status),
+                    'nome': contato.name or contato.username,
+                }
+            )
         return payloads
 
     @classmethod
@@ -210,18 +214,25 @@ class Presenca:
         if canal is None:
             return
 
-        usuario = User.objects.filter(pk=usuario_id).only('id', 'name', 'username').first()
+        usuario = (
+            User.objects.filter(pk=usuario_id).only('id', 'name', 'username').first()
+        )
         if not usuario:
             return
 
         nome = usuario.name or usuario.username
-        membros = MembroCirculo.objects.filter(contato_id=usuario_id).only('dono_id', 'status')
+        membros = MembroCirculo.objects.filter(contato_id=usuario_id).only(
+            'dono_id', 'status'
+        )
         alcancavel = cls.esta_alcancavel(usuario_id)
 
         for membro in membros:
             status = forcar_status or membro.status
             status = cls.status_para_espectador(
-                usuario_id, membro.dono_id, status, alcancavel,
+                usuario_id,
+                membro.dono_id,
+                status,
+                alcancavel,
             )
             async_to_sync(canal.group_send)(
                 f'buzz_{membro.dono_id}',

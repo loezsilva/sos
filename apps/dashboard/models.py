@@ -79,11 +79,19 @@ class MembroCirculo(BaseModel):
 
     @property
     def classe_borda_status(self):
-        return 'border-l-4 border-l-tertiary' if self.status_para_dono() == StatusPresenca.OCUPADO else ''
+        return (
+            'border-l-4 border-l-tertiary'
+            if self.status_para_dono() == StatusPresenca.OCUPADO
+            else ''
+        )
 
     @property
     def classe_card(self):
-        return 'opacity-75 grayscale-[0.2]' if self.status_para_dono() == StatusPresenca.OFFLINE else ''
+        return (
+            'opacity-75 grayscale-[0.2]'
+            if self.status_para_dono() == StatusPresenca.OFFLINE
+            else ''
+        )
 
     @property
     def classe_indicador_status(self):
@@ -95,7 +103,9 @@ class MembroCirculo(BaseModel):
 
     @property
     def rotulo_status_exibicao(self):
-        return dict(StatusPresenca.choices).get(self.status_para_dono(), self.status_para_dono())
+        return dict(StatusPresenca.choices).get(
+            self.status_para_dono(), self.status_para_dono()
+        )
 
     @classmethod
     def remetente_eh_favorito_de(cls, destinatario_id, remetente_id):
@@ -109,8 +119,12 @@ class MembroCirculo(BaseModel):
     @classmethod
     def sao_favoritos_mutuos(cls, usuario_a_id, usuario_b_id):
         return (
-            cls.objects.filter(dono_id=usuario_a_id, contato_id=usuario_b_id, eh_vip=True).exists()
-            and cls.objects.filter(dono_id=usuario_b_id, contato_id=usuario_a_id, eh_vip=True).exists()
+            cls.objects.filter(
+                dono_id=usuario_a_id, contato_id=usuario_b_id, eh_vip=True
+            ).exists()
+            and cls.objects.filter(
+                dono_id=usuario_b_id, contato_id=usuario_a_id, eh_vip=True
+            ).exists()
         )
 
     @property
@@ -129,9 +143,8 @@ class MembroCirculo(BaseModel):
             return StatusPresenca.OFFLINE
         if self.status == StatusPresenca.OFFLINE:
             return StatusPresenca.ONLINE
-        if (
-            self.status == StatusPresenca.OCUPADO
-            and self.sao_favoritos_mutuos(self.contato_id, self.dono_id)
+        if self.status == StatusPresenca.OCUPADO and self.sao_favoritos_mutuos(
+            self.contato_id, self.dono_id
         ):
             return StatusPresenca.ONLINE
         return self.status
@@ -142,9 +155,8 @@ class MembroCirculo(BaseModel):
         if status == StatusPresenca.OFFLINE:
             return False
         if self.status == StatusPresenca.OCUPADO:
-            return (
-                self.sou_favorito_do_contato
-                or self.sao_favoritos_mutuos(self.contato_id, self.dono_id)
+            return self.sou_favorito_do_contato or self.sao_favoritos_mutuos(
+                self.contato_id, self.dono_id
             )
         return True
 
@@ -280,9 +292,14 @@ class Buzina(BaseModel):
 
     def membro_id_para(self, usuario):
         contato = self.contato_para(usuario)
-        membro = MembroCirculo.objects.filter(
-            dono=usuario, contato=contato,
-        ).values_list('id', flat=True).first()
+        membro = (
+            MembroCirculo.objects.filter(
+                dono=usuario,
+                contato=contato,
+            )
+            .values_list('id', flat=True)
+            .first()
+        )
         return str(membro) if membro else None
 
     def serializar_notificacao(self, usuario):
@@ -310,7 +327,9 @@ class Buzina(BaseModel):
             'buzina_id': str(self.id),
             'remetente_id': str(self.remetente_id),
             'remetente_nome': self.remetente.name or self.remetente.username,
-            'remetente_avatar': self.remetente.avatar.url if self.remetente.avatar else '',
+            'remetente_avatar': self.remetente.avatar.url
+            if self.remetente.avatar
+            else '',
             'mensagem': self.mensagem,
         }
 
@@ -337,13 +356,17 @@ class Buzina(BaseModel):
     def enviar(cls, remetente, destinatario_id, mensagem=''):
         from apps.dashboard.presenca import Presenca
 
-        membro = MembroCirculo.objects.filter(
-            dono=remetente, contato_id=destinatario_id
-        ).select_related('contato').first()
+        membro = (
+            MembroCirculo.objects.filter(dono=remetente, contato_id=destinatario_id)
+            .select_related('contato')
+            .first()
+        )
         if not membro or not Presenca.esta_alcancavel(destinatario_id):
             raise ValueError('Contato indisponível para buzina.')
 
-        eh_favorito = MembroCirculo.remetente_eh_favorito_de(destinatario_id, remetente.pk)
+        eh_favorito = MembroCirculo.remetente_eh_favorito_de(
+            destinatario_id, remetente.pk
+        )
         mutuos = MembroCirculo.sao_favoritos_mutuos(destinatario_id, remetente.pk)
         silenciada = (
             membro.status == StatusPresenca.OCUPADO and not eh_favorito and not mutuos
@@ -363,7 +386,9 @@ class Buzina(BaseModel):
         )
         buzina.silenciada = silenciada
         if not silenciada:
-            cls._notificar(str(destinatario_id), 'buzina_recebida', buzina.payload_recebida())
+            cls._notificar(
+                str(destinatario_id), 'buzina_recebida', buzina.payload_recebida()
+            )
             from apps.dashboard.push import ServicoPush
             from apps.dashboard.push_nativo import ServicoPushNativo
 
@@ -381,7 +406,9 @@ class Buzina(BaseModel):
             if not Presenca.esta_alcancavel(membro.contato_id):
                 continue
             try:
-                enviadas.append(cls.enviar(remetente, membro.contato_id, mensagem=mensagem))
+                enviadas.append(
+                    cls.enviar(remetente, membro.contato_id, mensagem=mensagem)
+                )
             except ValueError:
                 continue
         if not enviadas:
@@ -402,7 +429,8 @@ class Buzina(BaseModel):
             extras = {'resposta_rapida': resposta_rapida}
 
         atualizadas = Buzina.objects.filter(
-            pk=self.pk, status=self.Status.PENDENTE,
+            pk=self.pk,
+            status=self.Status.PENDENTE,
         ).update(status=novo_status, updated_at=timezone.now(), **extras)
         if not atualizadas:
             return False
@@ -421,7 +449,8 @@ class Buzina(BaseModel):
 
     def _encerrar(self, novo_status):
         atualizadas = Buzina.objects.filter(
-            pk=self.pk, status=self.Status.PENDENTE,
+            pk=self.pk,
+            status=self.Status.PENDENTE,
         ).update(status=novo_status, updated_at=timezone.now())
         if not atualizadas:
             return False
@@ -481,7 +510,8 @@ class Buzina(BaseModel):
                 'buzina_id': str(self.id),
                 'resposta': resposta,
                 'resposta_rotulo': resposta_rotulo,
-                'destinatario_nome': self.destinatario.name or self.destinatario.username,
+                'destinatario_nome': self.destinatario.name
+                or self.destinatario.username,
             },
         )
 
@@ -514,7 +544,9 @@ class InscricaoNativa(BaseModel):
         max_length=10,
         choices=PlataformaNativa.choices,
     )
-    device_id = models.CharField('ID do dispositivo', max_length=255, blank=True, default='')
+    device_id = models.CharField(
+        'ID do dispositivo', max_length=255, blank=True, default=''
+    )
 
     class Meta:
         verbose_name = 'Inscrição push nativo'

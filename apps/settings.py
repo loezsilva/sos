@@ -315,23 +315,40 @@ ANYMAIL = {
 HIJACK_LOGIN_REDIRECT_URL = "/"
 HIJACK_LOGOUT_REDIRECT_URL = "/admin/"
 
-# ==================== SENTRY CONFIGURATION ====================
+# ==================== SENTRY / GLITCHTIP CONFIGURATION ====================
 SENTRY_DSN = config("SENTRY_DSN", default=None)
+SENTRY_ENABLE_IN_DEBUG = config("SENTRY_ENABLE_IN_DEBUG", default=DEBUG, cast=bool)
+SENTRY_ENABLE_LOGS = config("SENTRY_ENABLE_LOGS", default=False, cast=bool)
+SENTRY_ENVIRONMENT = config(
+    "SENTRY_ENVIRONMENT",
+    default="development" if DEBUG else "production",
+)
 
-if SENTRY_DSN and not DEBUG:
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        integrations=[DjangoIntegration()],
-        # Set traces_sample_rate to 0.1 to capture 100%
-        # of transactions for performance monitoring.
-        traces_sample_rate=0.1,
-        # Set profiles_sample_rate to 0.1 to profile 100%
-        # of sampled transactions.
-        # We recommend adjusting this value in production.
-        profiles_sample_rate=0.1,
-    )
+if SENTRY_DSN and (not DEBUG or SENTRY_ENABLE_IN_DEBUG):
+    sentry_init_kwargs = {
+        "dsn": SENTRY_DSN,
+        "integrations": [DjangoIntegration()],
+        "environment": SENTRY_ENVIRONMENT,
+        "enable_tracing": True,
+        "traces_sample_rate": 1 if DEBUG else 0.1,
+        "auto_session_tracking": False,
+    }
+    if SENTRY_ENABLE_LOGS:
+        sentry_init_kwargs["enable_logs"] = True
+    sentry_sdk.init(**sentry_init_kwargs)
 
 OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
+
+SENTRY_AUTH_TOKEN = config("SENTRY_AUTH_TOKEN", default="")
+SENTRY_ORG_SLUG = config("SENTRY_ORG_SLUG", default="")
+SENTRY_PROJECT_SLUG = config("SENTRY_PROJECT_SLUG", default="")
+SENTRY_API_BASE_URL = config("SENTRY_API_BASE_URL", default="")
+if not SENTRY_API_BASE_URL and SENTRY_DSN:
+    from urllib.parse import urlparse
+
+    _sentry_parsed = urlparse(SENTRY_DSN)
+    if _sentry_parsed.hostname:
+        SENTRY_API_BASE_URL = f"{_sentry_parsed.scheme}://{_sentry_parsed.hostname}"
 
 VAPID_PUBLIC_KEY = config("VAPID_PUBLIC_KEY", default="")
 VAPID_PRIVATE_KEY = config("VAPID_PRIVATE_KEY", default="").replace("\\n", "\n")

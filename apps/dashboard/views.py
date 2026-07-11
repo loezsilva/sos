@@ -7,7 +7,13 @@ from django.views.generic import DetailView, RedirectView, TemplateView
 import json
 import os
 
-from apps.dashboard.models import Buzina, InscricaoNativa, InscricaoPush, MembroCirculo, StatusPresenca
+from apps.dashboard.models import (
+    Buzina,
+    InscricaoNativa,
+    InscricaoPush,
+    MembroCirculo,
+    StatusPresenca,
+)
 from apps.dashboard.presenca import Presenca
 from apps.dashboard.push import ServicoPush
 from apps.dashboard.push_nativo import ServicoPushNativo
@@ -48,7 +54,9 @@ class PaginaCirculosView(TemplateView):
         contexto['termo_busca'] = termo_busca
 
         if self.request.user.is_authenticated:
-            membros = MembroCirculo.objects.do_usuario(self.request.user).buscar(termo_busca)
+            membros = MembroCirculo.objects.do_usuario(self.request.user).buscar(
+                termo_busca
+            )
             contexto['membros'] = membros
             contexto['total_online'] = sum(
                 1 for m in membros if m.status_para_dono() == StatusPresenca.ONLINE
@@ -80,7 +88,9 @@ class RedirecionarPerfilParaChamarView(LoginRequiredMixin, RedirectView):
     permanent = False
 
     def get_redirect_url(self, *args, **kwargs):
-        return reverse('dashboard:chamar_contato', kwargs={'membro_id': kwargs['membro_id']})
+        return reverse(
+            'dashboard:chamar_contato', kwargs={'membro_id': kwargs['membro_id']}
+        )
 
 
 class PaginaChamarContatoView(LoginRequiredMixin, DetailView):
@@ -106,15 +116,18 @@ class EnviarBuzinaView(LoginRequiredMixin, View):
         except ValueError as erro:
             return JsonResponse({'erro': str(erro)}, status=400)
 
-        return JsonResponse({
-            'ok': True,
-            'buzina_id': str(buzina.id),
-            'destinatario_nome': buzina.destinatario.name or buzina.destinatario.username,
-            'destinatario_avatar': (
-                buzina.destinatario.avatar.url if buzina.destinatario.avatar else ''
-            ),
-            'silenciada': getattr(buzina, 'silenciada', False),
-        })
+        return JsonResponse(
+            {
+                'ok': True,
+                'buzina_id': str(buzina.id),
+                'destinatario_nome': buzina.destinatario.name
+                or buzina.destinatario.username,
+                'destinatario_avatar': (
+                    buzina.destinatario.avatar.url if buzina.destinatario.avatar else ''
+                ),
+                'silenciada': getattr(buzina, 'silenciada', False),
+            }
+        )
 
 
 class EnviarBuzinaFavoritosView(LoginRequiredMixin, View):
@@ -125,19 +138,22 @@ class EnviarBuzinaFavoritosView(LoginRequiredMixin, View):
         except ValueError as erro:
             return JsonResponse({'erro': str(erro)}, status=400)
 
-        return JsonResponse({
-            'ok': True,
-            'buzinas': [
-                {
-                    'buzina_id': str(b.id),
-                    'destinatario_nome': b.destinatario.name or b.destinatario.username,
-                    'destinatario_avatar': (
-                        b.destinatario.avatar.url if b.destinatario.avatar else ''
-                    ),
-                }
-                for b in buzinas
-            ],
-        })
+        return JsonResponse(
+            {
+                'ok': True,
+                'buzinas': [
+                    {
+                        'buzina_id': str(b.id),
+                        'destinatario_nome': b.destinatario.name
+                        or b.destinatario.username,
+                        'destinatario_avatar': (
+                            b.destinatario.avatar.url if b.destinatario.avatar else ''
+                        ),
+                    }
+                    for b in buzinas
+                ],
+            }
+        )
 
 
 class AlternarDisponibilidadeView(LoginRequiredMixin, View):
@@ -148,16 +164,22 @@ class AlternarDisponibilidadeView(LoginRequiredMixin, View):
         except ValueError as erro:
             return JsonResponse({'erro': str(erro)}, status=400)
 
-        return JsonResponse({
-            'ok': True,
-            'status': status,
-            'modo': 'nao_perturbe' if status == StatusPresenca.OCUPADO else 'disponivel',
-        })
+        return JsonResponse(
+            {
+                'ok': True,
+                'status': status,
+                'modo': 'nao_perturbe'
+                if status == StatusPresenca.OCUPADO
+                else 'disponivel',
+            }
+        )
 
 
 class AlternarFavoritoView(LoginRequiredMixin, View):
     def post(self, request, membro_id):
-        membro = MembroCirculo.objects.do_usuario(request.user).filter(pk=membro_id).first()
+        membro = (
+            MembroCirculo.objects.do_usuario(request.user).filter(pk=membro_id).first()
+        )
         if not membro:
             return JsonResponse({'erro': 'Membro não encontrado.'}, status=404)
 
@@ -169,11 +191,13 @@ class AlternarFavoritoView(LoginRequiredMixin, View):
 class NotificacoesView(LoginRequiredMixin, View):
     def get(self, request):
         itens = Buzina.objects.atividades_recentes(request.user, 15)
-        return JsonResponse({
-            'ok': True,
-            'nao_lidas': Buzina.objects.nao_lidas_de(request.user).count(),
-            'itens': [b.serializar_notificacao(request.user) for b in itens],
-        })
+        return JsonResponse(
+            {
+                'ok': True,
+                'nao_lidas': Buzina.objects.nao_lidas_de(request.user).count(),
+                'itens': [b.serializar_notificacao(request.user) for b in itens],
+            }
+        )
 
 
 class MarcarNotificacoesLidasView(LoginRequiredMixin, View):
@@ -220,7 +244,9 @@ class EncerrarBuzinaView(LoginRequiredMixin, View):
             return JsonResponse({'erro': 'Buzina não encontrada.'}, status=404)
 
         if buzina.status != Buzina.Status.PENDENTE:
-            return JsonResponse({'ok': True, 'status': buzina.status, 'ja_encerrada': True})
+            return JsonResponse(
+                {'ok': True, 'status': buzina.status, 'ja_encerrada': True}
+            )
 
         motivo = request.POST.get('motivo', 'usuario')
         if motivo not in ('usuario', 'timeout'):
@@ -228,11 +254,13 @@ class EncerrarBuzinaView(LoginRequiredMixin, View):
 
         ok = buzina.encerrar(motivo=motivo)
         buzina.refresh_from_db()
-        return JsonResponse({
-            'ok': True,
-            'status': buzina.status,
-            'encerrada': ok,
-        })
+        return JsonResponse(
+            {
+                'ok': True,
+                'status': buzina.status,
+                'encerrada': ok,
+            }
+        )
 
 
 class ServiceWorkerView(View):
@@ -249,17 +277,23 @@ class ServiceWorkerView(View):
 class ChaveVapidView(LoginRequiredMixin, View):
     def get(self, request):
         if not ServicoPush.configurado():
-            return JsonResponse({'erro': 'Push não configurado no servidor.'}, status=503)
-        return JsonResponse({
-            'ok': True,
-            'chave_publica': settings.VAPID_PUBLIC_KEY,
-        })
+            return JsonResponse(
+                {'erro': 'Push não configurado no servidor.'}, status=503
+            )
+        return JsonResponse(
+            {
+                'ok': True,
+                'chave_publica': settings.VAPID_PUBLIC_KEY,
+            }
+        )
 
 
 class InscreverPushView(LoginRequiredMixin, View):
     def post(self, request):
         if not ServicoPush.configurado():
-            return JsonResponse({'erro': 'Push não configurado no servidor.'}, status=503)
+            return JsonResponse(
+                {'erro': 'Push não configurado no servidor.'}, status=503
+            )
 
         endpoint = request.POST.get('endpoint')
         p256dh = request.POST.get('p256dh')
@@ -304,8 +338,7 @@ class DesinscreverPushView(LoginRequiredMixin, View):
 class BuzinasPendentesView(LoginRequiredMixin, View):
     def get(self, request):
         pendentes = [
-            b.payload_recebida()
-            for b in Buzina.pendentes_ativas_para(request.user)
+            b.payload_recebida() for b in Buzina.pendentes_ativas_para(request.user)
         ]
         return JsonResponse({'ok': True, 'pendentes': pendentes})
 
@@ -313,7 +346,9 @@ class BuzinasPendentesView(LoginRequiredMixin, View):
 class InscreverPushNativoView(LoginRequiredMixin, View):
     def post(self, request):
         if not ServicoPushNativo.configurado():
-            return JsonResponse({'erro': 'Push nativo não configurado no servidor.'}, status=503)
+            return JsonResponse(
+                {'erro': 'Push nativo não configurado no servidor.'}, status=503
+            )
 
         token = request.POST.get('token')
         plataforma = request.POST.get('plataforma')

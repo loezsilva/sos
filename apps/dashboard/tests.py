@@ -1,7 +1,6 @@
 import pytest
 from django.urls import reverse
 from unittest.mock import patch
-import json
 
 from apps.accounts.models import User
 from apps.dashboard.models import Buzina, MembroCirculo, StatusPresenca
@@ -12,10 +11,16 @@ from apps.dashboard.push_nativo import ServicoPushNativo
 @pytest.fixture
 def usuarios(db):
     alice = User.objects.create_user(
-        username='alice', password='senha123', name='Alice', email='alice@test.local',
+        username='alice',
+        password='senha123',
+        name='Alice',
+        email='alice@test.local',
     )
     bob = User.objects.create_user(
-        username='bob', password='senha123', name='Bob', email='bob@test.local',
+        username='bob',
+        password='senha123',
+        name='Bob',
+        email='bob@test.local',
     )
     return alice, bob
 
@@ -109,10 +114,14 @@ class TestNotificacoesApi:
 def circulo_bidirecional(usuarios):
     alice, bob = usuarios
     alice_bob = MembroCirculo.objects.create(
-        dono=alice, contato=bob, status=StatusPresenca.ONLINE,
+        dono=alice,
+        contato=bob,
+        status=StatusPresenca.ONLINE,
     )
     bob_alice = MembroCirculo.objects.create(
-        dono=bob, contato=alice, status=StatusPresenca.ONLINE,
+        dono=bob,
+        contato=alice,
+        status=StatusPresenca.ONLINE,
     )
     return alice_bob, bob_alice
 
@@ -120,7 +129,9 @@ def circulo_bidirecional(usuarios):
 @pytest.mark.django_db
 class TestNaoPerturbe:
     @patch('apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True)
-    def test_pode_buzinar_ocupado_apenas_favorito(self, mock_alcancavel, usuarios, circulo_bidirecional):
+    def test_pode_buzinar_ocupado_apenas_favorito(
+        self, mock_alcancavel, usuarios, circulo_bidirecional
+    ):
         alice, bob = usuarios
         alice_bob, bob_alice = circulo_bidirecional
         MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OCUPADO)
@@ -133,7 +144,9 @@ class TestNaoPerturbe:
         assert alice_bob.pode_buzinar is True
 
     @patch('apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True)
-    def test_favoritos_mutuos_veem_online_em_nao_perturbe(self, mock_alcancavel, usuarios, circulo_bidirecional):
+    def test_favoritos_mutuos_veem_online_em_nao_perturbe(
+        self, mock_alcancavel, usuarios, circulo_bidirecional
+    ):
         alice, bob = usuarios
         alice_bob, bob_alice = circulo_bidirecional
         alice_bob.eh_vip = True
@@ -144,14 +157,23 @@ class TestNaoPerturbe:
         alice_bob.refresh_from_db()
 
         assert alice_bob.status_para_dono() == StatusPresenca.ONLINE
-        assert Presenca.status_para_espectador(
-            bob.id, alice.id, StatusPresenca.OCUPADO,
-        ) == StatusPresenca.ONLINE
+        assert (
+            Presenca.status_para_espectador(
+                bob.id,
+                alice.id,
+                StatusPresenca.OCUPADO,
+            )
+            == StatusPresenca.ONLINE
+        )
 
     @patch('apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True)
     @patch.object(Buzina, '_notificar')
     def test_enviar_silenciada_quando_ocupado_nao_vip(
-        self, mock_notificar, mock_alcancavel, usuarios, circulo_bidirecional,
+        self,
+        mock_notificar,
+        mock_alcancavel,
+        usuarios,
+        circulo_bidirecional,
     ):
         alice, bob = usuarios
         alice_bob, _ = circulo_bidirecional
@@ -166,7 +188,11 @@ class TestNaoPerturbe:
     @patch('apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True)
     @patch.object(Buzina, '_notificar')
     def test_enviar_normal_quando_vip_em_nao_perturbe(
-        self, mock_notificar, mock_alcancavel, usuarios, circulo_bidirecional,
+        self,
+        mock_notificar,
+        mock_alcancavel,
+        usuarios,
+        circulo_bidirecional,
     ):
         alice, bob = usuarios
         alice_bob, bob_alice = circulo_bidirecional
@@ -181,7 +207,9 @@ class TestNaoPerturbe:
 
     @patch('apps.dashboard.presenca.Presenca.notificar_circulo')
     @patch('apps.dashboard.presenca.Presenca.esta_conectado', return_value=True)
-    def test_api_alternar_disponibilidade(self, mock_conectado, mock_notificar, client, usuarios, circulo_bidirecional):
+    def test_api_alternar_disponibilidade(
+        self, mock_conectado, mock_notificar, client, usuarios, circulo_bidirecional
+    ):
         alice, _ = usuarios
         client.force_login(alice)
 
@@ -194,7 +222,8 @@ class TestNaoPerturbe:
         assert dados['ok'] is True
         assert dados['status'] == StatusPresenca.OCUPADO
         assert MembroCirculo.objects.filter(
-            contato=alice, status=StatusPresenca.OCUPADO,
+            contato=alice,
+            status=StatusPresenca.OCUPADO,
         ).exists()
 
         resposta = client.post(
@@ -208,15 +237,25 @@ class TestNaoPerturbe:
     @patch('apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True)
     @patch('apps.dashboard.presenca.Presenca.esta_conectado', return_value=True)
     def test_fluxo_nao_perturbe_integracao(
-        self, mock_conectado, mock_alcancavel, mock_presenca, mock_notificar,
-        client, usuarios, circulo_bidirecional,
+        self,
+        mock_conectado,
+        mock_alcancavel,
+        mock_presenca,
+        mock_notificar,
+        client,
+        usuarios,
+        circulo_bidirecional,
     ):
         alice, bob = usuarios
         alice_bob, bob_alice = circulo_bidirecional
 
         client.force_login(alice)
-        client.post(reverse('dashboard:alternar_disponibilidade'), {'modo': 'nao_perturbe'})
-        MembroCirculo.objects.filter(contato=alice).update(status=StatusPresenca.OCUPADO)
+        client.post(
+            reverse('dashboard:alternar_disponibilidade'), {'modo': 'nao_perturbe'}
+        )
+        MembroCirculo.objects.filter(contato=alice).update(
+            status=StatusPresenca.OCUPADO
+        )
 
         MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.ONLINE)
         alice_bob.refresh_from_db()
@@ -236,7 +275,11 @@ class TestPresencaPush:
     @patch('apps.dashboard.presenca.Presenca.notificar_circulo')
     @patch('apps.dashboard.presenca.Presenca.esta_conectado', return_value=False)
     def test_push_mantem_online_sem_websocket(
-        self, mock_conectado, mock_notificar, usuarios, circulo_bidirecional,
+        self,
+        mock_conectado,
+        mock_notificar,
+        usuarios,
+        circulo_bidirecional,
     ):
         from apps.dashboard.models import InscricaoPush
 
@@ -266,7 +309,11 @@ class TestPresencaPush:
     @patch('apps.dashboard.presenca.Presenca.notificar_circulo')
     @patch('apps.dashboard.presenca.Presenca.esta_conectado', return_value=False)
     def test_confirmar_offline_nao_apaga_quem_tem_push(
-        self, mock_conectado, mock_notificar, usuarios, circulo_bidirecional,
+        self,
+        mock_conectado,
+        mock_notificar,
+        usuarios,
+        circulo_bidirecional,
     ):
         from apps.dashboard.models import InscricaoPush
 
@@ -281,7 +328,8 @@ class TestPresencaPush:
 
         assert Presenca.confirmar_offline(bob.id) is False
         assert MembroCirculo.objects.filter(
-            contato=bob, status=StatusPresenca.ONLINE,
+            contato=bob,
+            status=StatusPresenca.ONLINE,
         ).exists()
 
     @patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_buzina')
@@ -289,8 +337,13 @@ class TestPresencaPush:
     @patch.object(Buzina, '_notificar')
     @patch('apps.dashboard.presenca.Presenca.esta_conectado', return_value=False)
     def test_buzina_para_usuario_so_com_push(
-        self, mock_conectado, mock_notificar, mock_push, mock_nativo,
-        usuarios, circulo_bidirecional,
+        self,
+        mock_conectado,
+        mock_notificar,
+        mock_push,
+        mock_nativo,
+        usuarios,
+        circulo_bidirecional,
     ):
         from apps.dashboard.models import InscricaoPush
 
@@ -354,7 +407,12 @@ class TestPushApi:
     @patch('apps.dashboard.push.ServicoPush.enviar_buzina')
     @patch.object(Buzina, '_notificar')
     def test_push_nao_enviado_em_buzina_silenciada(
-        self, mock_notificar, mock_push, mock_alcancavel, usuarios, circulo_bidirecional,
+        self,
+        mock_notificar,
+        mock_push,
+        mock_alcancavel,
+        usuarios,
+        circulo_bidirecional,
     ):
         alice, bob = usuarios
         MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OCUPADO)
@@ -367,7 +425,12 @@ class TestPushApi:
     @patch('apps.dashboard.push.ServicoPush.enviar_buzina')
     @patch.object(Buzina, '_notificar')
     def test_push_enviado_em_buzina_normal(
-        self, mock_notificar, mock_enviar, mock_alcancavel, usuarios, circulo_bidirecional,
+        self,
+        mock_notificar,
+        mock_enviar,
+        mock_alcancavel,
+        usuarios,
+        circulo_bidirecional,
     ):
         alice, bob = usuarios
         buzina = Buzina.enviar(alice, bob.id)
@@ -421,8 +484,13 @@ class TestPushNativoApi:
     @patch('apps.dashboard.push.ServicoPush.enviar_buzina')
     @patch.object(Buzina, '_notificar')
     def test_buzina_dispara_push_nativo(
-        self, mock_notificar, mock_push_web, mock_push_nativo, mock_alcancavel,
-        usuarios, circulo_bidirecional,
+        self,
+        mock_notificar,
+        mock_push_web,
+        mock_push_nativo,
+        mock_alcancavel,
+        usuarios,
+        circulo_bidirecional,
     ):
         alice, bob = usuarios
         buzina = Buzina.enviar(alice, bob.id)

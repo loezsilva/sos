@@ -31,7 +31,9 @@ class ServicoPushNativo:
             return _firebase_app
 
         if settings.FIREBASE_CREDENTIALS_JSON:
-            cred = credentials.Certificate(json.loads(settings.FIREBASE_CREDENTIALS_JSON))
+            cred = credentials.Certificate(
+                json.loads(settings.FIREBASE_CREDENTIALS_JSON)
+            )
         else:
             cred = credentials.Certificate(settings.GOOGLE_APPLICATION_CREDENTIALS)
 
@@ -86,7 +88,9 @@ class ServicoPushNativo:
             'corpo': payload['corpo'],
         }
 
-        for inscricao in InscricaoNativa.objects.filter(usuario_id=buzina.destinatario_id):
+        for inscricao in InscricaoNativa.objects.filter(
+            usuario_id=buzina.destinatario_id
+        ):
             dados_str = {chave: str(valor) for chave, valor in dados.items()}
             if inscricao.plataforma == PlataformaNativa.ANDROID:
                 mensagem = messaging.Message(

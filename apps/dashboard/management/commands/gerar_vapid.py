@@ -11,9 +11,15 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         vapid = Vapid()
         vapid.generate_keys()
-        publico = base64.urlsafe_b64encode(
-            vapid.public_key.public_bytes(Encoding.X962, PublicFormat.UncompressedPoint),
-        ).decode().rstrip('=')
+        publico = (
+            base64.urlsafe_b64encode(
+                vapid.public_key.public_bytes(
+                    Encoding.X962, PublicFormat.UncompressedPoint
+                ),
+            )
+            .decode()
+            .rstrip('=')
+        )
         privado = vapid.private_pem().decode()
 
         self.stdout.write('VAPID_PUBLIC_KEY=' + publico)

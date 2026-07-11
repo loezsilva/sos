@@ -69,4 +69,6 @@ class Command(BaseCommand):
                     defaults={'status': StatusPresenca.OFFLINE, 'eh_vip': False},
                 )
 
-        self.stdout.write(self.style.SUCCESS('Círculos mútuos populados (presença sobe no login).'))
+        self.stdout.write(
+            self.style.SUCCESS('Círculos mútuos populados (presença sobe no login).')
+        )

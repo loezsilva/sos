@@ -19,7 +19,9 @@ class BuzzConsumer(AsyncWebsocketConsumer):
         self.grupo = f'buzz_{usuario.pk}'
         await self.channel_layer.group_add(self.grupo, self.channel_name)
         await self.accept()
-        await database_sync_to_async(Presenca.registrar)(self.usuario_id, self.channel_name)
+        await database_sync_to_async(Presenca.registrar)(
+            self.usuario_id, self.channel_name
+        )
         await self._entregar_pendentes(usuario)
         await self._entregar_snapshot_presenca()
 
@@ -31,7 +33,8 @@ class BuzzConsumer(AsyncWebsocketConsumer):
             return
 
         zerou = await database_sync_to_async(Presenca.remover)(
-            self.usuario_id, self.channel_name,
+            self.usuario_id,
+            self.channel_name,
         )
         if zerou:
             usuario_id = self.usuario_id

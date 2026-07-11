@@ -13,7 +13,13 @@ class MembroCirculoAdmin(admin.ModelAdmin):
 
 @admin.register(Buzina)
 class BuzinaAdmin(admin.ModelAdmin):
-    list_display = ('remetente', 'destinatario', 'status', 'resposta_rapida', 'created_at')
+    list_display = (
+        'remetente',
+        'destinatario',
+        'status',
+        'resposta_rapida',
+        'created_at',
+    )
     list_filter = ('status', 'resposta_rapida')
     search_fields = ('remetente__username', 'destinatario__username')
     autocomplete_fields = ('remetente', 'destinatario')
