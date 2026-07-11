@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Cutuca — Criar conta{% endblock %}
+
+{% block nav %}{% endblock %}
+{% block menu %}{% endblock %}
+
+{% block main %}
+<section class="w-full max-w-md mx-auto px-margin-mobile min-h-[calc(100dvh-4rem)] flex flex-col items-center justify-center py-lg">
+  <div class="w-full card-cutuca rounded-xl p-lg">
+    <div class="flex items-center justify-center mb-lg">
+      <img src="{% static 'icons/logo-cutuca-online.png' %}" alt="Cutuca.online" class="h-12 w-auto object-contain">
+    </div>
+
+    <h1 class="font-headline-md text-headline-md text-on-surface text-center mb-2">Criar conta</h1>
+    <p class="text-on-surface-variant font-body-md text-center mb-lg">Entre para cutucar quem importa.</p>
+
+    {% if form.non_field_errors %}
+      <div class="mb-md rounded-lg bg-error-container border border-error/30 px-4 py-3 text-on-error-container text-sm font-body-md">
+        {{ form.non_field_errors|striptags }}
+      </div>
+    {% endif %}
+
+    <form method="post" class="flex flex-col gap-md">
+      {% csrf_token %}
+
+      {% for campo in form %}
+        {% if campo.name != 'accepted_the_terms_of_use' %}
+          <div class="flex flex-col gap-2">
+            <label for="{{ campo.id_for_label }}" class="font-label-bold text-label-bold text-on-surface-variant uppercase">{{ campo.label }}</label>
+            {{ campo }}
+            {% if campo.errors %}
+              <p class="text-error text-sm">{{ campo.errors|striptags }}</p>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+
+      <label class="flex items-start gap-sm text-sm text-on-surface-variant font-body-md cursor-pointer">
+        {{ form.accepted_the_terms_of_use }}
+        <span>Li e aceito os termos de uso do Cutuca.</span>
+      </label>
+      {% if form.accepted_the_terms_of_use.errors %}
+        <p class="text-error text-sm -mt-2">{{ form.accepted_the_terms_of_use.errors|striptags }}</p>
+      {% endif %}
+
+      <button type="submit" class="botao-cutuca mt-2 w-full">Criar conta</button>
+    </form>
+
+    <p class="mt-lg text-center text-on-surface-variant font-body-md text-sm">
+      Já tem conta?
+      <a href="{% url 'login' %}" class="text-primary font-semibold hover:underline">Entrar</a>
+    </p>
+  </div>
+</section>
+{% endblock %}

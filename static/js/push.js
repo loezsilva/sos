@@ -87,14 +87,24 @@
   }
 
   async function inscreverPush() {
-    if (!suportaPush()) throw new Error('Seu navegador não suporta notificações em segundo plano.');
+    if (!suportaPush()) {
+      throw new Error('Seu navegador não suporta notificações em segundo plano.');
+    }
+    if (ehIos() && !pwaInstaladoIos()) {
+      throw new Error(
+        'No iPhone, abra o Cutuca pela Tela de Início (Compartilhar → Adicionar à Tela de Início) e ative as notificações por lá.',
+      );
+    }
 
     const permissao = await Notification.requestPermission();
     if (permissao !== 'granted') {
-      throw new Error('Permissão de notificação negada.');
+      throw new Error('Permissão de notificação negada. Verifique Ajustes → Cutuca → Notificações.');
     }
 
     const registro = registroSw || await registrarServiceWorker();
+    if (!registro?.pushManager) {
+      throw new Error('Service Worker sem suporte a push neste dispositivo.');
+    }
     const chave = await obterChaveVapid();
     inscricaoAtiva = await registro.pushManager.subscribe({
       userVisibleOnly: true,
@@ -177,6 +187,21 @@
     });
   }
 
+  function avisarUsuario(mensagem) {
+    if (typeof window.mostrarToastPush === 'function') {
+      window.mostrarToastPush(mensagem);
+      return;
+    }
+    const toast = document.getElementById('toast-buzz');
+    if (toast) {
+      toast.textContent = mensagem;
+      toast.classList.remove('hidden');
+      toast.classList.add('visivel');
+      return;
+    }
+    window.alert(mensagem);
+  }
+
   function atualizarUiConfiguracoes(estado) {
     const secao = document.getElementById('secao-push');
     if (!secao) return;
@@ -184,6 +209,11 @@
     const botao = document.getElementById('botao-push');
     const status = document.getElementById('status-push');
     const bannerIos = document.getElementById('banner-ios-pwa');
+    const precisaInstalarIos = ehIos() && !pwaInstaladoIos();
+
+    if (precisaInstalarIos && bannerIos) {
+      bannerIos.classList.remove('hidden');
+    }
 
     if (!suportaPush()) {
       status.textContent = 'Seu navegador não suporta notificações em segundo plano.';
@@ -191,8 +221,14 @@
       return;
     }
 
-    if (ehIos() && !pwaInstaladoIos() && bannerIos) {
-      bannerIos.classList.remove('hidden');
+    if (precisaInstalarIos) {
+      status.textContent = 'No iPhone, use o Cutuca pela Tela de Início para ativar notificações.';
+      if (botao) {
+        botao.textContent = 'Como instalar';
+        botao.dataset.acao = 'instalar-ios';
+        botao.disabled = false;
+      }
+      return;
     }
 
     if (estado === 'ativo') {
@@ -202,7 +238,7 @@
         botao.dataset.acao = 'desativar';
       }
     } else if (estado === 'negado') {
-      status.textContent = 'Permissão negada. Ative nas configurações do navegador ou do sistema.';
+      status.textContent = 'Permissão negada. Ative em Ajustes → Cutuca → Notificações.';
       if (botao) {
         botao.textContent = 'Tentar novamente';
         botao.dataset.acao = 'ativar';
@@ -236,6 +272,12 @@
     });
 
     botao.addEventListener('click', async () => {
+      if (botao.dataset.acao === 'instalar-ios') {
+        document.getElementById('banner-ios-pwa')?.classList.remove('hidden');
+        document.getElementById('banner-ios-pwa')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        avisarUsuario('Compartilhar → Adicionar à Tela de Início, depois abra o ícone do Cutuca.');
+        return;
+      }
       botao.disabled = true;
       try {
         if (botao.dataset.acao === 'desativar') {
@@ -249,7 +291,7 @@
         if (Notification.permission === 'denied') {
           atualizarUiConfiguracoes('negado');
         }
-        window.mostrarToastPush?.(erro.message || 'Não foi possível alterar as notificações.');
+        avisarUsuario(erro.message || 'Não foi possível alterar as notificações.');
       } finally {
         botao.disabled = false;
       }
@@ -267,13 +309,28 @@
     if (!alerta) return;
 
     if (localStorage.getItem(CHAVE_ALERTA_DISPENSADO) === '1') return;
-    if (!suportaPush()) return;
+    if (!suportaPush() && !(ehIos() && !pwaInstaladoIos())) return;
 
     const vapid = await buscarJson(URL_VAPID);
     if (vapid.erro || !vapid.chave_publica) return;
 
-    const estado = await estadoPushAtual();
-    if (estado === 'ativo' || estado === 'negado') return;
+    const precisaInstalarIos = ehIos() && !pwaInstaladoIos();
+    if (!precisaInstalarIos) {
+      const estado = await estadoPushAtual();
+      if (estado === 'ativo' || estado === 'negado') return;
+    }
+
+    const titulo = alerta.querySelector('[data-push-titulo]');
+    const texto = alerta.querySelector('[data-push-texto]');
+    const botaoAtivar = document.getElementById('alerta-push-ativar');
+
+    if (precisaInstalarIos) {
+      if (titulo) titulo.textContent = 'Instale o Cutuca na Tela de Início';
+      if (texto) {
+        texto.textContent = 'No iPhone, notificações só funcionam pelo ícone da Tela de Início. Toque em Compartilhar → Adicionar à Tela de Início.';
+      }
+      if (botaoAtivar) botaoAtivar.textContent = 'Entendi';
+    }
 
     alerta.classList.remove('hidden');
 
@@ -282,15 +339,22 @@
       ocultarAlertaInicio();
     });
 
-    document.getElementById('alerta-push-ativar')?.addEventListener('click', async (evento) => {
+    botaoAtivar?.addEventListener('click', async (evento) => {
       const botao = evento.currentTarget;
+      if (precisaInstalarIos) {
+        localStorage.setItem(CHAVE_ALERTA_DISPENSADO, '1');
+        ocultarAlertaInicio();
+        avisarUsuario('Compartilhar → Adicionar à Tela de Início, depois abra o Cutuca por lá e ative as notificações.');
+        return;
+      }
       botao.disabled = true;
       try {
         await inscreverPush();
         localStorage.removeItem(CHAVE_ALERTA_DISPENSADO);
         ocultarAlertaInicio();
+        avisarUsuario('Notificações ativadas.');
       } catch (erro) {
-        window.mostrarToastPush?.(erro.message || 'Não foi possível ativar as notificações.');
+        avisarUsuario(erro.message || 'Não foi possível ativar as notificações.');
       } finally {
         botao.disabled = false;
       }
@@ -303,25 +367,29 @@
       window.BuzzPushNativo.iniciar(mostrarAlerta);
       return;
     }
-    if (!suportaPush()) return;
+
+    const precisaInstalarIos = ehIos() && !pwaInstaladoIos();
+    if (!suportaPush() && !precisaInstalarIos) return;
 
     try {
-      await registrarServiceWorker();
-      configurarMensagensServiceWorker(mostrarAlerta);
-      configurarVisibilityChange(mostrarAlerta);
+      if (suportaPush()) {
+        await registrarServiceWorker();
+        configurarMensagensServiceWorker(mostrarAlerta);
+        configurarVisibilityChange(mostrarAlerta);
+      }
       configurarPaginaConfiguracoes();
       await configurarAlertaInicio();
 
-      const estado = await estadoPushAtual();
-      if (estado === 'ativo') {
-        inscricaoAtiva = await (await navigator.serviceWorker.ready).pushManager.getSubscription();
-      }
-
-      await sincronizarPendentes(mostrarAlerta);
-
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('buzina')) {
+      if (suportaPush()) {
+        const estado = await estadoPushAtual();
+        if (estado === 'ativo') {
+          inscricaoAtiva = await (await navigator.serviceWorker.ready).pushManager.getSubscription();
+        }
         await sincronizarPendentes(mostrarAlerta);
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('buzina')) {
+          await sincronizarPendentes(mostrarAlerta);
+        }
       }
     } catch {
       /* push opcional — não bloqueia o app */

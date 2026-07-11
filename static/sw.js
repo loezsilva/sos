@@ -118,8 +118,9 @@ self.addEventListener('activate', (event) => {
 
 const PRECACHE = [
   { url: '/static/css/buzz.css', revision: 'cutuca-v2' },
+  { url: '/static/js/push.js', revision: 'cutuca-ios-push-1' },
   { url: '/static/js/buzz.js', revision: 'cutuca-v2' },
-  { url: '/static/js/push.js', revision: 'cutuca-v2' },
+  { url: '/static/js/push-nativo.js', revision: 'cutuca-v2' },
   { url: '/static/sounds/buzina.wav', revision: null },
   { url: '/static/icons/web-app-manifest-192x192.png', revision: 'cutuca-v2' },
   { url: '/static/icons/favicon.svg', revision: 'cutuca-v2' },
