@@ -4,9 +4,8 @@
 {% url 'dashboard:configuracoes' as url_configuracoes %}
 
 <header class="md:hidden fixed top-0 inset-x-0 z-50 px-margin-mobile flex justify-between items-center h-16 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/40 sombra-cutuca text-primary">
-  <a href="{{ url_inicio }}" class="flex items-center gap-sm no-underline text-primary">
-    <img src="{% static 'icons/logo-cutuca-online.png' %}" alt="Cutuca" class="h-9 w-auto object-contain">
-    <span class="font-headline-md text-headline-md font-extrabold tracking-tight">Cutuca</span>
+  <a href="{{ url_inicio }}" class="flex items-center no-underline" aria-label="Cutuca">
+    <img src="{% static 'icons/logo-cutuca-online.png' %}" alt="Cutuca.online" class="h-9 w-auto object-contain">
   </a>
   <div class="flex items-center gap-md">
     {% include 'partials/pill_disponibilidade.html' %}
@@ -16,9 +15,8 @@
 
 <header class="hidden md:flex fixed top-0 inset-x-0 z-50 border-b border-outline-variant/40 sombra-cutuca bg-surface/90 backdrop-blur-xl text-primary">
   <div class="max-w-7xl mx-auto w-full h-16 px-margin-desktop grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-    <a href="{{ url_inicio }}" class="flex items-center gap-sm no-underline text-primary">
-      <img src="{% static 'icons/logo-cutuca-online.png' %}" alt="Cutuca" class="h-10 w-auto object-contain">
-      <span class="font-headline-md text-headline-md font-extrabold tracking-tight">Cutuca</span>
+    <a href="{{ url_inicio }}" class="flex items-center no-underline" aria-label="Cutuca">
+      <img src="{% static 'icons/logo-cutuca-online.png' %}" alt="Cutuca.online" class="h-10 w-auto object-contain">
     </a>
     <nav class="flex gap-8 justify-self-center">
       <a href="{{ url_inicio }}" class="{% if rota_ativa == 'inicio' %}link-nav-ativo{% else %}link-nav-inativo{% endif %}">Início</a>
