@@ -5,7 +5,7 @@
   "dir": "ltr",
   "name": "Cutuca — Atenção imediata",
   "short_name": "Cutuca",
-  "description": "Cutuque quem importa com um toque. Atenção imediata para o seu círculo íntimo.",
+  "description": "Cutuque quem importa com um toque. Atenção imediata.",
   "start_url": "/?source=pwa",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
