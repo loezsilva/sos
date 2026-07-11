@@ -161,6 +161,108 @@ class MembroCirculo(BaseModel):
         return True
 
 
+class StatusConvite(models.TextChoices):
+    PENDENTE = 'pendente', 'Pendente'
+    ACEITO = 'aceito', 'Aceito'
+    RECUSADO = 'recusado', 'Recusado'
+
+
+class ConviteCirculoQuerySet(models.QuerySet):
+    def pendentes_para(self, usuario):
+        return self.filter(
+            destinatario=usuario,
+            status=StatusConvite.PENDENTE,
+        ).select_related('remetente')
+
+
+class ConviteCirculo(BaseModel):
+    remetente = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='convites_enviados',
+        verbose_name='Remetente',
+    )
+    destinatario = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='convites_recebidos',
+        verbose_name='Destinatário',
+    )
+    status = models.CharField(
+        'Status',
+        max_length=20,
+        choices=StatusConvite.choices,
+        default=StatusConvite.PENDENTE,
+    )
+
+    objects = ConviteCirculoQuerySet.as_manager()
+
+    class Meta:
+        verbose_name = 'Convite de círculo'
+        verbose_name_plural = 'Convites de círculo'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['remetente', 'destinatario'],
+                condition=models.Q(status=StatusConvite.PENDENTE),
+                name='convite_pendente_unico',
+            ),
+        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.remetente} → {self.destinatario} ({self.status})'
+
+    @classmethod
+    def enviar(cls, remetente, destinatario):
+        from django.core.exceptions import ValidationError
+
+        if remetente.pk == destinatario.pk:
+            raise ValidationError('Você não pode convidar a si mesmo.')
+        if MembroCirculo.objects.filter(dono=remetente, contato=destinatario).exists():
+            raise ValidationError('Essa pessoa já está entre os seus próximos.')
+        if cls.objects.filter(
+            remetente=remetente,
+            destinatario=destinatario,
+            status=StatusConvite.PENDENTE,
+        ).exists():
+            raise ValidationError('Já existe um convite pendente para essa pessoa.')
+        # Convite inverso pendente: aceitar automaticamente
+        inverso = cls.objects.filter(
+            remetente=destinatario,
+            destinatario=remetente,
+            status=StatusConvite.PENDENTE,
+        ).first()
+        if inverso:
+            inverso.aceitar()
+            return inverso
+        return cls.objects.create(remetente=remetente, destinatario=destinatario)
+
+    def aceitar(self):
+        if self.status != StatusConvite.PENDENTE:
+            return False
+        MembroCirculo.objects.get_or_create(
+            dono=self.remetente, contato=self.destinatario
+        )
+        MembroCirculo.objects.get_or_create(
+            dono=self.destinatario, contato=self.remetente
+        )
+        self.status = StatusConvite.ACEITO
+        self.save(update_fields=['status', 'updated_at'])
+        ConviteCirculo.objects.filter(
+            remetente=self.destinatario,
+            destinatario=self.remetente,
+            status=StatusConvite.PENDENTE,
+        ).update(status=StatusConvite.ACEITO)
+        return True
+
+    def recusar(self):
+        if self.status != StatusConvite.PENDENTE:
+            return False
+        self.status = StatusConvite.RECUSADO
+        self.save(update_fields=['status', 'updated_at'])
+        return True
+
+
 class BuzinaQuerySet(models.QuerySet):
     STATUS_NOTIFICACAO_REMETENTE = (
         'respondida',

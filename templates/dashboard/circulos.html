@@ -1,57 +1,156 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Cutuca — Círculos{% endblock %}
+{% block title %}Cutuca — Próximos{% endblock %}
 
 {% block main %}
 <div class="w-full max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop pt-8 md:pt-24">
-  <form method="get" class="mb-lg flex gap-4">
-    <div class="flex-1 bg-surface rounded-full px-6 py-3 flex items-center gap-3 border border-outline-variant sombra-cutuca-inset">
-      <span class="material-symbols-outlined text-outline">search</span>
+  {% if messages %}
+    <div class="mb-lg w-full flex flex-col gap-sm">
+      {% for message in messages %}
+        <div class="alerta-cutuca {% if 'error' in message.tags %}bg-error-container border-error/30 text-on-error-container{% elif 'success' in message.tags %}bg-secondary-container/40 border-secondary/20 text-on-surface{% else %}bg-surface border-outline-variant text-on-surface{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if user.is_authenticated %}
+  <form method="get" class="mb-lg w-full" role="search">
+    <label class="campo-pill-cutuca">
+      <span class="material-symbols-outlined text-outline shrink-0" aria-hidden="true">search</span>
       <input
-        class="bg-transparent border-none text-on-surface focus:ring-0 focus:outline-none w-full placeholder-on-surface-variant font-body-md text-body-md"
         type="search"
         name="q"
         value="{{ termo_busca }}"
-        placeholder="Buscar no círculo..."
+        placeholder="Buscar nos próximos..."
+        autocomplete="off"
+        enterkeyhint="search"
       >
-    </div>
-    <button type="submit" class="bg-surface w-12 h-12 min-w-[48px] rounded-full flex items-center justify-center border border-outline-variant sombra-cutuca text-primary hover:text-secondary transition-colors" aria-label="Filtrar">
-      <span class="material-symbols-outlined">filter_list</span>
-    </button>
+    </label>
   </form>
+  {% endif %}
 
-  <div class="mb-md flex justify-between items-center gap-4">
-    <h1 class="font-headline-md text-headline-md text-on-surface">Meu círculo</h1>
-    <span id="contador-online" class="font-label-bold text-label-bold text-secondary shrink-0 {% if not total_online %}hidden{% endif %}" data-total="{{ total_online|default:0 }}">
-      <span id="contador-online-numero">{{ total_online|default:0 }}</span> online
-    </span>
+  <div class="mb-lg flex justify-between items-center gap-md">
+    <div class="flex items-baseline gap-md min-w-0">
+      <h1 class="font-headline-md text-headline-md text-on-surface">Meus próximos</h1>
+      <span id="contador-online" class="font-label-bold text-label-bold text-secondary shrink-0 {% if not total_online %}hidden{% endif %}" data-total="{{ total_online|default:0 }}">
+        <span id="contador-online-numero">{{ total_online|default:0 }}</span> online
+      </span>
+    </div>
+    {% if user.is_authenticated %}
+    <div class="flex items-center gap-sm shrink-0">
+      <button type="button" id="botao-meu-qr" class="w-12 h-12 rounded-full bg-surface border border-outline-variant sombra-cutuca flex items-center justify-center text-primary hover:text-secondary transition-colors" aria-label="Meu QR" title="Meu QR">
+        <span class="material-symbols-outlined">qr_code_2</span>
+      </button>
+      <button type="button" id="botao-adicionar" class="w-12 h-12 rounded-full bg-primary text-on-primary sombra-cutuca flex items-center justify-center hover:opacity-90 transition-opacity" aria-label="Adicionar pessoa" title="Adicionar por username">
+        <span class="material-symbols-outlined">person_add</span>
+      </button>
+    </div>
+    {% endif %}
   </div>
+
+  {% if user.is_authenticated and convites_recebidos %}
+    <section class="mb-lg flex flex-col gap-md">
+      {% for convite in convites_recebidos %}
+        <div class="rounded-xl bg-surface border border-outline-variant px-lg py-md flex flex-wrap items-center justify-between gap-md sombra-cutuca">
+          <div class="min-w-0">
+            <p class="font-body-md text-on-surface font-semibold truncate">{{ convite.remetente.name|default:convite.remetente.username }}</p>
+            <p class="text-on-surface-variant text-sm mt-xs">@{{ convite.remetente.username }} quer conectar</p>
+          </div>
+          <div class="flex gap-sm">
+            <form method="post" action="{% url 'dashboard:responder_convite' convite.id %}">
+              {% csrf_token %}
+              <input type="hidden" name="acao" value="aceitar">
+              <button type="submit" class="botao-cutuca text-sm py-sm px-md">Aceitar</button>
+            </form>
+            <form method="post" action="{% url 'dashboard:responder_convite' convite.id %}">
+              {% csrf_token %}
+              <input type="hidden" name="acao" value="recusar">
+              <button type="submit" class="w-12 h-12 rounded-full border border-outline-variant text-on-surface-variant hover:text-error hover:border-error/40 transition-colors flex items-center justify-center" aria-label="Recusar">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </section>
+  {% endif %}
 
   {% if user.is_authenticated %}
     {% if membros %}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md pb-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg pb-xl">
         {% for membro in membros %}
           {% include 'partials/card_membro.html' %}
         {% endfor %}
       </div>
     {% else %}
-      <div class="card-cutuca rounded-xl p-lg text-center">
+      <div class="rounded-xl border border-dashed border-outline-variant px-lg py-xl text-center">
         <p class="text-on-surface-variant font-body-md">
           {% if termo_busca %}
-            Nenhum contato encontrado para "{{ termo_busca }}".
+            Ninguém encontrado para “{{ termo_busca }}”.
           {% else %}
-            Seu círculo está vazio. Adicione membros pelo admin ou rode <code class="text-primary">python manage.py popular_circulo_demo</code>.
+            Ainda não tem ninguém por perto. Toque em <span class="text-primary font-semibold">+</span> ou no QR para convidar.
           {% endif %}
         </p>
       </div>
     {% endif %}
   {% else %}
-    <div class="card-cutuca rounded-xl p-lg text-center">
-      <p class="text-on-surface-variant font-body-md mb-4">Faça login para ver seu círculo.</p>
-      <a href="{% url 'login' %}" class="botao-cutuca inline-flex">
-        Entrar
-      </a>
+    <div class="rounded-xl bg-surface border border-outline-variant p-xl text-center sombra-cutuca">
+      <p class="text-on-surface-variant font-body-md mb-md">Faça login para ver seus próximos.</p>
+      <a href="{% url 'login' %}" class="botao-cutuca inline-flex">Entrar</a>
     </div>
   {% endif %}
 </div>
+
+{% if user.is_authenticated %}
+<dialog id="modal-meu-qr" class="rounded-xl p-0 border-0 bg-transparent max-w-sm w-[calc(100%-2rem)] backdrop:bg-on-surface/40">
+  <div class="bg-surface rounded-xl px-xl py-xl text-center border border-outline-variant sombra-cutuca">
+    <h2 class="font-headline-md text-on-surface mb-sm">Meu QR</h2>
+    <p class="text-on-surface-variant text-sm mb-lg">Escaneie para me adicionar</p>
+    <img src="{% url 'dashboard:meu_qr' %}" alt="QR code de conexão" class="mx-auto w-52 h-52 rounded-xl bg-white p-md" width="208" height="208">
+    <p class="mt-lg font-semibold text-on-surface">@{{ user.username }}</p>
+    <p class="mt-sm text-xs text-on-surface-variant break-all select-all px-sm">{{ url_conectar }}</p>
+    <button type="button" id="fechar-meu-qr" class="mt-lg botao-cutuca w-full">Fechar</button>
+  </div>
+</dialog>
+
+<dialog id="modal-adicionar" class="rounded-xl p-0 border-0 bg-transparent max-w-sm w-[calc(100%-2rem)] backdrop:bg-on-surface/40">
+  <form method="post" action="{% url 'dashboard:convidar_username' %}" class="bg-surface rounded-xl px-xl py-xl border border-outline-variant sombra-cutuca">
+    {% csrf_token %}
+    <h2 class="font-headline-md text-on-surface mb-sm text-center">Adicionar</h2>
+    <p class="text-on-surface-variant text-sm mb-lg text-center">Convide pelo username</p>
+    <div class="bg-surface-container-low rounded-full px-lg min-h-[52px] flex items-center gap-md border border-outline-variant">
+      <span class="material-symbols-outlined text-outline shrink-0">alternate_email</span>
+      <input
+        id="id_username_convite"
+        class="bg-transparent border-0 shadow-none text-on-surface focus:ring-0 focus:outline-none w-full min-h-[24px] py-md placeholder-on-surface-variant font-body-md appearance-none"
+        type="text"
+        name="username"
+        autocomplete="off"
+        placeholder="username"
+        required
+        autofocus
+      >
+    </div>
+    <div class="mt-lg flex gap-md">
+      <button type="button" id="fechar-adicionar" class="flex-1 min-h-[48px] py-md rounded-full border border-outline-variant text-on-surface-variant font-button-text">Cancelar</button>
+      <button type="submit" class="flex-1 botao-cutuca">Convidar</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  (() => {
+    function ligarModal(botaoId, modalId, fecharId) {
+      const modal = document.getElementById(modalId);
+      document.getElementById(botaoId)?.addEventListener('click', () => modal?.showModal());
+      document.getElementById(fecharId)?.addEventListener('click', () => modal?.close());
+      modal?.addEventListener('click', (e) => { if (e.target === modal) modal.close(); });
+    }
+    ligarModal('botao-meu-qr', 'modal-meu-qr', 'fechar-meu-qr');
+    ligarModal('botao-adicionar', 'modal-adicionar', 'fechar-adicionar');
+  })();
+</script>
+{% endif %}
 {% endblock %}

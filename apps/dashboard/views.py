@@ -1,17 +1,26 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.conf import settings
-from django.http import HttpResponse, JsonResponse
+from django.core.exceptions import ValidationError
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views import View
 from django.views.generic import DetailView, RedirectView, TemplateView
+import io
 import json
 import os
 
+import qrcode
+
+from apps.accounts.models import User
 from apps.dashboard.models import (
     Buzina,
+    ConviteCirculo,
     InscricaoNativa,
     InscricaoPush,
     MembroCirculo,
+    StatusConvite,
     StatusPresenca,
 )
 from apps.dashboard.presenca import Presenca
@@ -61,11 +70,124 @@ class PaginaCirculosView(TemplateView):
             contexto['total_online'] = sum(
                 1 for m in membros if m.status_para_dono() == StatusPresenca.ONLINE
             )
+            contexto['convites_recebidos'] = ConviteCirculo.objects.pendentes_para(
+                self.request.user
+            )
+            contexto['url_conectar'] = self.request.build_absolute_uri(
+                reverse(
+                    'dashboard:conectar_usuario',
+                    kwargs={'username': self.request.user.username},
+                )
+            )
         else:
             contexto['membros'] = MembroCirculo.objects.none()
             contexto['total_online'] = 0
+            contexto['convites_recebidos'] = ConviteCirculo.objects.none()
 
         return contexto
+
+
+class MeuQrCodeView(LoginRequiredMixin, View):
+    def get(self, request):
+        url = request.build_absolute_uri(
+            reverse(
+                'dashboard:conectar_usuario',
+                kwargs={'username': request.user.username},
+            )
+        )
+        imagem = qrcode.make(url)
+        buffer = io.BytesIO()
+        imagem.save(buffer, format='PNG')
+        return HttpResponse(buffer.getvalue(), content_type='image/png')
+
+
+class ConectarUsuarioView(LoginRequiredMixin, TemplateView):
+    template_name = 'dashboard/conectar.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.destino = get_object_or_404(User, username__iexact=kwargs['username'])
+        if request.user.is_authenticated and request.user.pk == self.destino.pk:
+            messages.info(request, 'Este é o seu próprio link de conexão.')
+            return HttpResponseRedirect(reverse('dashboard:circulos'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto['destino'] = self.destino
+        contexto['ja_no_circulo'] = MembroCirculo.objects.filter(
+            dono=self.request.user,
+            contato=self.destino,
+        ).exists()
+        contexto['convite_pendente'] = ConviteCirculo.objects.filter(
+            remetente=self.request.user,
+            destinatario=self.destino,
+            status='pendente',
+        ).exists()
+        return contexto
+
+    def post(self, request, *args, **kwargs):
+        try:
+            convite = ConviteCirculo.enviar(request.user, self.destino)
+            if convite.status == StatusConvite.ACEITO:
+                messages.success(
+                    request,
+                    f'Vocês agora estão conectados com {self.destino.name or self.destino.username}.',
+                )
+            else:
+                messages.success(
+                    request,
+                    f'Convite enviado para {self.destino.name or self.destino.username}.',
+                )
+        except ValidationError as erro:
+            messages.error(request, erro.messages[0])
+        return HttpResponseRedirect(reverse('dashboard:circulos'))
+
+
+class ConvidarPorUsernameView(LoginRequiredMixin, View):
+    def post(self, request):
+        username = request.POST.get('username', '').strip().lstrip('@')
+        if not username:
+            messages.error(request, 'Informe um username.')
+            return HttpResponseRedirect(reverse('dashboard:circulos'))
+        destino = User.objects.filter(username__iexact=username).first()
+        if not destino:
+            messages.error(request, f'Ninguém encontrado com o username “{username}”.')
+            return HttpResponseRedirect(reverse('dashboard:circulos'))
+        try:
+            convite = ConviteCirculo.enviar(request.user, destino)
+            if convite.status == StatusConvite.ACEITO:
+                messages.success(
+                    request,
+                    f'Vocês agora estão conectados com {destino.name or destino.username}.',
+                )
+            else:
+                messages.success(
+                    request,
+                    f'Convite enviado para {destino.name or destino.username}.',
+                )
+        except ValidationError as erro:
+            messages.error(request, erro.messages[0])
+        return HttpResponseRedirect(reverse('dashboard:circulos'))
+
+
+class ResponderConviteView(LoginRequiredMixin, View):
+    def post(self, request, convite_id):
+        convite = get_object_or_404(
+            ConviteCirculo,
+            pk=convite_id,
+            destinatario=request.user,
+        )
+        acao = request.POST.get('acao')
+        if acao == 'aceitar':
+            convite.aceitar()
+            messages.success(
+                request,
+                f'{convite.remetente.name or convite.remetente.username} agora está entre os seus próximos.',
+            )
+        elif acao == 'recusar':
+            convite.recusar()
+            messages.info(request, 'Convite recusado.')
+        return HttpResponseRedirect(reverse('dashboard:circulos'))
 
 
 class PaginaConfiguracoesView(LoginRequiredMixin, TemplateView):

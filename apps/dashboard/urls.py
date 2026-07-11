@@ -5,6 +5,8 @@ from apps.dashboard.views import (
     AlternarFavoritoView,
     BuzinasPendentesView,
     ChaveVapidView,
+    ConectarUsuarioView,
+    ConvidarPorUsernameView,
     DesinscreverPushView,
     DesinscreverPushNativoView,
     EncerrarBuzinaView,
@@ -13,6 +15,7 @@ from apps.dashboard.views import (
     InscreverPushView,
     InscreverPushNativoView,
     MarcarNotificacoesLidasView,
+    MeuQrCodeView,
     NotificacoesView,
     PaginaChamarContatoView,
     PaginaCirculosView,
@@ -20,6 +23,7 @@ from apps.dashboard.views import (
     PaginaInicioView,
     RedirecionarPerfilParaChamarView,
     ResponderBuzinaView,
+    ResponderConviteView,
     ServiceWorkerView,
 )
 
@@ -28,6 +32,22 @@ app_name = 'dashboard'
 urlpatterns = [
     path('', PaginaInicioView.as_view(), name='index'),
     path('circulos/', PaginaCirculosView.as_view(), name='circulos'),
+    path('circulos/meu-qr.png', MeuQrCodeView.as_view(), name='meu_qr'),
+    path(
+        'circulos/convidar/',
+        ConvidarPorUsernameView.as_view(),
+        name='convidar_username',
+    ),
+    path(
+        'circulos/convite/<uuid:convite_id>/',
+        ResponderConviteView.as_view(),
+        name='responder_convite',
+    ),
+    path(
+        'conectar/<str:username>/',
+        ConectarUsuarioView.as_view(),
+        name='conectar_usuario',
+    ),
     path(
         'circulos/<uuid:membro_id>/',
         RedirecionarPerfilParaChamarView.as_view(),

@@ -3,7 +3,7 @@ from django.urls import reverse
 from unittest.mock import patch
 
 from apps.accounts.models import User
-from apps.dashboard.models import Buzina, MembroCirculo, StatusPresenca
+from apps.dashboard.models import Buzina, ConviteCirculo, MembroCirculo, StatusPresenca
 from apps.dashboard.presenca import Presenca
 from apps.dashboard.push_nativo import ServicoPushNativo
 
@@ -496,3 +496,59 @@ class TestPushNativoApi:
         buzina = Buzina.enviar(alice, bob.id)
         mock_push_web.assert_called_once_with(buzina)
         mock_push_nativo.assert_called_once_with(buzina)
+
+
+@pytest.mark.django_db
+class TestConviteCirculo:
+    def test_aceitar_cria_membros_mutuos(self, client, usuarios):
+        alice, bob = usuarios
+        convite = ConviteCirculo.enviar(alice, bob)
+        client.force_login(bob)
+        resposta = client.post(
+            reverse('dashboard:responder_convite', kwargs={'convite_id': convite.id}),
+            {'acao': 'aceitar'},
+        )
+        assert resposta.status_code == 302
+        assert MembroCirculo.objects.filter(dono=alice, contato=bob).exists()
+        assert MembroCirculo.objects.filter(dono=bob, contato=alice).exists()
+
+    def test_recusar_nao_cria_membros(self, client, usuarios):
+        alice, bob = usuarios
+        convite = ConviteCirculo.enviar(alice, bob)
+        client.force_login(bob)
+        client.post(
+            reverse('dashboard:responder_convite', kwargs={'convite_id': convite.id}),
+            {'acao': 'recusar'},
+        )
+        assert not MembroCirculo.objects.filter(dono=alice, contato=bob).exists()
+        convite.refresh_from_db()
+        assert convite.status == 'recusado'
+
+    def test_convidar_por_username(self, client, usuarios):
+        alice, bob = usuarios
+        client.force_login(alice)
+        resposta = client.post(
+            reverse('dashboard:convidar_username'),
+            {'username': 'bob'},
+        )
+        assert resposta.status_code == 302
+        assert ConviteCirculo.objects.filter(
+            remetente=alice, destinatario=bob, status='pendente'
+        ).exists()
+
+    def test_conectar_nao_permite_self(self, client, usuarios):
+        alice, _ = usuarios
+        client.force_login(alice)
+        resposta = client.get(
+            reverse('dashboard:conectar_usuario', kwargs={'username': 'alice'})
+        )
+        assert resposta.status_code == 302
+        assert resposta.url == reverse('dashboard:circulos')
+
+    def test_meu_qr_retorna_png(self, client, usuarios):
+        alice, _ = usuarios
+        client.force_login(alice)
+        resposta = client.get(reverse('dashboard:meu_qr'))
+        assert resposta.status_code == 200
+        assert resposta['Content-Type'] == 'image/png'
+        assert resposta.content[:8] == b'\x89PNG\r\n\x1a\n'

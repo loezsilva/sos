@@ -61,9 +61,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Meus círculos",
-      "short_name": "Círculos",
-      "description": "Ver contatos do seu círculo",
+      "name": "Meus próximos",
+      "short_name": "Próximos",
+      "description": "Ver quem importa para você",
       "url": "/circulos/",
       "icons": [{ "src": "/static/icons/web-app-manifest-192x192.png", "sizes": "192x192", "type": "image/png" }]
     },

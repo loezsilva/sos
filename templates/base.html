@@ -16,7 +16,7 @@
   <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/buzz.css' %}">
+  <link rel="stylesheet" href="{% static 'css/buzz.css' %}?v=cutuca-proximos-1">
   {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-background text-on-background min-h-screen font-body-md relative flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed {% block body_overflow %}overflow-hidden{% endblock %}"{% if user.is_authenticated %} data-usuario-autenticado="true" data-usuario-id="{{ user.id }}"{% endif %}>

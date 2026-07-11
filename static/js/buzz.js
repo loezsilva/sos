@@ -495,7 +495,7 @@
     if (dica) {
       dica.textContent = document.getElementById('botao-buzz-inicio')
         ? (document.getElementById('botao-buzz-inicio').disabled
-          ? dica.dataset.dicaOriginal || 'Marque favoritos em Círculos'
+          ? dica.dataset.dicaOriginal || 'Marque favoritos em Próximos'
           : 'Segure 2s para chamar favoritos')
         : 'Segure 2s para chamar';
     }

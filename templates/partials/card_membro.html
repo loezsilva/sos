@@ -1,5 +1,5 @@
 <div
-  class="card-membro card-cutuca block rounded-xl p-lg transition-shadow {% if membro.pode_buzinar %}hover:shadow-cutuca-lg{% else %}{{ membro.classe_card }}{% endif %} {{ membro.classe_borda_status }}"
+  class="card-membro card-cutuca block rounded-xl p-lg md:px-xl md:py-lg transition-shadow {% if membro.pode_buzinar %}hover:shadow-cutuca-lg{% else %}{{ membro.classe_card }}{% endif %} {{ membro.classe_borda_status }}"
   data-contato-id="{{ membro.contato_id }}"
   data-membro-id="{{ membro.id }}"
   data-status="{{ membro.status_para_dono }}"
@@ -7,8 +7,8 @@
   data-favoritos-mutuos="{{ membro.favoritos_mutuos|yesno:'true,false' }}"
   data-chamar-url="{% url 'dashboard:chamar_contato' membro.id %}"
 >
-  <div class="flex items-center justify-between gap-4">
-    <a href="{% url 'dashboard:chamar_contato' membro.id %}" class="flex items-center gap-4 min-w-0 flex-1 no-underline {% if not membro.pode_buzinar %}pointer-events-none{% endif %}">
+  <div class="flex items-center justify-between gap-md">
+    <a href="{% url 'dashboard:chamar_contato' membro.id %}" class="flex items-center gap-md min-w-0 flex-1 no-underline {% if not membro.pode_buzinar %}pointer-events-none{% endif %}">
       <div class="relative shrink-0">
         {% if membro.contato.avatar %}
           <img class="avatar-cutuca w-14 h-14 border-2 border-surface" src="{{ membro.contato.avatar.url }}" alt="{{ membro.nome_exibicao }}">
@@ -21,10 +21,10 @@
       </div>
       <div class="min-w-0">
         <h3 class="font-button-text text-button-text text-on-surface truncate">{{ membro.nome_exibicao }}</h3>
-        <p class="card-membro-status font-label-bold text-label-bold {{ membro.classe_cor_status }} mt-1">{{ membro.rotulo_status_exibicao }}</p>
+        <p class="card-membro-status font-label-bold text-label-bold {{ membro.classe_cor_status }} mt-xs">{{ membro.rotulo_status_exibicao }}</p>
       </div>
     </a>
-    <div class="flex items-center gap-2 shrink-0">
+    <div class="flex items-center gap-sm shrink-0">
       <button
         type="button"
         class="botao-favorito w-10 h-10 min-w-[48px] min-h-[48px] rounded-full flex items-center justify-center sombra-cutuca transition-colors {% if membro.eh_vip %}bg-tertiary-container text-on-tertiary-container{% else %}bg-surface-container text-outline hover:text-tertiary{% endif %}"

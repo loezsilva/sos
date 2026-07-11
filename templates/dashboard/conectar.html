@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Cutuca — Conectar{% endblock %}
+
+{% block main %}
+<div class="w-full max-w-md mx-auto px-margin-mobile pt-8 md:pt-24">
+  <div class="card-cutuca rounded-xl p-lg text-center">
+    <h1 class="font-headline-md text-on-surface mb-2">Conectar</h1>
+    <p class="text-on-surface-variant font-body-md mb-6">
+      Adicionar <strong class="text-on-surface">{{ destino.name|default:destino.username }}</strong>
+      <span class="block text-sm">@{{ destino.username }}</span>
+      aos seus próximos?
+    </p>
+
+    {% if ja_no_circulo %}
+      <p class="text-secondary font-body-md mb-4">Essa pessoa já está entre os seus próximos.</p>
+      <a href="{% url 'dashboard:circulos' %}" class="botao-cutuca inline-flex">Ver próximos</a>
+    {% elif convite_pendente %}
+      <p class="text-on-surface-variant font-body-md mb-4">Você já enviou um convite. Aguarde o aceite.</p>
+      <a href="{% url 'dashboard:circulos' %}" class="botao-cutuca inline-flex">Voltar</a>
+    {% else %}
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="botao-cutuca w-full mb-3">Enviar convite</button>
+      </form>
+      <a href="{% url 'dashboard:circulos' %}" class="text-on-surface-variant text-sm hover:text-primary">Cancelar</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
