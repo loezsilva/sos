@@ -43,6 +43,22 @@
       "purpose": "maskable"
     }
   ],
+  "screenshots": [
+    {
+      "src": "/static/icons/screenshot-narrow.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Cutuca — tela inicial no celular"
+    },
+    {
+      "src": "/static/icons/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Cutuca — tela inicial no desktop"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Meus círculos",
