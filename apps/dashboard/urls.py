@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.generic import RedirectView
 
 from apps.dashboard.views import (
     AlternarDisponibilidadeView,
@@ -18,7 +19,7 @@ from apps.dashboard.views import (
     MeuQrCodeView,
     NotificacoesView,
     PaginaChamarContatoView,
-    PaginaCirculosView,
+    PaginaProximosView,
     PaginaConfiguracoesView,
     PaginaInicioView,
     RedirecionarPerfilParaChamarView,
@@ -31,15 +32,15 @@ app_name = 'dashboard'
 
 urlpatterns = [
     path('', PaginaInicioView.as_view(), name='index'),
-    path('circulos/', PaginaCirculosView.as_view(), name='circulos'),
-    path('circulos/meu-qr.png', MeuQrCodeView.as_view(), name='meu_qr'),
+    path('proximos/', PaginaProximosView.as_view(), name='proximos'),
+    path('proximos/meu-qr.png', MeuQrCodeView.as_view(), name='meu_qr'),
     path(
-        'circulos/convidar/',
+        'proximos/convidar/',
         ConvidarPorUsernameView.as_view(),
         name='convidar_username',
     ),
     path(
-        'circulos/convite/<uuid:convite_id>/',
+        'proximos/convite/<uuid:convite_id>/',
         ResponderConviteView.as_view(),
         name='responder_convite',
     ),
@@ -49,14 +50,43 @@ urlpatterns = [
         name='conectar_usuario',
     ),
     path(
-        'circulos/<uuid:membro_id>/',
+        'proximos/<uuid:membro_id>/',
         RedirecionarPerfilParaChamarView.as_view(),
         name='perfil_contato',
     ),
     path(
-        'circulos/<uuid:membro_id>/chamar/',
+        'proximos/<uuid:membro_id>/chamar/',
         PaginaChamarContatoView.as_view(),
         name='chamar_contato',
+    ),
+    # Redirects 301 das URLs antigas /circulos/
+    path(
+        'circulos/',
+        RedirectView.as_view(pattern_name='dashboard:proximos', permanent=True),
+    ),
+    path(
+        'circulos/meu-qr.png',
+        RedirectView.as_view(pattern_name='dashboard:meu_qr', permanent=True),
+    ),
+    path(
+        'circulos/convidar/',
+        RedirectView.as_view(
+            pattern_name='dashboard:convidar_username', permanent=True
+        ),
+    ),
+    path(
+        'circulos/convite/<uuid:convite_id>/',
+        RedirectView.as_view(
+            pattern_name='dashboard:responder_convite', permanent=True
+        ),
+    ),
+    path(
+        'circulos/<uuid:membro_id>/',
+        RedirectView.as_view(pattern_name='dashboard:perfil_contato', permanent=True),
+    ),
+    path(
+        'circulos/<uuid:membro_id>/chamar/',
+        RedirectView.as_view(pattern_name='dashboard:chamar_contato', permanent=True),
     ),
     path('configuracoes/', PaginaConfiguracoesView.as_view(), name='configuracoes'),
     path(

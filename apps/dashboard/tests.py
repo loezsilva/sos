@@ -111,7 +111,7 @@ class TestNotificacoesApi:
 
 
 @pytest.fixture
-def circulo_bidirecional(usuarios):
+def proximos_bidirecional(usuarios):
     alice, bob = usuarios
     alice_bob = MembroCirculo.objects.create(
         dono=alice,
@@ -130,10 +130,10 @@ def circulo_bidirecional(usuarios):
 class TestNaoPerturbe:
     @patch('apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True)
     def test_pode_buzinar_ocupado_apenas_favorito(
-        self, mock_alcancavel, usuarios, circulo_bidirecional
+        self, mock_alcancavel, usuarios, proximos_bidirecional
     ):
         alice, bob = usuarios
-        alice_bob, bob_alice = circulo_bidirecional
+        alice_bob, bob_alice = proximos_bidirecional
         MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OCUPADO)
         alice_bob.refresh_from_db()
 
@@ -145,10 +145,10 @@ class TestNaoPerturbe:
 
     @patch('apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True)
     def test_favoritos_mutuos_veem_online_em_nao_perturbe(
-        self, mock_alcancavel, usuarios, circulo_bidirecional
+        self, mock_alcancavel, usuarios, proximos_bidirecional
     ):
         alice, bob = usuarios
-        alice_bob, bob_alice = circulo_bidirecional
+        alice_bob, bob_alice = proximos_bidirecional
         alice_bob.eh_vip = True
         bob_alice.eh_vip = True
         alice_bob.save(update_fields=['eh_vip'])
@@ -173,10 +173,10 @@ class TestNaoPerturbe:
         mock_notificar,
         mock_alcancavel,
         usuarios,
-        circulo_bidirecional,
+        proximos_bidirecional,
     ):
         alice, bob = usuarios
-        alice_bob, _ = circulo_bidirecional
+        alice_bob, _ = proximos_bidirecional
         MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OCUPADO)
         alice_bob.refresh_from_db()
 
@@ -192,10 +192,10 @@ class TestNaoPerturbe:
         mock_notificar,
         mock_alcancavel,
         usuarios,
-        circulo_bidirecional,
+        proximos_bidirecional,
     ):
         alice, bob = usuarios
-        alice_bob, bob_alice = circulo_bidirecional
+        alice_bob, bob_alice = proximos_bidirecional
         MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OCUPADO)
         bob_alice.eh_vip = True
         bob_alice.save(update_fields=['eh_vip'])
@@ -205,10 +205,10 @@ class TestNaoPerturbe:
         assert buzina.silenciada is False
         mock_notificar.assert_called_once()
 
-    @patch('apps.dashboard.presenca.Presenca.notificar_circulo')
+    @patch('apps.dashboard.presenca.Presenca.notificar_proximos')
     @patch('apps.dashboard.presenca.Presenca.esta_conectado', return_value=True)
     def test_api_alternar_disponibilidade(
-        self, mock_conectado, mock_notificar, client, usuarios, circulo_bidirecional
+        self, mock_conectado, mock_notificar, client, usuarios, proximos_bidirecional
     ):
         alice, _ = usuarios
         client.force_login(alice)
@@ -233,7 +233,7 @@ class TestNaoPerturbe:
         assert resposta.json()['status'] == StatusPresenca.ONLINE
 
     @patch.object(Buzina, '_notificar')
-    @patch('apps.dashboard.presenca.Presenca.notificar_circulo')
+    @patch('apps.dashboard.presenca.Presenca.notificar_proximos')
     @patch('apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True)
     @patch('apps.dashboard.presenca.Presenca.esta_conectado', return_value=True)
     def test_fluxo_nao_perturbe_integracao(
@@ -244,10 +244,10 @@ class TestNaoPerturbe:
         mock_notificar,
         client,
         usuarios,
-        circulo_bidirecional,
+        proximos_bidirecional,
     ):
         alice, bob = usuarios
-        alice_bob, bob_alice = circulo_bidirecional
+        alice_bob, bob_alice = proximos_bidirecional
 
         client.force_login(alice)
         client.post(
@@ -272,19 +272,19 @@ class TestNaoPerturbe:
 
 @pytest.mark.django_db
 class TestPresencaPush:
-    @patch('apps.dashboard.presenca.Presenca.notificar_circulo')
+    @patch('apps.dashboard.presenca.Presenca.notificar_proximos')
     @patch('apps.dashboard.presenca.Presenca.esta_conectado', return_value=False)
     def test_push_mantem_online_sem_websocket(
         self,
         mock_conectado,
         mock_notificar,
         usuarios,
-        circulo_bidirecional,
+        proximos_bidirecional,
     ):
         from apps.dashboard.models import InscricaoPush
 
         alice, bob = usuarios
-        alice_bob, _ = circulo_bidirecional
+        alice_bob, _ = proximos_bidirecional
         MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OFFLINE)
         alice_bob.refresh_from_db()
 
@@ -306,14 +306,14 @@ class TestPresencaPush:
         assert alice_bob.status == StatusPresenca.ONLINE
         mock_notificar.assert_called()
 
-    @patch('apps.dashboard.presenca.Presenca.notificar_circulo')
+    @patch('apps.dashboard.presenca.Presenca.notificar_proximos')
     @patch('apps.dashboard.presenca.Presenca.esta_conectado', return_value=False)
     def test_confirmar_offline_nao_apaga_quem_tem_push(
         self,
         mock_conectado,
         mock_notificar,
         usuarios,
-        circulo_bidirecional,
+        proximos_bidirecional,
     ):
         from apps.dashboard.models import InscricaoPush
 
@@ -343,7 +343,7 @@ class TestPresencaPush:
         mock_push,
         mock_nativo,
         usuarios,
-        circulo_bidirecional,
+        proximos_bidirecional,
     ):
         from apps.dashboard.models import InscricaoPush
 
@@ -412,7 +412,7 @@ class TestPushApi:
         mock_push,
         mock_alcancavel,
         usuarios,
-        circulo_bidirecional,
+        proximos_bidirecional,
     ):
         alice, bob = usuarios
         MembroCirculo.objects.filter(contato=bob).update(status=StatusPresenca.OCUPADO)
@@ -430,7 +430,7 @@ class TestPushApi:
         mock_enviar,
         mock_alcancavel,
         usuarios,
-        circulo_bidirecional,
+        proximos_bidirecional,
     ):
         alice, bob = usuarios
         buzina = Buzina.enviar(alice, bob.id)
@@ -490,7 +490,7 @@ class TestPushNativoApi:
         mock_push_nativo,
         mock_alcancavel,
         usuarios,
-        circulo_bidirecional,
+        proximos_bidirecional,
     ):
         alice, bob = usuarios
         buzina = Buzina.enviar(alice, bob.id)
@@ -543,7 +543,7 @@ class TestConviteCirculo:
             reverse('dashboard:conectar_usuario', kwargs={'username': 'alice'})
         )
         assert resposta.status_code == 302
-        assert resposta.url == reverse('dashboard:circulos')
+        assert resposta.url == reverse('dashboard:proximos')
 
     def test_meu_qr_retorna_png(self, client, usuarios):
         alice, _ = usuarios

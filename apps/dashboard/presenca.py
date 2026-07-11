@@ -49,7 +49,7 @@ class Presenca:
         """Atualiza espelho/notificação após inscrever ou desinscrever push."""
         if cls.tem_push(usuario_id):
             cls.espelhar_online(usuario_id)
-            cls.notificar_circulo(usuario_id)
+            cls.notificar_proximos(usuario_id)
             return
         if not cls.esta_conectado(usuario_id):
             cls.confirmar_offline(usuario_id)
@@ -84,7 +84,7 @@ class Presenca:
 
         # Notifica se era a 1ª conexão real ou se o ORM ainda dizia offline
         if quantidade == 0 or orm_desatualizado:
-            cls.notificar_circulo(usuario_id)
+            cls.notificar_proximos(usuario_id)
             return True
         return False
 
@@ -110,7 +110,7 @@ class Presenca:
         if cls.esta_alcancavel(usuario_id):
             return False
         cls.espelhar_offline(usuario_id)
-        cls.notificar_circulo(usuario_id, forcar_status=StatusPresenca.OFFLINE)
+        cls.notificar_proximos(usuario_id, forcar_status=StatusPresenca.OFFLINE)
         return True
 
     @classmethod
@@ -143,7 +143,7 @@ class Presenca:
             status=status,
             updated_at=timezone.now(),
         )
-        cls.notificar_circulo(usuario_id, forcar_status=status)
+        cls.notificar_proximos(usuario_id, forcar_status=status)
         return status
 
     @classmethod
@@ -162,7 +162,7 @@ class Presenca:
 
     @classmethod
     def snapshot_para(cls, dono_id):
-        """Presença atual dos contatos do círculo (para catch-up no connect)."""
+        """Presença atual dos contatos dos próximos (para catch-up no connect)."""
         payloads = []
         membros = (
             MembroCirculo.objects.filter(dono_id=dono_id)
@@ -178,7 +178,7 @@ class Presenca:
                 ).update(status=StatusPresenca.ONLINE, updated_at=timezone.now())
                 status = StatusPresenca.ONLINE
             elif not alcancavel:
-                # Exibe offline ao círculo, mas preserva ocupado (não perturbe) no espelho
+                # Exibe offline aos próximos, mas preserva ocupado (não perturbe) no espelho
                 if membro.status != StatusPresenca.OCUPADO:
                     MembroCirculo.objects.filter(pk=membro.pk).update(
                         status=StatusPresenca.OFFLINE,
@@ -207,7 +207,7 @@ class Presenca:
         return payloads
 
     @classmethod
-    def notificar_circulo(cls, usuario_id, forcar_status=None):
+    def notificar_proximos(cls, usuario_id, forcar_status=None):
         from apps.accounts.models import User
 
         canal = get_channel_layer()

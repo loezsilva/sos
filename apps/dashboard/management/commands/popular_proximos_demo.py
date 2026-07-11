@@ -5,7 +5,7 @@ from apps.dashboard.models import MembroCirculo, StatusPresenca
 
 
 class Command(BaseCommand):
-    help = 'Popula círculos mútuos de demonstração (status inicial offline).'
+    help = 'Popula próximos mútuos de demonstração (status inicial offline).'
 
     def handle(self, *args, **options):
         contatos_demo = [
@@ -70,5 +70,5 @@ class Command(BaseCommand):
                 )
 
         self.stdout.write(
-            self.style.SUCCESS('Círculos mútuos populados (presença sobe no login).')
+            self.style.SUCCESS('Próximos mútuos populados (presença sobe no login).')
         )

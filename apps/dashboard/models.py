@@ -33,7 +33,7 @@ class MembroCirculo(BaseModel):
         User,
         on_delete=models.CASCADE,
         related_name='membros_circulo',
-        verbose_name='Dono do círculo',
+        verbose_name='Dono dos próximos',
     )
     contato = models.ForeignKey(
         User,
@@ -52,8 +52,8 @@ class MembroCirculo(BaseModel):
     objects = MembroCirculoQuerySet.as_manager()
 
     class Meta:
-        verbose_name = 'Membro do círculo'
-        verbose_name_plural = 'Membros do círculo'
+        verbose_name = 'Membro dos próximos'
+        verbose_name_plural = 'Membros dos próximos'
         constraints = [
             models.UniqueConstraint(
                 fields=['dono', 'contato'],
@@ -136,7 +136,7 @@ class MembroCirculo(BaseModel):
         return self.sao_favoritos_mutuos(self.contato_id, self.dono_id)
 
     def status_para_dono(self):
-        """Status exibido ao dono do círculo (oculta não perturbe entre favoritos mútuos)."""
+        """Status exibido ao dono dos próximos (oculta não perturbe entre favoritos mútuos)."""
         from apps.dashboard.presenca import Presenca
 
         if not Presenca.esta_alcancavel(self.contato_id):
@@ -198,8 +198,8 @@ class ConviteCirculo(BaseModel):
     objects = ConviteCirculoQuerySet.as_manager()
 
     class Meta:
-        verbose_name = 'Convite de círculo'
-        verbose_name_plural = 'Convites de círculo'
+        verbose_name = 'Convite de próximos'
+        verbose_name_plural = 'Convites de próximos'
         constraints = [
             models.UniqueConstraint(
                 fields=['remetente', 'destinatario'],

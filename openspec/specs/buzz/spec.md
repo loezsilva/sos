@@ -1,6 +1,6 @@
 ## Purpose
 
-Definir o comportamento core do Buzz — sistema de atenção imediata para círculos íntimos com comunicação de ultra-baixa latência.
+Definir o comportamento core do Buzz — sistema de atenção imediata para pessoas próximas com comunicação de ultra-baixa latência.
 
 ## Requirements
 
@@ -29,13 +29,13 @@ O destinatário SHALL receber uma interface de alta prioridade que ocupa a tela 
 - **THEN** o remetente recebe a resposta em tempo real
 - **AND** a tela de alerta é encerrada
 
-### Requirement: Gerenciamento de círculo
-O usuário SHALL visualizar e gerenciar pessoas do seu círculo íntimo.
+### Requirement: Gerenciamento de próximos
+O usuário SHALL visualizar e gerenciar pessoas próximas.
 
 #### Scenario: Listar contatos
-- **WHEN** o usuário acessa a tela de círculos
+- **WHEN** o usuário acessa a tela de próximos
 - **THEN** vê lista de contatos com status (online, ocupado, offline)
-- **AND** pode adicionar ou remover membros do círculo
+- **AND** pode adicionar ou remover membros dos próximos
 
 ### Requirement: Personalização
 O usuário SHALL personalizar sons, temas e mensagens rápidas.

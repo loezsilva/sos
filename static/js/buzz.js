@@ -875,7 +875,7 @@
     const avatar = item.contato_avatar
       ? `<img class="w-full h-full object-cover" src="${item.contato_avatar}" alt="${item.contato_nome}">`
       : '<span class="material-symbols-outlined text-outline">person</span>';
-    const href = item.membro_id ? `/circulos/${item.membro_id}/chamar/` : '#';
+    const href = item.membro_id ? `/proximos/${item.membro_id}/chamar/` : '#';
     const naoLida = !item.lida;
     return `<a href="${href}" class="item-notificacao flex items-center gap-3 px-4 py-3 hover:bg-surface-container-low transition-colors no-underline ${naoLida ? 'bg-primary-container/10' : ''}" data-buzina-id="${item.buzina_id}">
       <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden border border-white/10">${avatar}</div>
@@ -949,10 +949,10 @@
   }
 
   function carregarPresencaInicial() {
-    const circulo = document.getElementById('circulo-presenca');
-    if (circulo) {
+    const proximos = document.getElementById('proximos-presenca');
+    if (proximos) {
       try {
-        JSON.parse(circulo.textContent).forEach((membro) => {
+        JSON.parse(proximos.textContent).forEach((membro) => {
           statusConhecidos[String(membro.contato_id)] = membro.status || 'offline';
         });
       } catch {

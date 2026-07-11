@@ -64,7 +64,7 @@
       "name": "Meus próximos",
       "short_name": "Próximos",
       "description": "Ver quem importa para você",
-      "url": "/circulos/",
+      "url": "/proximos/",
       "icons": [{ "src": "/static/icons/web-app-manifest-192x192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {

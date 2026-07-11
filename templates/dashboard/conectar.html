@@ -12,18 +12,18 @@
       aos seus próximos?
     </p>
 
-    {% if ja_no_circulo %}
+    {% if ja_nos_proximos %}
       <p class="text-secondary font-body-md mb-4">Essa pessoa já está entre os seus próximos.</p>
-      <a href="{% url 'dashboard:circulos' %}" class="botao-cutuca inline-flex">Ver próximos</a>
+      <a href="{% url 'dashboard:proximos' %}" class="botao-cutuca inline-flex">Ver próximos</a>
     {% elif convite_pendente %}
       <p class="text-on-surface-variant font-body-md mb-4">Você já enviou um convite. Aguarde o aceite.</p>
-      <a href="{% url 'dashboard:circulos' %}" class="botao-cutuca inline-flex">Voltar</a>
+      <a href="{% url 'dashboard:proximos' %}" class="botao-cutuca inline-flex">Voltar</a>
     {% else %}
       <form method="post">
         {% csrf_token %}
         <button type="submit" class="botao-cutuca w-full mb-3">Enviar convite</button>
       </form>
-      <a href="{% url 'dashboard:circulos' %}" class="text-on-surface-variant text-sm hover:text-primary">Cancelar</a>
+      <a href="{% url 'dashboard:proximos' %}" class="text-on-surface-variant text-sm hover:text-primary">Cancelar</a>
     {% endif %}
   </div>
 </div>

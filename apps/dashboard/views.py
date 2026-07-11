@@ -54,8 +54,8 @@ class PaginaInicioView(TemplateView):
         return contexto
 
 
-class PaginaCirculosView(TemplateView):
-    template_name = 'dashboard/circulos.html'
+class PaginaProximosView(TemplateView):
+    template_name = 'dashboard/proximos.html'
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
@@ -108,13 +108,13 @@ class ConectarUsuarioView(LoginRequiredMixin, TemplateView):
         self.destino = get_object_or_404(User, username__iexact=kwargs['username'])
         if request.user.is_authenticated and request.user.pk == self.destino.pk:
             messages.info(request, 'Este é o seu próprio link de conexão.')
-            return HttpResponseRedirect(reverse('dashboard:circulos'))
+            return HttpResponseRedirect(reverse('dashboard:proximos'))
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         contexto['destino'] = self.destino
-        contexto['ja_no_circulo'] = MembroCirculo.objects.filter(
+        contexto['ja_nos_proximos'] = MembroCirculo.objects.filter(
             dono=self.request.user,
             contato=self.destino,
         ).exists()
@@ -140,7 +140,7 @@ class ConectarUsuarioView(LoginRequiredMixin, TemplateView):
                 )
         except ValidationError as erro:
             messages.error(request, erro.messages[0])
-        return HttpResponseRedirect(reverse('dashboard:circulos'))
+        return HttpResponseRedirect(reverse('dashboard:proximos'))
 
 
 class ConvidarPorUsernameView(LoginRequiredMixin, View):
@@ -148,11 +148,11 @@ class ConvidarPorUsernameView(LoginRequiredMixin, View):
         username = request.POST.get('username', '').strip().lstrip('@')
         if not username:
             messages.error(request, 'Informe um username.')
-            return HttpResponseRedirect(reverse('dashboard:circulos'))
+            return HttpResponseRedirect(reverse('dashboard:proximos'))
         destino = User.objects.filter(username__iexact=username).first()
         if not destino:
             messages.error(request, f'Ninguém encontrado com o username “{username}”.')
-            return HttpResponseRedirect(reverse('dashboard:circulos'))
+            return HttpResponseRedirect(reverse('dashboard:proximos'))
         try:
             convite = ConviteCirculo.enviar(request.user, destino)
             if convite.status == StatusConvite.ACEITO:
@@ -167,7 +167,7 @@ class ConvidarPorUsernameView(LoginRequiredMixin, View):
                 )
         except ValidationError as erro:
             messages.error(request, erro.messages[0])
-        return HttpResponseRedirect(reverse('dashboard:circulos'))
+        return HttpResponseRedirect(reverse('dashboard:proximos'))
 
 
 class ResponderConviteView(LoginRequiredMixin, View):
@@ -187,7 +187,7 @@ class ResponderConviteView(LoginRequiredMixin, View):
         elif acao == 'recusar':
             convite.recusar()
             messages.info(request, 'Convite recusado.')
-        return HttpResponseRedirect(reverse('dashboard:circulos'))
+        return HttpResponseRedirect(reverse('dashboard:proximos'))
 
 
 class PaginaConfiguracoesView(LoginRequiredMixin, TemplateView):

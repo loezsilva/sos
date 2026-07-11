@@ -4,7 +4,7 @@
 
 - Redis em `127.0.0.1:6379`
 - `VAPID_*` no `.env` (rode `python manage.py gerar_vapid`)
-- Dois usuários logados em abas/navegadores diferentes (ex.: `admin` e `alex` após `popular_circulo_demo`)
+- Dois usuários logados em abas/navegadores diferentes (ex.: `admin` e `alex` após `popular_proximos_demo`)
 
 ## Fluxo principal
 

@@ -1,8 +1,8 @@
 MAPA_ROTAS = {
     'index': 'inicio',
-    'circulos': 'circulos',
-    'perfil_contato': 'circulos',
-    'chamar_contato': 'circulos',
+    'proximos': 'proximos',
+    'perfil_contato': 'proximos',
+    'chamar_contato': 'proximos',
     'configuracoes': 'configuracoes',
 }
 
