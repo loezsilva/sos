@@ -17,17 +17,17 @@ self.addEventListener('push', (event) => {
   try {
     dados = event.data.json();
   } catch {
-    dados = { titulo: 'Buzz', corpo: event.data.text() };
+    dados = { titulo: 'Cutuca', corpo: event.data.text() };
   }
 
   const nome = dados.remetente_nome || 'Alguém';
   const msg = (dados.mensagem || '').trim();
-  const titulo = dados.titulo || (msg ? `${nome} te buzinou` : `Chamada urgente — ${nome}`);
+  const titulo = dados.titulo || (msg ? `${nome} te cutucou` : `Chamada urgente — ${nome}`);
   const corpo = dados.corpo || (msg ? `"${msg}" — toque para responder agora` : `${nome} precisa da sua atenção. Toque para abrir.`);
 
   const opcoes = {
     body: corpo,
-    tag: dados.buzina_id || 'buzz-chamada',
+    tag: dados.buzina_id || 'cutuca-chamada',
     renotify: true,
     requireInteraction: true,
     silent: false,
@@ -99,18 +99,30 @@ self.addEventListener('message', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      const cachesAntigos = ['paginas-buzz', 'workbox-precache-v2'];
+      const nomes = await caches.keys();
+      await Promise.all(
+        nomes
+          .filter((nome) => cachesAntigos.some((prefixo) => nome.includes(prefixo)))
+          .map((nome) => caches.delete(nome)),
+      );
+      await self.clients.claim();
+    })(),
+  );
 });
 
 // --- Precache (manual — Django sem __WB_MANIFEST do Workbox build) ---
+// Não precachear HTML (/) — evita UI antiga (ex.: texto "Cutuca" ao lado da logo).
 
 const PRECACHE = [
-  { url: '/static/css/buzz.css', revision: null },
-  { url: '/static/js/buzz.js', revision: null },
-  { url: '/static/js/push.js', revision: null },
+  { url: '/static/css/buzz.css', revision: 'cutuca-v2' },
+  { url: '/static/js/buzz.js', revision: 'cutuca-v2' },
+  { url: '/static/js/push.js', revision: 'cutuca-v2' },
   { url: '/static/sounds/buzina.wav', revision: null },
   { url: '/static/icons/icon-192.png', revision: null },
-  { url: '/', revision: null },
+  { url: '/static/icons/logo-cutuca-online.png', revision: 'cutuca-v2' },
 ];
 
 workbox.precaching.precacheAndRoute(PRECACHE);
@@ -123,7 +135,7 @@ workbox.routing.registerRoute(
 workbox.routing.registerRoute(
   ({ request }) => request.mode === 'navigate',
   new workbox.strategies.NetworkFirst({
-    cacheName: 'paginas-buzz',
+    cacheName: 'paginas-cutuca-v2',
     networkTimeoutSeconds: 5,
   })
 );
