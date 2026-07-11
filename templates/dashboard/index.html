@@ -1,25 +1,25 @@
 {% extends 'base.html' %}
 
-{% block title %}Buzz — Início{% endblock %}
+{% block title %}Cutuca — Início{% endblock %}
 
 {% block main %}
 <section class="w-full max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop min-h-[calc(100dvh-4rem)] flex flex-col items-center justify-center">
   <div class="w-full max-w-md flex flex-col items-center">
     <div
       id="alerta-push-inicio"
-      class="hidden w-full mb-lg p-lg rounded-xl bg-primary-container/15 border border-primary/30 sombra-neumorfica text-left"
+      class="hidden w-full mb-lg p-lg rounded-xl bg-primary-fixed border border-primary/20 sombra-cutuca text-left"
       role="status"
     >
       <div class="flex items-start gap-sm">
         <span class="material-symbols-outlined text-primary shrink-0 mt-0.5" aria-hidden="true">notifications_active</span>
         <div class="flex-1 min-w-0 flex flex-col gap-sm">
           <p class="font-label-bold text-on-surface">Ative notificações em segundo plano</p>
-          <p class="text-on-surface-variant text-sm font-body-md">Receba buzinas mesmo com a aba minimizada ou em outro app.</p>
+          <p class="text-on-surface-variant text-sm font-body-md">Receba cutucões mesmo com a aba minimizada ou em outro app.</p>
           <div class="flex flex-wrap items-center gap-sm pt-1">
             <button
               type="button"
               id="alerta-push-ativar"
-              class="px-4 py-2 rounded-full bg-primary-container text-on-primary-container font-label-bold text-sm hover:opacity-90 transition-opacity"
+              class="botao-cutuca px-4 py-2 text-sm"
             >
               Ativar
             </button>
@@ -53,13 +53,13 @@
           id="botao-buzz-inicio"
           data-segurar-buzina="2"
           data-buzinar-favoritos="1"
-          class="relative z-20 w-48 h-48 md:w-64 md:h-64 rounded-full p-2 bg-gradient-to-tr from-primary to-secondary shadow-[0_0_40px_rgba(124,58,237,0.5),inset_0_4px_10px_rgba(255,255,255,0.2)] transition-transform duration-200 group select-none touch-none {% if pode_buzinar_favoritos %}hover:scale-105 active:scale-95 cursor-pointer{% else %}opacity-50 cursor-not-allowed{% endif %}"
+          class="botao-buzz relative z-20 w-48 h-48 md:w-64 md:h-64 rounded-full p-2 bg-gradient-to-tr from-primary to-primary-container shadow-cutuca-primary transition-transform duration-200 group select-none touch-none {% if pode_buzinar_favoritos %}hover:scale-105 active:scale-95 cursor-pointer{% else %}opacity-50 cursor-not-allowed{% endif %}"
           {% if not pode_buzinar_favoritos %}disabled data-manter-desabilitado="1"{% endif %}
-          aria-label="Segure 2 segundos para buzinar favoritos"
+          aria-label="Segure 2 segundos para cutucar favoritos"
         >
-          <div class="w-full h-full rounded-full overflow-hidden border-4 border-surface-container-highest relative bg-surface-container-high flex flex-col items-center justify-center gap-sm pointer-events-none">
-            <span class="material-symbols-outlined text-primary text-[64px]" style="font-variation-settings: 'FILL' 1;">graphic_eq</span>
-            <span class="font-button-text text-button-text text-on-surface tracking-wider">BUZZ</span>
+          <div class="w-full h-full rounded-full overflow-hidden border-4 border-white relative bg-white/90 flex flex-col items-center justify-center gap-sm pointer-events-none">
+            <span class="material-symbols-outlined text-primary text-[64px]" style="font-variation-settings: 'FILL' 1;">touch_app</span>
+            <span class="font-button-text text-button-text text-primary tracking-wider">CUTUCAR</span>
           </div>
         </button>
       </div>
@@ -106,20 +106,20 @@
     {% endif %}
 
     <div class="w-full grid grid-cols-2 gap-4">
-      <div class="bg-surface-container-low/60 backdrop-blur-md rounded-xl p-4 border border-white/5 sombra-neumorfica flex flex-col gap-2">
+      <div class="card-cutuca rounded-xl p-4 flex flex-col gap-2">
         <span class="text-on-surface-variant font-label-bold text-xs uppercase">Atividade recente</span>
         <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center sombra-neumorfica-inset">
-            <span class="material-symbols-outlined text-sm text-secondary">bolt</span>
+          <div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center">
+            <span class="material-symbols-outlined text-sm text-primary">touch_app</span>
           </div>
           <span class="text-on-surface text-sm">{{ total_chamadas }} chamadas</span>
         </div>
       </div>
-      <div class="bg-surface-container-low/60 backdrop-blur-md rounded-xl p-4 border border-white/5 sombra-neumorfica flex flex-col gap-2">
+      <div class="card-cutuca rounded-xl p-4 flex flex-col gap-2">
         <span class="text-on-surface-variant font-label-bold text-xs uppercase">Rede</span>
         <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center sombra-neumorfica-inset">
-            <span class="material-symbols-outlined text-sm text-tertiary">group</span>
+          <div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center">
+            <span class="material-symbols-outlined text-sm text-on-secondary-container">group</span>
           </div>
           <span id="contador-online-inicio" class="text-on-surface text-sm" data-total="{{ total_online|default:0 }}">{{ total_online }} online</span>
         </div>

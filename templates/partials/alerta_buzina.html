@@ -2,16 +2,16 @@
 
 <div id="alerta-buzina" class="hidden fixed inset-0 z-[100] bg-background overflow-y-auto overflow-x-hidden" aria-live="assertive" role="alertdialog" aria-modal="true">
   <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] bg-primary/20 rounded-full blur-[100px] animacao-flutuar"></div>
-    <div class="absolute top-1/3 right-1/4 w-[60vw] h-[60vw] max-w-[400px] max-h-[400px] bg-secondary/15 rounded-full blur-[80px] animacao-flutuar" style="animation-delay: -2s;"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] bg-primary/15 rounded-full blur-[100px] animacao-flutuar"></div>
+    <div class="absolute top-1/3 right-1/4 w-[60vw] h-[60vw] max-w-[400px] max-h-[400px] bg-secondary/10 rounded-full blur-[80px] animacao-flutuar" style="animation-delay: -2s;"></div>
   </div>
 
   <main class="relative z-10 flex flex-col items-center w-full min-h-[100dvh] px-margin-mobile py-xl md:px-margin-desktop max-w-md mx-auto">
     <header class="w-full text-center mt-md flex-shrink-0">
-      <h1 class="font-display-lg-mobile text-display-lg-mobile text-on-surface mb-2 tracking-tighter drop-shadow-lg">
-        Buzina recebida
+      <h1 class="font-display-lg-mobile text-display-lg-mobile text-on-surface mb-2 tracking-tighter">
+        Cutucão recebido
       </h1>
-      <p class="font-headline-md text-headline-md text-secondary animate-pulse">
+      <p class="font-headline-md text-headline-md text-primary animate-pulse">
         Prioridade urgente
       </p>
     </header>
@@ -21,13 +21,13 @@
       <div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-secondary/40 animacao-ripple-alerta" style="animation-delay: 0.6s;"></div>
       <div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-primary/20 animacao-ripple-alerta" style="animation-delay: 1.2s;"></div>
 
-      <div class="relative z-20 w-48 h-48 md:w-64 md:h-64 rounded-full p-2 bg-gradient-to-tr from-primary to-secondary shadow-[0_0_40px_rgba(124,58,237,0.5),inset_0_4px_10px_rgba(255,255,255,0.2)] animacao-flutuar">
-        <div id="alerta-avatar" class="w-full h-full rounded-full overflow-hidden border-4 border-surface-container-highest relative bg-surface-container-high flex items-center justify-center">
+      <div class="relative z-20 w-48 h-48 md:w-64 md:h-64 rounded-full p-2 bg-gradient-to-tr from-primary to-primary-container shadow-cutuca-primary animacao-flutuar">
+        <div id="alerta-avatar" class="w-full h-full rounded-full overflow-hidden border-4 border-white relative bg-surface-container-high flex items-center justify-center">
           <span class="material-symbols-outlined text-outline text-6xl">person</span>
         </div>
       </div>
 
-      <div class="absolute bottom-0 left-1/2 -translate-x-1/2 z-30 px-6 py-3 bg-surface-container-highest/80 backdrop-blur-md rounded-full border border-white/10 shadow-[0_8px_16px_rgba(0,0,0,0.5)] whitespace-nowrap">
+      <div class="absolute bottom-0 left-1/2 -translate-x-1/2 z-30 px-6 py-3 bg-surface rounded-full border border-outline-variant sombra-cutuca whitespace-nowrap">
         <p id="alerta-remetente" class="font-headline-md text-headline-md text-on-surface">—</p>
       </div>
     </div>
@@ -35,25 +35,25 @@
     <div class="w-full flex-shrink-0 flex flex-col gap-md mb-xl z-20">
       <div class="flex flex-col items-center gap-sm">
         <h2 class="text-center font-body-lg text-body-lg text-on-surface-variant">
-          está chamando sua atenção!
+          está cutucando você!
         </h2>
         <p id="alerta-mensagem" class="hidden text-center font-headline-md text-headline-md text-on-surface px-2"></p>
       </div>
 
       <div class="grid grid-cols-1 gap-sm w-full mt-sm">
-        <button type="button" data-resposta="ja_vou" class="alerta-resposta w-full py-3 px-6 rounded-full bg-surface-container-high text-on-surface font-button-text sombra-neumorfica hover:bg-surface-container-highest active:scale-95 transition-all">
+        <button type="button" data-resposta="ja_vou" class="alerta-resposta w-full py-3 px-6 rounded-full bg-surface text-on-surface font-button-text border border-outline-variant sombra-cutuca hover:bg-surface-container-low active:scale-95 transition-all min-h-[48px]">
           Já vou
         </button>
-        <button type="button" data-resposta="ocupado" class="alerta-resposta w-full py-3 px-6 rounded-full bg-surface-container-high text-on-surface font-button-text sombra-neumorfica hover:bg-surface-container-highest active:scale-95 transition-all">
+        <button type="button" data-resposta="ocupado" class="alerta-resposta w-full py-3 px-6 rounded-full bg-surface text-on-surface font-button-text border border-outline-variant sombra-cutuca hover:bg-surface-container-low active:scale-95 transition-all min-h-[48px]">
           Tô ocupado
         </button>
-        <button type="button" data-resposta="ligo_depois" class="alerta-resposta w-full py-3 px-6 rounded-full bg-surface-container-high text-on-surface font-button-text sombra-neumorfica hover:bg-surface-container-highest active:scale-95 transition-all">
+        <button type="button" data-resposta="ligo_depois" class="alerta-resposta w-full py-3 px-6 rounded-full bg-surface text-on-surface font-button-text border border-outline-variant sombra-cutuca hover:bg-surface-container-low active:scale-95 transition-all min-h-[48px]">
           Ligo em 5 min
         </button>
       </div>
 
       <div class="flex justify-center pt-sm pb-md">
-        <button type="button" id="alerta-recusar" class="w-16 h-16 rounded-full bg-error-container text-on-error-container sombra-neumorfica active:scale-95 flex items-center justify-center transition-all" aria-label="Dispensar">
+        <button type="button" id="alerta-recusar" class="w-16 h-16 rounded-full bg-error-container text-on-error-container sombra-cutuca active:scale-95 flex items-center justify-center transition-all" aria-label="Dispensar">
           <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">close</span>
         </button>
       </div>
@@ -61,4 +61,4 @@
   </main>
 </div>
 
-<div id="toast-buzz" class="hidden fixed top-20 left-1/2 -translate-x-1/2 z-[90] px-6 py-3 rounded-full bg-surface-container-highest/90 backdrop-blur-md border border-white/10 text-on-surface font-body-md sombra-neumorfica"></div>
+<div id="toast-buzz" class="toast-cutuca hidden fixed top-20 left-1/2 -translate-x-1/2 z-[90] px-6 py-3 font-body-md"></div>

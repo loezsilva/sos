@@ -140,7 +140,7 @@
         botao.dataset.acao = 'ativar';
       }
     } else {
-      status.textContent = 'Ative para receber buzinas com som customizado, mesmo com o app fechado.';
+      status.textContent = 'Ative para receber cutucões com som customizado, mesmo com o app fechado.';
       if (botao) {
         botao.textContent = 'Ativar notificações';
         botao.dataset.acao = 'ativar';

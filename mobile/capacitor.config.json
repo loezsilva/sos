@@ -1,6 +1,6 @@
 {
   "appId": "com.buzz.app",
-  "appName": "Buzz",
+  "appName": "Cutuca",
   "webDir": "dist",
   "server": {
     "url": "http://10.0.2.2:8000",
@@ -8,7 +8,7 @@
     "androidScheme": "https"
   },
   "android": {
-    "appendUserAgent": " BuzzApp/1.0"
+    "appendUserAgent": " CutucaApp/1.0"
   },
   "plugins": {
     "SplashScreen": {

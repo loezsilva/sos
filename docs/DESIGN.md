@@ -1,170 +1,207 @@
----
-name: Tactile Pulse
-colors:
-  surface: '#0b1326'
-  surface-dim: '#0b1326'
-  surface-bright: '#31394d'
-  surface-container-lowest: '#060e20'
-  surface-container-low: '#131b2e'
-  surface-container: '#171f33'
-  surface-container-high: '#222a3d'
-  surface-container-highest: '#2d3449'
-  on-surface: '#dae2fd'
-  on-surface-variant: '#ccc3d8'
-  inverse-surface: '#dae2fd'
-  inverse-on-surface: '#283044'
-  outline: '#958da1'
-  outline-variant: '#4a4455'
-  surface-tint: '#d2bbff'
-  primary: '#d2bbff'
-  on-primary: '#3f008e'
-  primary-container: '#7c3aed'
-  on-primary-container: '#ede0ff'
-  inverse-primary: '#732ee4'
-  secondary: '#4cd7f6'
-  on-secondary: '#003640'
-  secondary-container: '#03b5d3'
-  on-secondary-container: '#00424e'
-  tertiary: '#ffb784'
-  on-tertiary: '#4f2500'
-  tertiary-container: '#a15100'
-  on-tertiary-container: '#ffe0cd'
-  error: '#ffb4ab'
-  on-error: '#690005'
-  error-container: '#93000a'
-  on-error-container: '#ffdad6'
-  primary-fixed: '#eaddff'
-  primary-fixed-dim: '#d2bbff'
-  on-primary-fixed: '#25005a'
-  on-primary-fixed-variant: '#5a00c6'
-  secondary-fixed: '#acedff'
-  secondary-fixed-dim: '#4cd7f6'
-  on-secondary-fixed: '#001f26'
-  on-secondary-fixed-variant: '#004e5c'
-  tertiary-fixed: '#ffdcc6'
-  tertiary-fixed-dim: '#ffb784'
-  on-tertiary-fixed: '#301400'
-  on-tertiary-fixed-variant: '#713700'
-  background: '#0b1326'
-  on-background: '#dae2fd'
-  surface-variant: '#2d3449'
-typography:
-  display-lg:
-    fontFamily: Hanken Grotesk
-    fontSize: 48px
-    fontWeight: '800'
-    lineHeight: 56px
-    letterSpacing: -0.02em
-  display-lg-mobile:
-    fontFamily: Hanken Grotesk
-    fontSize: 36px
-    fontWeight: '800'
-    lineHeight: 42px
-    letterSpacing: -0.02em
-  headline-md:
-    fontFamily: Hanken Grotesk
-    fontSize: 24px
-    fontWeight: '700'
-    lineHeight: 32px
-  body-lg:
-    fontFamily: Hanken Grotesk
-    fontSize: 18px
-    fontWeight: '400'
-    lineHeight: 28px
-  body-md:
-    fontFamily: Hanken Grotesk
-    fontSize: 16px
-    fontWeight: '400'
-    lineHeight: 24px
-  label-bold:
-    fontFamily: JetBrains Mono
-    fontSize: 14px
-    fontWeight: '700'
-    lineHeight: 20px
-    letterSpacing: 0.05em
-  button-text:
-    fontFamily: Hanken Grotesk
-    fontSize: 18px
-    fontWeight: '700'
-    lineHeight: 24px
-rounded:
-  sm: 0.25rem
-  DEFAULT: 0.5rem
-  md: 0.75rem
-  lg: 1rem
-  xl: 1.5rem
-  full: 9999px
-spacing:
-  unit: 4px
-  xs: 4px
-  sm: 8px
-  md: 16px
-  lg: 24px
-  xl: 40px
-  gutter: 16px
-  margin-mobile: 16px
-  margin-desktop: 32px
+# 👆 System Design: Cutuca.online
+
+## 1. Visão Geral (Overview)
+O **Cutuca.online** é um aplicativo/PWA de notificações de ação rápida (One-Tap Notification). O objetivo principal é permitir que usuários (com foco em acessibilidade para crianças e idosos) enviem um alerta instantâneo ("Cutucão") para uma lista pré-definida de contatos favoritos com apenas um clique.
+
+**Requisitos Não Funcionais Críticos:**
+* **Baixa Latência:** A notificação deve chegar em tempo real (menos de 2 segundos).
+* **Alta Disponibilidade:** O sistema precisa estar sempre online (99.9% uptime).
+* **Acessibilidade:** Interface front-end extremamente simplificada.
+* **Baixo Consumo de Bateria/Dados:** O app ficará em background aguardando push notifications.
+
 ---
 
-## Brand & Style
+## 2. Arquitetura de Alto Nível
 
-This design system is engineered for immediate action and high-frequency engagement. The brand personality is **Reliable, Fast, and Intimate**, focusing on the "Buzz" of real-time activity. 
+A arquitetura segue um modelo baseado em microsserviços simples (ou Monólito Modular inicial) hospedado na nuvem (Cloud-native).
 
-The visual style merges **Neumorphism** with **Glassmorphism** to create a "Soft-Tech" aesthetic. Elements should feel physically clickable and rooted in a three-dimensional space, using soft shadows for depth and frosted glass layers for information hierarchy. The interface avoids the coldness of traditional SaaS by using organic, tactile metaphors that make digital interactions feel rhythmic and responsive. Use vibrant blurs behind translucent surfaces to maintain a sense of energy without causing visual fatigue.
+### 2.1. Componentes do Sistema
+1.  **Client Application (Front-end):**
+    * PWA (Progressive Web App) desenvolvido em React, Vue ou Svelte para acesso universal via browser (`.online`).
+    * App Nativo/Híbrido (React Native ou Flutter) focado em integração profunda com os recursos do SO (Push Notifications, vibração, ignorar modo "Não Perturbe" se configurado).
+2.  **API Gateway:**
+    * Ponto de entrada para todas as requisições do cliente. Gerencia autenticação de rotas e Rate Limiting (prevenção de spam de botões).
+3.  **Application Server (Backend):**
+    * Gerencia a lógica de negócios: Contas de usuários, listas de contatos favoritos e disparos de eventos.
+4.  **Database (Banco de Dados):**
+    * **PostgreSQL:** Banco relacional para armazenar Usuários, Relações de Contatos (quem autorizou quem) e Logs de eventos.
+    * **Redis:** Banco em memória para gerenciar sessões, cache de contatos frequentes e controle de Rate Limiting.
+5.  **Notification Engine (Serviço de Mensageria):**
+    * Serviço dedicado à entrega da mensagem usando **Firebase Cloud Messaging (FCM)** (para Android/Web) e **Apple Push Notification service (APNs)** (para iOS).
 
-## Colors
+---
 
-The palette is anchored in a deep **Dark Mode** foundation to allow the high-vibrancy primary colors to "pop" as sources of light. 
+## 3. Fluxo de Dados (Data Flow)
 
-- **Primary (Electric Purple):** Used for critical actions, active states, and "the buzz." It represents energy and urgency.
-- **Secondary (Cyan Blue):** Used for secondary interactions, status indicators, and success states. It provides a cooling balance to the purple.
-- **Neutral:** A deep slate-navy used for background surfaces. Pure black is avoided to maintain the soft, tactile shadows required for Neumorphism.
-- **Alerts:** High-contrast Magenta (#F0ABFC) for urgent notifications that must bypass the standard hierarchy.
+### Cenário: Envio de um "Cutucão"
+1.  **Ação:** O Usuário A (Remetente) abre o app e clica no botão principal "Cutucar".
+2.  **Requisição:** O Client envia uma requisição `POST /api/v1/cutuca` para o API Gateway contendo o `user_id` e possivelmente coordenadas de GPS (opcional).
+3.  **Validação (Gateway/Redis):** O sistema checa no Redis se o Usuário A não excedeu o limite de cliques (ex: max 3 cliques por minuto) para evitar spam involuntário (criança apertando várias vezes).
+4.  **Processamento (Backend):** O Backend busca no PostgreSQL/Redis a lista de `favorite_contacts` atrelada ao Usuário A.
+5.  **Disparo:** O Backend constrói o payload da notificação (Título: *"Ei!"*, Corpo: *"João está te cutucando!"*) e envia para o **Notification Engine**.
+6.  **Entrega:** O FCM/APNs entrega a notificação via Push para os dispositivos dos contatos favoritos.
+7.  **Confirmação (Opcional):** O app do contato envia um webhook de volta confirmando o recebimento ("Delivered"), atualizando a tela do Remetente em tempo real via WebSockets/Server-Sent Events (SSE).
 
-## Typography
+---
 
-The typography system utilizes **Hanken Grotesk** for its sharp, contemporary feel and excellent legibility in high-stress scenarios. **JetBrains Mono** is introduced for labels and technical status indicators to reinforce the "precision tool" aspect of the app.
+## 4. Stack Tecnológica Recomendada
 
-Headlines should use extra-bold weights to command attention immediately. Body text remains clean with generous line height to ensure readability during fast-paced scrolling. All uppercase styles should be reserved for `label-bold` roles to differentiate meta-data from interactive content.
+| Camada | Tecnologia Sugerida | Justificativa |
+| :--- | :--- | :--- |
+| **Front-end / App** | React Native / Expo | Código único para iOS, Android e Web. Ótima gestão de Push Notifications via Expo. |
+| **Back-end** | Node.js (Express/NestJS) ou Go | Excelente para lidar com alta concorrência de I/O (disparos paralelos de notificações). |
+| **Banco de Dados** | PostgreSQL | Robusto para gerenciar as permissões e amizades (Modelo Relacional). |
+| **Cache / Fila** | Redis | Essencial para Rate Limiting rápido e cache de sessões ativas. |
+| **Notificações** | Firebase (FCM) | Padrão da indústria, gratuito para mensagens de push e fácil integração com web/mobile. |
+| **Hospedagem** | AWS, Vercel ou Render | Foco em infraestrutura escalável (Serverless ou Containers). |
 
-## Layout & Spacing
+---
 
-This design system employs a **Fluid Grid** with a strictly enforced 4px baseline shift. 
+## 5. Design do Banco de Dados (Entidades Principais)
 
-- **Mobile:** A 4-column grid with 16px margins. Elements are primarily full-width to maximize the hit area for tactile buttons.
-- **Desktop:** A 12-column grid centered in a max-width container of 1280px. 
-- **Spacing Philosophy:** Use "Intelligent Padding"—larger internal padding (24px+) for interactive cards to create the soft, pillowy look required for Neumorphism. Gutters remain tight (16px) to keep the data density high and the "speed" of the app apparent.
+* **`Users`**: `id`, `name`, `phone`, `push_token`, `created_at`
+* **`Connections`** (Relação muitos-para-muitos): `user_id`, `contact_id`, `status` (pending, accepted)
+* **`EventsLog`**: `id`, `sender_id`, `recipient_id`, `timestamp`, `status` (sent, delivered, read)
 
-## Elevation & Depth
+---
 
-Hierarchy is established through **Tactile Layering**:
+## 6. Considerações de Segurança e Privacidade
+* **Token de Push Rotativo:** Os `push_tokens` devem ser atualizados regularmente e armazenados com segurança.
+* **Consentimento (Opt-in):** Um usuário só pode receber um "Cutucão" se tiver aceitado previamente o convite de conexão do remetente. Não há envio aberto baseado apenas no número de telefone para evitar abusos.
+* **Rate Limiting Severo:** Implementar regras rígidas no Redis para evitar sobrecarga no disparo de mensagens caso um dispositivo entre em loop ou um usuário faça spam do botão.
 
-1.  **The Base:** A deep navy matte surface.
-2.  **Neumorphic Raised:** Elements that sit "above" the surface using two shadows: a dark shadow (top-left) and a slightly lighter, tinted glow (bottom-right) to simulate a physical extrusion.
-3.  **Glassmorphic Floating:** Modals and high-priority alerts float above all else with a `backdrop-filter: blur(20px)` and a thin 1px white border at 10% opacity.
-4.  **Pressed State:** Buttons should visually "sink" into the interface when tapped, reversing the shadow direction to an internal `inset` shadow.
+# 🎨 UI Design System: Cutuca.online
 
-## Shapes
+## 1. Design Tokens (Fundações)
 
-The shape language is dominated by **Soft Geometry**. 
+Estes valores globais devem ser mapeados como variáveis CSS (ou no seu arquivo de configuração do Tailwind, por exemplo) para garantir consistência.
 
-Standard containers and cards use a 16px radius (`rounded-lg`). Buttons that represent the primary "Buzz" action are fully rounded (pill-shaped) to invite physical interaction. Use consistent corner smoothing (60%+) where possible to avoid the "robotic" look of standard CSS radii, leaning into a more organic, industrial design feel.
+*   **Cores Principais:**
+    *   `--color-primary`: `#FF6600` (Laranja Cutuca - Ações principais)
+    *   `--color-primary-hover`: `#E65C00`
+    *   `--color-secondary`: `#8E24AA` (Roxo Apoio - Elementos neutros e fundos)
+    *   `--color-background`: `#F8F9FA` (Cinza muito claro, quase branco)
+    *   `--color-surface`: `#FFFFFF` (Cards e Modais)
+*   **Tipografia:**
+    *   `--font-family`: `'Nunito', sans-serif` (Arredondada e amigável)
+    *   `--text-base`: `16px` (Maior legibilidade)
+    *   `--text-lg`: `20px`
+    *   `--text-xl`: `24px`
+*   **Espaçamento & Layout:**
+    *   `--spacing-base`: `8px`
+    *   `--radius-md`: `12px` (Bordas arredondadas)
+    *   `--radius-full`: `9999px` (Para botões de ação circulares)
 
-## Components
+---
 
-### Buttons & Interaction
-- **Primary Pulse Button:** Large, circular or pill-shaped. Features a continuous "ripple" animation (low opacity rings expanding outward) to indicate an active state. 
-- **Tactile Feedback:** On hover, the Neumorphic extrusion increases. On press, the element uses an inset shadow to appear physically depressed.
+## 2. Especificação de Componentes
 
-### Status Indicators
-- **The "Buzz" Indicator:** A high-contrast dot (Electric Purple) with a subtle blur glow (`box-shadow: 0 0 12px primary`).
-- **Activity Feed:** List items use glassmorphism with a subtle left-accent border color-coded to the priority level.
+### 2.1. Botões (`<CutucaButton>`)
+O componente mais importante do sistema. Deve ser impossível de errar o clique.
 
-### Input Fields
-- **Inset Wells:** Fields should look like they are carved into the UI. Use internal shadows rather than borders. The cursor and focus state should utilize the Cyan Blue for high visibility.
+**Anatomia:**
+Área clicável mínima de 48x48px (padrão de acessibilidade mobile). Pode conter um ícone (à esquerda ou direita) e texto.
 
-### Alerts
-- **High-Contrast Overlays:** Urgent alerts bypass the dark theme with a semi-transparent Magenta background and heavy backdrop blur. Use high-weight typography for the headline.
+**Props (API do Componente):**
 
-### Cards
-- **Soft-Containers:** Use a combination of a 1px border (color: neutral-700) and a soft ambient shadow. Backgrounds should be slightly lighter than the base surface (#1E293B).
+| Propriedade | Tipo | Padrão | Descrição |
+| :--- | :--- | :--- | :--- |
+| `variant` | `String` | `'primary'` | Define a cor (`'primary'`, `'secondary'`, `'ghost'`, `'danger'`). |
+| `size` | `String` | `'lg'` | Tamanho do botão (`'sm'`, `'md'`, `'lg'`, `'xl-circle'`). |
+| `block` | `Boolean` | `false` | Se `true`, ocupa 100% da largura do contêiner. |
+| `isLoading` | `Boolean` | `false` | Substitui o texto/ícone por um *spinner* e desabilita o clique. |
+| `icon` | `String` | `null` | Nome do ícone (ex: `mdi-hand-pointing-up`). |
+
+**Comportamento (Estados):**
+*   **Active/Pressed:** Escala reduzida para `0.95` (Feedback tátil visual).
+*   **Disabled:** Opacidade em `50%`, cursor `not-allowed`.
+
+---
+
+### 2.2. Cards de Contato (`<CutucaCard>`)
+Usado para exibir a lista de contatos favoritos na tela inicial. Precisa ser altamente legível.
+
+**Anatomia:**
+Fundo branco (`surface`), sombra suave (`elevation`), foto do contato (Avatar), nome e indicador de status.
+
+**Slots:**
+*   `prepend`: Área para o Avatar.
+*   `default`: Título (Nome do contato) e Subtítulo (Relação/Status).
+*   `append`: Área para ações (ex: botão de configuração ou botão de chamar direto).
+
+**Props (API do Componente):**
+
+| Propriedade | Tipo | Padrão | Descrição |
+| :--- | :--- | :--- | :--- |
+| `interactive` | `Boolean` | `true` | Se `true`, o card inteiro é clicável (adiciona estado de hover/active). |
+| `status` | `String` | `'offline'` | Bolinha de status (`'online'`, `'offline'`, `'busy'`). |
+| `elevation` | `Number` | `1` | Nível da sombra (0 a 3). |
+
+---
+
+### 2.3. Dropdown / Menu de Ações (`<CutucaDropdown>`)
+Utilizado para ações secundárias, como configurações do perfil ou exclusão de contatos.
+
+**Anatomia:**
+Um botão *trigger* (geralmente ícone de 3 pontos verticais ou engrenagem) que abre uma lista flutuante.
+
+**Props & Emits:**
+
+| Propriedade/Evento | Tipo | Descrição |
+| :--- | :--- | :--- |
+| `items` (Prop) | `Array` | Lista de objetos: `[{ label: 'Editar', icon: 'edit', action: 'edit_user' }]` |
+| `placement` (Prop) | `String` | Posição do menu flutuante (`'bottom-end'`, `'bottom-start'`). |
+| `@select` (Emit) | `Event` | Dispara o `action` do item clicado para o componente pai tratar. |
+
+---
+
+### 2.4. Select / Seletor de Opções (`<CutucaSelect>`)
+Substituto para o `<select>` nativo, otimizado para o dedo (Touch). Usado, por exemplo, para definir o "grau de parentesco" ao adicionar um contato.
+
+**Anatomia:**
+Campo de input que, ao ser tocado, abre um *Bottom Sheet* (no mobile) ou um *Popover* (no desktop) com as opções em formato de lista larga.
+
+**Props & Emits:**
+
+| Propriedade/Evento | Tipo | Descrição |
+| :--- | :--- | :--- |
+| `options` (Prop) | `Array` | Array de objetos `[{ text: 'Mãe', value: 'mother' }, ...]` |
+| `modelValue` (Prop) | `String/Number`| Valor atualmente selecionado (v-model / bind duplo). |
+| `placeholder` (Prop)| `String` | Texto exibido quando nada está selecionado. |
+| `@update:modelValue`| `Event` | Atualiza a seleção no estado global/pai. |
+
+**Consideração Mobile:**
+Para idosos, menus *dropdown* tradicionais são difíceis de rolar. Transformar o `<CutucaSelect>` em um modal de tela inteira ou *Bottom Sheet* na versão mobile reduz drasticamente o atrito de uso.
+
+---
+
+### 2.5. Avatar (`<CutucaAvatar>`)
+Representação visual dos usuários.
+
+**Props:**
+
+| Propriedade | Tipo | Padrão | Descrição |
+| :--- | :--- | :--- | :--- |
+| `src` | `String` | `null` | URL da foto do contato. |
+| `name` | `String` | `''` | Nome usado para gerar iniciais (ex: "Maria" -> "M") se não houver foto. |
+| `size` | `Number` | `48` | Tamanho em pixels. Opções: 32, 48, 64. |
+| `color` | `String` | `random`| Cor de fundo gerada deterministicamente baseada no nome se não houver foto. |
+
+---
+
+### 2.6. Alertas e Toast Notifications (`<CutucaToast>`)
+Feedback não-obstrutivo do sistema (ex: "Fulano aceitou seu convite", "Sem conexão com a internet").
+
+**Props:**
+
+| Propriedade | Tipo | Padrão | Descrição |
+| :--- | :--- | :--- | :--- |
+| `type` | `String` | `'info'` | `'success'`, `'error'`, `'warning'`, `'info'`. |
+| `message` | `String` | `''` | O texto do alerta. |
+| `duration` | `Number` | `3000` | Tempo em milissegundos até sumir automaticamente da tela. |
+
+## 3. Estados de Carregamento (Skeleton Loaders)
+Para evitar que o layout pule enquanto os contatos são carregados do banco de dados, o design prevê o uso de **Skeletons** pulsantes nos mesmos formatos dos cards e avatares (cinza claro no fundo branco), melhorando a percepção de performance.
+
+## Logo marca:
+static/logo-cutuca-online.png

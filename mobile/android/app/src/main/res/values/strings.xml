@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Buzz</string>
-    <string name="title_activity_main">Buzz</string>
+    <string name="app_name">Cutuca</string>
+    <string name="title_activity_main">Cutuca</string>
     <string name="package_name">com.buzz.app</string>
     <string name="custom_url_scheme">com.buzz.app</string>
 </resources>

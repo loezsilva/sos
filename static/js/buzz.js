@@ -351,7 +351,7 @@
     const nomes = buzinasSaintes.map((b) => b.destinatario_nome);
     const multi = buzinasSaintes.length > 1;
 
-    titulo.textContent = multi ? 'Buzinando favoritos...' : 'Buzinando...';
+    titulo.textContent = multi ? 'Cutucando favoritos...' : 'Cutucando...';
     subtitulo.textContent = multi
       ? `${buzinasSaintes.length} contatos`
       : 'Aguardando resposta';
@@ -707,7 +707,7 @@
         status.dataset.statusOriginal = status.textContent.trim();
         status.dataset.classeOriginal = status.className;
       }
-      status.textContent = 'Buzinando...';
+      status.textContent = 'Cutucando...';
       status.className = 'font-headline-md text-headline-md text-secondary animate-pulse';
     }
     const dica = document.getElementById('dica-segurar');

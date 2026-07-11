@@ -208,7 +208,7 @@
         botao.dataset.acao = 'ativar';
       }
     } else {
-      status.textContent = 'Receba buzinas mesmo com a aba em segundo plano.';
+      status.textContent = 'Receba cutucões mesmo com a aba em segundo plano.';
       if (botao) {
         botao.textContent = 'Ativar notificações';
         botao.dataset.acao = 'ativar';

@@ -1,6 +1,6 @@
-<div class="item-historico flex items-center justify-between gap-4 px-4 py-3 border-b border-white/5 last:border-b-0">
+<div class="item-historico flex items-center justify-between gap-4 px-4 py-3 border-b border-outline-variant/40 last:border-b-0">
   <div class="flex items-center gap-3 min-w-0">
-    <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 sombra-neumorfica-inset {% if buzina.remetente_id == request.user.id %}bg-primary-container/30 text-on-primary-container{% else %}bg-secondary-container/30 text-on-secondary-container{% endif %}">
+    <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 {% if buzina.remetente_id == request.user.id %}bg-primary-fixed text-primary{% else %}bg-secondary-container text-on-secondary-container{% endif %}">
       <span class="material-symbols-outlined text-lg">
         {% if buzina.remetente_id == request.user.id %}call_made{% else %}call_received{% endif %}
       </span>

@@ -1,31 +1,25 @@
+{% load static %}
 {% url 'dashboard:index' as url_inicio %}
 {% url 'dashboard:circulos' as url_circulos %}
 {% url 'dashboard:configuracoes' as url_configuracoes %}
 
-<header class="md:hidden fixed top-0 inset-x-0 z-50 px-margin-mobile flex justify-between items-center h-16 bg-surface/80 backdrop-blur-xl border-b border-white/10 sombra-neumorfica text-primary">
-  <div class="flex items-center gap-sm">
-    <div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center ring-1 ring-white/10">
-      <span class="material-symbols-outlined text-primary text-xl">bolt</span>
-    </div>
-    <span class="font-display-lg-mobile text-display-lg-mobile font-extrabold tracking-tighter">Buzz</span>
-  </div>
+<header class="md:hidden fixed top-0 inset-x-0 z-50 px-margin-mobile flex justify-between items-center h-16 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/40 sombra-cutuca text-primary">
+  <a href="{{ url_inicio }}" class="flex items-center gap-sm no-underline text-primary">
+    <img src="{% static 'icons/logo-cutuca-online.png' %}" alt="Cutuca" class="h-9 w-auto object-contain">
+    <span class="font-headline-md text-headline-md font-extrabold tracking-tight">Cutuca</span>
+  </a>
   <div class="flex items-center gap-md">
     {% include 'partials/pill_disponibilidade.html' %}
     {% include 'partials/central_notificacoes.html' %}
-    <button type="button" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container hover:bg-surface-bright active:scale-95 transition-all sombra-neumorfica text-outline hover:text-primary" aria-label="Sensores">
-      <span class="material-symbols-outlined">sensors</span>
-    </button>
   </div>
 </header>
 
-<header class="hidden md:flex fixed top-0 inset-x-0 z-50 border-b border-white/10 sombra-neumorfica bg-surface/80 backdrop-blur-xl text-primary">
+<header class="hidden md:flex fixed top-0 inset-x-0 z-50 border-b border-outline-variant/40 sombra-cutuca bg-surface/90 backdrop-blur-xl text-primary">
   <div class="max-w-7xl mx-auto w-full h-16 px-margin-desktop grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-    <div class="flex items-center gap-sm">
-      <div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center ring-1 ring-white/10">
-        <span class="material-symbols-outlined text-primary text-xl">bolt</span>
-      </div>
-      <span class="font-display-lg text-display-lg font-extrabold tracking-tighter">Buzz</span>
-    </div>
+    <a href="{{ url_inicio }}" class="flex items-center gap-sm no-underline text-primary">
+      <img src="{% static 'icons/logo-cutuca-online.png' %}" alt="Cutuca" class="h-10 w-auto object-contain">
+      <span class="font-headline-md text-headline-md font-extrabold tracking-tight">Cutuca</span>
+    </a>
     <nav class="flex gap-8 justify-self-center">
       <a href="{{ url_inicio }}" class="{% if rota_ativa == 'inicio' %}link-nav-ativo{% else %}link-nav-inativo{% endif %}">Início</a>
       <a href="{{ url_circulos }}" class="{% if rota_ativa == 'circulos' %}link-nav-ativo{% else %}link-nav-inativo{% endif %}">Círculos</a>
@@ -34,9 +28,6 @@
     <div class="flex items-center gap-md justify-self-end">
       {% include 'partials/pill_disponibilidade.html' %}
       {% include 'partials/central_notificacoes.html' %}
-      <button type="button" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container hover:bg-surface-bright active:scale-95 transition-all sombra-neumorfica text-outline hover:text-primary" aria-label="Sensores">
-        <span class="material-symbols-outlined">sensors</span>
-      </button>
     </div>
   </div>
 </header>

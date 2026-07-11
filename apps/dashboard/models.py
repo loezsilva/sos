@@ -88,8 +88,8 @@ class MembroCirculo(BaseModel):
     @property
     def classe_indicador_status(self):
         return {
-            StatusPresenca.ONLINE: 'bg-secondary shadow-[0_0_8px_#4cd7f6]',
-            StatusPresenca.OCUPADO: 'bg-tertiary shadow-[0_0_8px_#ffb784]',
+            StatusPresenca.ONLINE: 'bg-secondary shadow-[0_0_8px_#8E24AA]',
+            StatusPresenca.OCUPADO: 'bg-tertiary shadow-[0_0_8px_#E65100]',
             StatusPresenca.OFFLINE: 'bg-outline',
         }[self.status_para_dono()]
 
@@ -269,7 +269,7 @@ class Buzina(BaseModel):
 
     def rotulo_atividade(self, usuario):
         mapa = {
-            'buzina_recebida': 'Buzina recebida',
+            'buzina_recebida': 'Cutucão recebido',
             'resposta_recebida': self.get_resposta_rapida_display()
             if self.status == self.Status.RESPONDIDA and self.resposta_rapida
             else self.get_status_display(),
@@ -318,7 +318,7 @@ class Buzina(BaseModel):
         nome = self.remetente.name or self.remetente.username
         msg = (self.mensagem or '').strip()
         if msg:
-            titulo = f'{nome} te buzinou'
+            titulo = f'{nome} te cutucou'
             corpo = f'"{msg}" — toque para responder agora'
         else:
             titulo = f'Chamada urgente — {nome}'

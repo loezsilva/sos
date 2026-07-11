@@ -2,7 +2,7 @@
 {% url 'dashboard:circulos' as url_circulos %}
 {% url 'dashboard:configuracoes' as url_configuracoes %}
 
-<nav class="md:hidden fixed bottom-0 w-full z-50 rounded-t-xl px-4 pb-6 bg-surface-container-low/90 backdrop-blur-2xl border-t border-white/5 shadow-[0_-8px_20px_rgba(0,0,0,0.4)] flex justify-around items-center h-20">
+<nav class="md:hidden fixed bottom-0 w-full z-50 rounded-t-xl px-4 pb-6 bg-surface/95 backdrop-blur-2xl border-t border-outline-variant/40 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] flex justify-around items-center h-20">
   <a href="{{ url_inicio }}" class="flex flex-col items-center justify-center duration-150 {% if rota_ativa == 'inicio' %}item-menu-ativo{% else %}item-menu-inativo{% endif %}">
     <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' {% if rota_ativa == 'inicio' %}1{% else %}0{% endif %};">home_app_logo</span>
     <span class="font-label-bold text-[10px] mt-1">Início</span>
@@ -12,7 +12,7 @@
     <span class="font-label-bold text-[10px] mt-1">Círculos</span>
   </a>
   <a href="{{ url_configuracoes }}" class="flex flex-col items-center justify-center duration-150 {% if rota_ativa == 'configuracoes' %}item-menu-ativo{% else %}item-menu-inativo{% endif %}">
-    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' {% if rota_ativa == 'configuracoes' %}1{% else %}0{% endif %};">align_stretch</span>
+    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' {% if rota_ativa == 'configuracoes' %}1{% else %}0{% endif %};">settings</span>
     <span class="font-label-bold text-[10px] mt-1">Configurações</span>
   </a>
 </nav>

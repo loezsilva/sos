@@ -1,25 +1,25 @@
 {% load static %}
 <!DOCTYPE html>
-<html class="dark" lang="pt-BR">
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0b1326">
+  <meta name="theme-color" content="#FF6600">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Buzz">
-  <title>{% block title %}Buzz{% endblock %}</title>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Cutuca">
+  <title>{% block title %}Cutuca{% endblock %}</title>
   <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
   <link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
-  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/buzz.css' %}">
   {% block extra_css %}{% endblock %}
 </head>
-<body class="bg-background text-on-background min-h-screen font-body-md relative flex flex-col selection:bg-primary-container selection:text-on-primary-container {% block body_overflow %}overflow-hidden{% endblock %}"{% if user.is_authenticated %} data-usuario-autenticado="true" data-usuario-id="{{ user.id }}"{% endif %}>
+<body class="bg-background text-on-background min-h-screen font-body-md relative flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed {% block body_overflow %}overflow-hidden{% endblock %}"{% if user.is_authenticated %} data-usuario-autenticado="true" data-usuario-id="{{ user.id }}"{% endif %}>
   {% if user.is_authenticated %}{% csrf_token %}{% endif %}
   <div class="absolute inset-0 pointer-events-none overflow-hidden z-[-1]">
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[100px]"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[100px]"></div>
   </div>
 
   {% block nav %}{% include 'partials/nav.html' %}{% endblock %}

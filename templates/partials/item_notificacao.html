@@ -3,7 +3,7 @@
   class="item-notificacao flex items-center gap-3 px-4 py-3 hover:bg-surface-container-low transition-colors no-underline {% if not item.lida %}bg-primary-container/10{% endif %}"
   data-buzina-id="{{ item.buzina.id }}"
 >
-  <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden border border-white/10">
+  <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden border border-outline-variant">
     {% if item.contato.avatar %}
       <img class="w-full h-full object-cover" src="{{ item.contato.avatar.url }}" alt="{{ item.contato.name|default:item.contato.username }}">
     {% else %}
