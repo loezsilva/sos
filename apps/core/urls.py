@@ -15,6 +15,12 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
+from django.urls import path
+
+from apps.core.views import TermosDeUsoView
+
 app_name = 'core'
 
-urlpatterns = []
+urlpatterns = [
+    path('termos-de-uso/', TermosDeUsoView.as_view(), name='termos_de_uso'),
+]

@@ -39,7 +39,17 @@
 
       <label class="flex items-start gap-sm text-sm text-on-surface-variant font-body-md cursor-pointer">
         {{ form.accepted_the_terms_of_use }}
-        <span>Li e aceito os termos de uso do Cutuca.</span>
+        <span>
+          Li e aceito os
+          <a
+            href="{% url 'core:termos_de_uso' %}"
+            class="text-primary font-semibold hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+            onclick="event.stopPropagation()"
+          >termos de uso</a>
+          do Cutuca.
+        </span>
       </label>
       {% if form.accepted_the_terms_of_use.errors %}
         <p class="text-error text-sm -mt-2">{{ form.accepted_the_terms_of_use.errors|striptags }}</p>
