@@ -6,65 +6,119 @@
 {% block body_overflow %}{% endblock %}
 {% block nav %}{% endblock %}
 {% block menu %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block main_padding %}pt-0 pb-0{% endblock %}
+
+{% block extra_css %}
+  {% include 'registration/_estilos_auth.html' %}
+{% endblock %}
 
 {% block main %}
-<section class="w-full max-w-md mx-auto px-margin-mobile min-h-[calc(100dvh-4rem)] flex flex-col items-center justify-center">
-  <div class="w-full card-cutuca rounded-xl p-lg">
-    <div class="flex items-center justify-center mb-lg">
-      <img src="{% static 'icons/logo-cutuca-online.png' %}" alt="Cutuca.online" class="h-12 w-auto object-contain">
+<section class="auth-pagina">
+  <a href="{% url 'dashboard:index' %}" class="auth-marca" aria-label="Voltar para a página inicial">
+    <img src="{% static 'icons/logo-cutuca-online.png' %}" alt="Cutuca.online">
+  </a>
+
+  <aside class="auth-contexto" aria-label="Sobre o Cutuca">
+    <div class="auth-contexto-conteudo">
+      <p class="auth-selo"><span class="material-symbols-outlined" aria-hidden="true">bolt</span> Atenção imediata</p>
+      <h2>Volte para quem importa.</h2>
+      <p>Seus próximos estão a um toque de distância. Entre para enviar e receber cutucões.</p>
+      <ul class="auth-beneficios">
+        <li><span class="material-symbols-outlined" aria-hidden="true">touch_app</span> Chame com um toque</li>
+        <li><span class="material-symbols-outlined" aria-hidden="true">notifications_active</span> Receba respostas rápidas</li>
+        <li><span class="material-symbols-outlined" aria-hidden="true">verified_user</span> Só entre pessoas autorizadas</li>
+      </ul>
     </div>
+  </aside>
 
-    <h1 class="font-headline-md text-headline-md text-on-surface text-center mb-2">Entrar</h1>
-    <p class="text-on-surface-variant font-body-md text-center mb-lg">Acesse quem importa — atenção imediata.</p>
+  <div class="auth-formulario-area">
+    <div class="auth-formulario">
+      <a href="{% url 'dashboard:index' %}" class="auth-voltar">
+        <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+        Voltar
+      </a>
+      <header class="auth-cabecalho">
+        <h1>Entre no Cutuca</h1>
+        <p>Use seu e-mail ou nome de usuário para continuar.</p>
+      </header>
 
-    {% if form.errors %}
-      <div class="mb-md rounded-lg bg-error-container border border-error/30 px-4 py-3 text-on-error-container text-sm font-body-md">
-        Usuário ou senha inválidos. Tente novamente.
-      </div>
-    {% endif %}
+      {% if form.errors %}
+        <div class="auth-alerta" role="alert">
+          <span class="material-symbols-outlined" aria-hidden="true">error</span>
+          <span>Não encontramos uma conta com esses dados. Confira o e-mail, usuário e senha.</span>
+        </div>
+      {% endif %}
 
-    <form method="post" class="flex flex-col gap-md">
-      {% csrf_token %}
-      <input type="hidden" name="next" value="{{ next }}">
+      <form method="post" class="auth-campos">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
 
-      <div class="flex flex-col gap-2">
-        <label for="id_username" class="font-label-bold text-label-bold text-on-surface-variant uppercase">Usuário</label>
-        <input
-          type="text"
-          name="username"
-          id="id_username"
-          autofocus
-          required
-          class="w-full bg-surface-container-low rounded-full px-6 py-3 text-on-surface font-body-md border border-outline-variant focus:ring-2 focus:ring-primary focus:outline-none placeholder-on-surface-variant min-h-[48px]"
-          placeholder="seu.usuario"
-          value="{{ form.username.value|default:'' }}"
-        >
-      </div>
+        <div class="auth-campo">
+          <label for="id_username">E-mail ou usuário</label>
+          <input
+            type="text"
+            name="username"
+            id="id_username"
+            autofocus
+            required
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            placeholder="voce@email.com"
+            value="{{ form.username.value|default:'' }}"
+            {% if form.errors %}aria-invalid="true"{% endif %}
+          >
+        </div>
 
-      <div class="flex flex-col gap-2">
-        <label for="id_password" class="font-label-bold text-label-bold text-on-surface-variant uppercase">Senha</label>
-        <input
-          type="password"
-          name="password"
-          id="id_password"
-          required
-          class="w-full bg-surface-container-low rounded-full px-6 py-3 text-on-surface font-body-md border border-outline-variant focus:ring-2 focus:ring-primary focus:outline-none placeholder-on-surface-variant min-h-[48px]"
-          placeholder="••••••••"
-        >
-      </div>
+        <div class="auth-campo">
+          <label for="id_password">Senha</label>
+          <div class="auth-senha">
+            <input
+              type="password"
+              name="password"
+              id="id_password"
+              required
+              autocomplete="current-password"
+              placeholder="Digite sua senha"
+              {% if form.errors %}aria-invalid="true"{% endif %}
+            >
+            <button type="button" class="auth-mostrar-senha" data-alternar-senha="id_password" aria-label="Mostrar senha" aria-pressed="false">
+              <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+            </button>
+          </div>
+        </div>
 
-      <button
-        type="submit"
-        class="botao-cutuca mt-2 w-full"
-      >
-        Entrar
-      </button>
-    </form>
+        <button type="submit" class="auth-submit">
+          Entrar
+          <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+        </button>
+      </form>
 
-    <p class="mt-lg text-center text-on-surface-variant font-body-md text-sm">
-      Ainda não tem conta?
-      <a href="{% url 'cadastro' %}" class="text-primary font-semibold hover:underline">Criar conta</a>
-    </p>
+      <p class="auth-alternativa">
+        Ainda não tem conta?
+        <a href="{% url 'cadastro' %}" class="auth-link">Criar conta</a>
+      </p>
+      <p class="auth-seguranca">
+        <span class="material-symbols-outlined" aria-hidden="true">lock</span>
+        Acesso protegido
+      </p>
+    </div>
   </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll('[data-alternar-senha]').forEach((botao) => {
+    botao.addEventListener('click', () => {
+      const campo = document.getElementById(botao.dataset.alternarSenha);
+      const mostrando = campo.type === 'text';
+      campo.type = mostrando ? 'password' : 'text';
+      botao.setAttribute('aria-label', mostrando ? 'Mostrar senha' : 'Ocultar senha');
+      botao.setAttribute('aria-pressed', String(!mostrando));
+      botao.querySelector('.material-symbols-outlined').textContent = mostrando ? 'visibility' : 'visibility_off';
+    });
+  });
+</script>
 {% endblock %}

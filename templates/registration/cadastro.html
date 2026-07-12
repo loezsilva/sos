@@ -6,63 +6,128 @@
 {% block body_overflow %}{% endblock %}
 {% block nav %}{% endblock %}
 {% block menu %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block main_padding %}pt-0 pb-0{% endblock %}
+
+{% block extra_css %}
+  {% include 'registration/_estilos_auth.html' %}
+{% endblock %}
 
 {% block main %}
-<section class="w-full max-w-md mx-auto px-margin-mobile min-h-[calc(100dvh-4rem)] flex flex-col items-center justify-center py-lg">
-  <div class="w-full card-cutuca rounded-xl p-lg">
-    <div class="flex items-center justify-center mb-lg">
-      <img src="{% static 'icons/logo-cutuca-online.png' %}" alt="Cutuca.online" class="h-12 w-auto object-contain">
+<section class="auth-pagina">
+  <a href="{% url 'dashboard:index' %}" class="auth-marca" aria-label="Voltar para a página inicial">
+    <img src="{% static 'icons/logo-cutuca-online.png' %}" alt="Cutuca.online">
+  </a>
+
+  <aside class="auth-contexto" aria-label="Benefícios do Cutuca">
+    <div class="auth-contexto-conteudo">
+      <p class="auth-selo"><span class="material-symbols-outlined" aria-hidden="true">bolt</span> Comece em poucos minutos</p>
+      <h2>Um jeito direto de dizer: preciso de você.</h2>
+      <p>Crie sua conta, convide alguém importante e tenha um canal feito para pedir atenção.</p>
+      <ul class="auth-beneficios">
+        <li><span class="material-symbols-outlined" aria-hidden="true">check_circle</span> Cadastro rápido</li>
+        <li><span class="material-symbols-outlined" aria-hidden="true">check_circle</span> Sem cartão</li>
+        <li><span class="material-symbols-outlined" aria-hidden="true">check_circle</span> Você controla quem pode chamar</li>
+      </ul>
     </div>
+  </aside>
 
-    <h1 class="font-headline-md text-headline-md text-on-surface text-center mb-2">Criar conta</h1>
-    <p class="text-on-surface-variant font-body-md text-center mb-lg">Entre para cutucar quem importa.</p>
+  <div class="auth-formulario-area">
+    <div class="auth-formulario">
+      <a href="{% url 'dashboard:index' %}" class="auth-voltar">
+        <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+        Voltar
+      </a>
+      <header class="auth-cabecalho">
+        <h1>Crie sua conta</h1>
+        <p>Leva cerca de um minuto. Depois, é só convidar seus próximos.</p>
+      </header>
 
-    {% if form.non_field_errors %}
-      <div class="mb-md rounded-lg bg-error-container border border-error/30 px-4 py-3 text-on-error-container text-sm font-body-md">
-        {{ form.non_field_errors|striptags }}
-      </div>
-    {% endif %}
-
-    <form method="post" class="flex flex-col gap-md">
-      {% csrf_token %}
-
-      {% for campo in form %}
-        {% if campo.name != 'accepted_the_terms_of_use' %}
-          <div class="flex flex-col gap-2">
-            <label for="{{ campo.id_for_label }}" class="font-label-bold text-label-bold text-on-surface-variant uppercase">{{ campo.label }}</label>
-            {{ campo }}
-            {% if campo.errors %}
-              <p class="text-error text-sm">{{ campo.errors|striptags }}</p>
-            {% endif %}
-          </div>
-        {% endif %}
-      {% endfor %}
-
-      <label class="flex items-start gap-sm text-sm text-on-surface-variant font-body-md cursor-pointer">
-        {{ form.accepted_the_terms_of_use }}
-        <span>
-          Li e aceito os
-          <a
-            href="{% url 'core:termos_de_uso' %}"
-            class="text-primary font-semibold hover:underline"
-            target="_blank"
-            rel="noopener noreferrer"
-            onclick="event.stopPropagation()"
-          >termos de uso</a>
-          do Cutuca.
-        </span>
-      </label>
-      {% if form.accepted_the_terms_of_use.errors %}
-        <p class="text-error text-sm -mt-2">{{ form.accepted_the_terms_of_use.errors|striptags }}</p>
+      {% if form.non_field_errors %}
+        <div class="auth-alerta" role="alert">
+          <span class="material-symbols-outlined" aria-hidden="true">error</span>
+          <span>{{ form.non_field_errors|striptags }}</span>
+        </div>
       {% endif %}
 
-      <button type="submit" class="botao-cutuca mt-2 w-full">Criar conta</button>
-    </form>
+      <form method="post" class="auth-campos">
+        {% csrf_token %}
 
-    <p class="mt-lg text-center text-on-surface-variant font-body-md text-sm">
-      Já tem conta?
-      <a href="{% url 'login' %}" class="text-primary font-semibold hover:underline">Entrar</a>
-    </p>
+        {% for campo in form %}
+          {% if campo.name != 'accepted_the_terms_of_use' %}
+            <div class="auth-campo">
+              <div class="auth-campo-topo">
+                <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+                {% if campo.name == 'username' %}
+                  <span class="auth-campo-dica">Seu identificador único</span>
+                {% elif campo.name == 'password1' %}
+                  <span class="auth-campo-dica">Mínimo de 8 caracteres</span>
+                {% endif %}
+              </div>
+              {% if campo.name == 'password1' or campo.name == 'password2' %}
+                <div class="auth-senha">
+                  {{ campo }}
+                  <button type="button" class="auth-mostrar-senha" data-alternar-senha="{{ campo.id_for_label }}" aria-label="Mostrar senha" aria-pressed="false">
+                    <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                  </button>
+                </div>
+              {% else %}
+                {{ campo }}
+              {% endif %}
+              {% if campo.errors %}
+                <p class="auth-erro" id="{{ campo.id_for_label }}_erro">{{ campo.errors|striptags }}</p>
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endfor %}
+
+        <label class="auth-termos">
+          {{ form.accepted_the_terms_of_use }}
+          <span>
+            Li e aceito os
+            <a
+              href="{% url 'core:termos_de_uso' %}"
+              class="auth-link"
+              target="_blank"
+              rel="noopener noreferrer"
+              onclick="event.stopPropagation()"
+            >termos de uso</a>.
+          </span>
+        </label>
+        {% if form.accepted_the_terms_of_use.errors %}
+          <p class="auth-erro">{{ form.accepted_the_terms_of_use.errors|striptags }}</p>
+        {% endif %}
+
+        <button type="submit" class="auth-submit">
+          Criar minha conta
+          <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+        </button>
+      </form>
+
+      <p class="auth-alternativa">
+        Já tem conta?
+        <a href="{% url 'login' %}" class="auth-link">Entrar</a>
+      </p>
+      <p class="auth-seguranca">
+        <span class="material-symbols-outlined" aria-hidden="true">lock</span>
+        Seus dados não são vendidos
+      </p>
+    </div>
   </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll('[data-alternar-senha]').forEach((botao) => {
+    botao.addEventListener('click', () => {
+      const campo = document.getElementById(botao.dataset.alternarSenha);
+      const mostrando = campo.type === 'text';
+      campo.type = mostrando ? 'password' : 'text';
+      botao.setAttribute('aria-label', mostrando ? 'Mostrar senha' : 'Ocultar senha');
+      botao.setAttribute('aria-pressed', String(!mostrando));
+      botao.querySelector('.material-symbols-outlined').textContent = mostrando ? 'visibility' : 'visibility_off';
+    });
+  });
+</script>
 {% endblock %}
