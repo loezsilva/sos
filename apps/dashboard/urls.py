@@ -13,6 +13,7 @@ from apps.dashboard.views import (
     DesinscreverPushNativoView,
     DispensarCutucaoPublicoView,
     EncerrarBuzinaView,
+    EncerrarCutucaoPublicoView,
     EnviarBuzinaFavoritosView,
     EnviarBuzinaView,
     GerenciarCanalPublicoView,
@@ -29,7 +30,9 @@ from apps.dashboard.views import (
     RedirecionarPerfilParaChamarView,
     ResponderBuzinaView,
     ResponderConviteView,
+    ResponderCutucaoPublicoView,
     ServiceWorkerView,
+    StatusCutucaoPublicoView,
 )
 
 app_name = 'dashboard'
@@ -124,6 +127,21 @@ urlpatterns = [
         'api/buzina/<uuid:buzina_id>/encerrar/',
         EncerrarBuzinaView.as_view(),
         name='encerrar_buzina',
+    ),
+    path(
+        'api/cutucao-publico/<uuid:cutucao_id>/status/',
+        StatusCutucaoPublicoView.as_view(),
+        name='status_cutucao_publico',
+    ),
+    path(
+        'api/cutucao-publico/<uuid:cutucao_id>/encerrar/',
+        EncerrarCutucaoPublicoView.as_view(),
+        name='encerrar_cutucao_publico',
+    ),
+    path(
+        'api/cutucao-publico/<uuid:cutucao_id>/responder/',
+        ResponderCutucaoPublicoView.as_view(),
+        name='responder_cutucao_publico',
     ),
     path(
         'api/cutucao-publico/<uuid:cutucao_id>/dispensar/',

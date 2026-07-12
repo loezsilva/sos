@@ -17,9 +17,15 @@ O destinatário SHALL receber uma interface de alta prioridade que ocupa a tela 
 - **WHEN** o usuário recebe um cutucão por seu link público de um visitante anônimo
 - **THEN** a tela de alerta exibe o nickname como nome informado pelo visitante
 - **AND** identifica explicitamente que a origem é o link público
-- **AND** oferece ação para fechar sem respostas rápidas
+- **AND** oferece as mesmas respostas rápidas do fluxo normal
 
 #### Scenario: Receber cutucão público autenticado
 - **WHEN** o usuário recebe um cutucão por seu link público de uma conta autenticada
 - **THEN** a tela de alerta exibe a identidade da conta
 - **AND** identifica explicitamente que a origem é o link público
+- **AND** oferece as mesmas respostas rápidas do fluxo normal
+
+#### Scenario: Resposta a cutucão público
+- **WHEN** o destinatário responde um cutucão público com "Já vou", "Tô ocupado", "Ligo em 5 min" ou recusa
+- **THEN** o visitante autorizado recebe o desfecho
+- **AND** a tela de alerta do destinatário é encerrada

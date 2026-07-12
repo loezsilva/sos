@@ -12,6 +12,7 @@ Hoje alguém só consegue cutucar outra pessoa depois de criar uma conta e estab
 - O destinatário receberá alerta em tempo real e push com a identidade informada pelo visitante.
 - O envio público terá cooldown, rate limiting e validações próprias para reduzir abuso.
 - O acesso público não criará automaticamente uma conexão entre visitante e destinatário.
+- O visitante autorizado acompanha a chamada, pode cancelar e recebe as mesmas respostas rápidas do fluxo normal.
 
 ## Capacidades
 

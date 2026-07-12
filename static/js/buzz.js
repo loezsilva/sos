@@ -331,10 +331,10 @@
       identidadePublica.classList.toggle('hidden', !alertaOrigemPublica);
     }
     if (respostas) {
-      respostas.classList.toggle('hidden', alertaOrigemPublica);
+      respostas.classList.remove('hidden');
     }
     if (dispensar) {
-      dispensar.setAttribute('aria-label', alertaOrigemPublica ? 'Fechar' : 'Dispensar');
+      dispensar.setAttribute('aria-label', alertaOrigemPublica ? 'Recusar' : 'Dispensar');
     }
 
     if (mensagem) {
@@ -859,7 +859,7 @@
   async function responderBuzina(opcoes = {}) {
     if (!buzinaRecebida) return;
     if (alertaOrigemPublica) {
-      await postForm(`/api/cutucao-publico/${buzinaRecebida}/dispensar/`, {});
+      await postForm(`/api/cutucao-publico/${buzinaRecebida}/responder/`, opcoes);
       alertaOrigemPublica = false;
       ocultarAlertaRecebido();
       return;

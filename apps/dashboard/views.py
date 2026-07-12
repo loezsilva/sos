@@ -38,6 +38,40 @@ from apps.dashboard.push_nativo import ServicoPushNativo
 
 
 SESSAO_NICKNAME_PUBLICO = 'cutucao_publico_nickname'
+SESSAO_TOKENS_PUBLICO = 'cutucao_publico_tokens'
+
+
+def _autorizar_cutucao_sessao(request, cutucao_id, token):
+    tokens = dict(request.session.get(SESSAO_TOKENS_PUBLICO) or {})
+    tokens[str(cutucao_id)] = token
+    request.session[SESSAO_TOKENS_PUBLICO] = tokens
+
+
+def _token_cutucao_sessao(request, cutucao_id):
+    return (request.session.get(SESSAO_TOKENS_PUBLICO) or {}).get(str(cutucao_id), '')
+
+
+def _cutucao_autorizada_para_visitante(request, cutucao, token=None):
+    candidato = token or request.GET.get('token') or request.POST.get('token')
+    if not candidato:
+        candidato = _token_cutucao_sessao(request, cutucao.id)
+    if cutucao.conferir_token(candidato):
+        return True
+    return (
+        request.user.is_authenticated and cutucao.remetente_id == request.user.id
+    )
+
+
+def _obter_cutucao_visitante(request, cutucao_id):
+    cutucao = CutucaoPublico.objects.filter(id=cutucao_id).select_related(
+        'destinatario', 'remetente'
+    ).first()
+    if not cutucao or not _cutucao_autorizada_para_visitante(request, cutucao):
+        return None
+    if cutucao.status == CutucaoPublico.Status.PENDENTE and cutucao.expirada:
+        cutucao.marcar_perdida()
+        cutucao.refresh_from_db()
+    return cutucao
 
 
 class PaginaInicioView(TemplateView):
@@ -562,6 +596,7 @@ class PaginaCutucarPublicoView(TemplateView):
             autenticado=autenticado,
             initial={'nickname': nickname_sessao} if not autenticado else None,
         )
+        chamada_ativa = self._chamada_ativa_na_sessao()
         contexto.update(
             {
                 'canal': self.canal,
@@ -571,9 +606,39 @@ class PaginaCutucarPublicoView(TemplateView):
                     autenticado and self.request.user.pk == self.canal.proprietario_id
                 ),
                 'enviado': getattr(self, 'enviado', False),
+                'chamada_ativa': chamada_ativa,
             }
         )
         return contexto
+
+    def _chamada_ativa_na_sessao(self):
+        tokens = self.request.session.get(SESSAO_TOKENS_PUBLICO) or {}
+        if not tokens:
+            return None
+        for cutucao_id, token in tokens.items():
+            cutucao = (
+                CutucaoPublico.objects.filter(
+                    id=cutucao_id,
+                    canal=self.canal,
+                )
+                .select_related('destinatario')
+                .first()
+            )
+            if not cutucao or not cutucao.conferir_token(token):
+                continue
+            if cutucao.status == CutucaoPublico.Status.PENDENTE and cutucao.expirada:
+                cutucao.marcar_perdida()
+                cutucao.refresh_from_db()
+            return {
+                'cutucao_id': str(cutucao.id),
+                'token': token,
+                'destinatario_nome': self.canal.nome_publico,
+                'status': cutucao.status,
+                'pendente': cutucao.status == CutucaoPublico.Status.PENDENTE,
+                'resposta_rotulo': cutucao.rotulo_desfecho(),
+                'expira_em': cutucao.expira_em.isoformat(),
+            }
+        return None
 
     def post(self, request, *args, **kwargs):
         autenticado = request.user.is_authenticated
@@ -620,7 +685,7 @@ class PaginaCutucarPublicoView(TemplateView):
             return self.get(request, *args, **kwargs)
 
         try:
-            CutucaoPublico.enviar(
+            cutucao = CutucaoPublico.enviar(
                 self.canal,
                 nickname=form.cleaned_data.get('nickname', ''),
                 remetente=request.user if autenticado else None,
@@ -631,13 +696,27 @@ class PaginaCutucarPublicoView(TemplateView):
             form.add_error(None, str(erro))
             return self.get(request, *args, **kwargs)
 
+        token = getattr(cutucao, 'token_visita_claro', '')
+        if token:
+            _autorizar_cutucao_sessao(request, cutucao.id, token)
+
         if not autenticado:
             request.session[SESSAO_NICKNAME_PUBLICO] = form.cleaned_data['nickname']
 
         if quer_json:
-            return JsonResponse({'ok': True, 'mensagem': 'Cutucão enviado'})
+            return JsonResponse(
+                {
+                    'ok': True,
+                    'mensagem': 'Cutucando…',
+                    'cutucao_id': str(cutucao.id),
+                    'token': token,
+                    'destinatario_nome': self.canal.nome_publico,
+                    'expira_em': cutucao.expira_em.isoformat(),
+                }
+            )
 
         self.enviado = True
+        self.cutucao = cutucao
         return self.get(request, *args, **kwargs)
 
 
@@ -686,6 +765,74 @@ class GerenciarCanalPublicoView(LoginRequiredMixin, View):
         return HttpResponseRedirect(reverse('dashboard:proximos'))
 
 
+class StatusCutucaoPublicoView(View):
+    def get(self, request, cutucao_id):
+        cutucao = _obter_cutucao_visitante(request, cutucao_id)
+        if not cutucao:
+            return JsonResponse({'erro': 'Cutucão não encontrado.'}, status=404)
+        return JsonResponse(cutucao.serializar_status())
+
+
+class EncerrarCutucaoPublicoView(View):
+    def post(self, request, cutucao_id):
+        cutucao = _obter_cutucao_visitante(request, cutucao_id)
+        if not cutucao:
+            return JsonResponse({'erro': 'Cutucão não encontrado.'}, status=404)
+
+        if cutucao.status != CutucaoPublico.Status.PENDENTE:
+            return JsonResponse(
+                {
+                    'ok': True,
+                    'ja_encerrada': True,
+                    **cutucao.serializar_status(),
+                }
+            )
+
+        motivo = request.POST.get('motivo', 'usuario')
+        if motivo not in ('usuario', 'timeout'):
+            motivo = 'usuario'
+
+        ok = cutucao.encerrar(motivo=motivo)
+        cutucao.refresh_from_db()
+        return JsonResponse(
+            {
+                'ok': True,
+                'encerrada': ok,
+                **cutucao.serializar_status(),
+            }
+        )
+
+
+class ResponderCutucaoPublicoView(LoginRequiredMixin, View):
+    def post(self, request, cutucao_id):
+        cutucao = CutucaoPublico.objects.filter(
+            id=cutucao_id,
+            destinatario=request.user,
+            status=CutucaoPublico.Status.PENDENTE,
+        ).first()
+        if not cutucao:
+            return JsonResponse({'erro': 'Cutucão não encontrado.'}, status=404)
+
+        if cutucao.expirada:
+            cutucao.marcar_perdida()
+            return JsonResponse({'erro': 'Cutucão já foi encerrado.'}, status=409)
+
+        recusar = request.POST.get('recusar') == '1'
+        resposta = request.POST.get('resposta_rapida')
+
+        if recusar:
+            ok = cutucao.responder(recusar=True)
+        elif resposta in CutucaoPublico.RespostaRapida.values:
+            ok = cutucao.responder(resposta_rapida=resposta)
+        else:
+            ok = cutucao.responder(atender=True)
+
+        if not ok:
+            return JsonResponse({'erro': 'Cutucão já foi encerrado.'}, status=409)
+
+        return JsonResponse({'ok': True, **cutucao.serializar_status()})
+
+
 class DispensarCutucaoPublicoView(LoginRequiredMixin, View):
     def post(self, request, cutucao_id):
         cutucao = CutucaoPublico.objects.filter(
@@ -694,5 +841,7 @@ class DispensarCutucaoPublicoView(LoginRequiredMixin, View):
         ).first()
         if not cutucao:
             return JsonResponse({'erro': 'Cutucão não encontrado.'}, status=404)
-        cutucao.dispensar()
+        if cutucao.status != CutucaoPublico.Status.PENDENTE:
+            return JsonResponse({'ok': True, 'ja_encerrada': True})
+        cutucao.responder(recusar=True)
         return JsonResponse({'ok': True})

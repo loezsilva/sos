@@ -63,12 +63,14 @@ O sistema SHALL registrar e tentar entregar um cutucão público ao proprietári
 - **WHEN** um visitante anônimo válido segura o botão pelo tempo solicitado
 - **THEN** o sistema registra um evento público com destinatário e nickname
 - **AND** envia alerta WebSocket e push ao proprietário
-- **AND** confirma ao visitante que o cutucão foi enviado
+- **AND** autoriza o visitante a acompanhar a chamada na sessão do navegador
+- **AND** mostra o estado de chamada aguardando resposta
 
 #### Scenario: Envio autenticado aceito
 - **WHEN** um usuário autenticado aciona o botão público
 - **THEN** o sistema registra a conta como origem do evento
 - **AND** envia alerta WebSocket e push ao proprietário
+- **AND** mostra o estado de chamada aguardando resposta
 
 #### Scenario: Uso do próprio link
 - **WHEN** o proprietário autenticado tenta cutucar pelo próprio canal
@@ -79,6 +81,39 @@ O sistema SHALL registrar e tentar entregar um cutucão público ao proprietári
 - **WHEN** o proprietário não possui WebSocket ativo
 - **THEN** o evento permanece registrado
 - **AND** o sistema tenta entregar por push sem revelar presença ao visitante
+
+### Requirement: Acompanhamento e cancelamento público
+O sistema SHALL permitir que o visitante autorizado acompanhe e cancele um cutucão público pendente.
+
+#### Scenario: Cancelar enquanto pendente
+- **WHEN** o visitante autorizado cancela a chamada ainda pendente
+- **THEN** o evento muda para cancelado
+- **AND** o overlay do destinatário é encerrado
+- **AND** o visitante vê confirmação de cancelamento
+
+#### Scenario: Timeout sem resposta
+- **WHEN** o tempo máximo de espera termina sem resposta
+- **THEN** o evento muda para perdido
+- **AND** o visitante vê indicação de sem resposta
+- **AND** o overlay do destinatário é encerrado
+
+#### Scenario: Acesso sem autorização
+- **WHEN** alguém consulta ou cancela um cutucão sem sessão válida nem autoria autenticada
+- **THEN** o sistema retorna não encontrado
+- **AND** não revela detalhes do evento
+
+### Requirement: Respostas rápidas ao cutucão público
+O sistema SHALL aceitar as mesmas respostas rápidas do fluxo autenticado para cutucões públicos.
+
+#### Scenario: Destinatário responde com resposta rápida
+- **WHEN** o proprietário escolhe “Já vou”, “Tô ocupado” ou “Ligo em 5 min”
+- **THEN** o visitante autorizado vê o rótulo correspondente
+- **AND** a chamada pública deixa de estar pendente
+
+#### Scenario: Destinatário recusa
+- **WHEN** o proprietário recusa o cutucão público
+- **THEN** o visitante autorizado vê a recusa
+- **AND** a chamada pública deixa de estar pendente
 
 ### Requirement: Proteção contra abuso
 O sistema MUST limitar envios públicos por origem e canal.

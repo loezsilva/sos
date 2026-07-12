@@ -58,3 +58,12 @@
 - [x] 7.7 Refinar copy, acessibilidade e metadados do overlay público
 - [x] 7.8 Mover compartilhamento público para o modal unificado de QR
 - [x] 7.9 Atualizar link público no modal sem recarregar a página
+
+## 8. Resposta e cancelamento público
+
+- [x] 8.1 Evoluir `CutucaoPublico` com estados, resposta rápida e token de visita
+- [x] 8.2 Criar migration incremental e endpoints de status, encerrar e responder
+- [x] 8.3 Autorizar acompanhamento por sessão/token ou remetente autenticado
+- [x] 8.4 Atualizar página pública para estado de chamada com polling e cancelamento
+- [x] 8.5 Liberar respostas rápidas no overlay para origem pública
+- [x] 8.6 Cobrir autorização, concorrência, timeout e refresh com testes

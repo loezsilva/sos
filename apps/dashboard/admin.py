@@ -55,12 +55,14 @@ class CutucaoPublicoAdmin(admin.ModelAdmin):
         'remetente',
         'destinatario',
         'status',
+        'resposta_rapida',
         'created_at',
     )
-    list_filter = ('status',)
+    list_filter = ('status', 'resposta_rapida')
     search_fields = (
         'nickname',
         'remetente__username',
         'destinatario__username',
     )
     autocomplete_fields = ('canal', 'destinatario', 'remetente')
+    readonly_fields = ('token_visita',)

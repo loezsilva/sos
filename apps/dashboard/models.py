@@ -1,4 +1,6 @@
+import hashlib
 import logging
+import secrets
 import unicodedata
 import uuid
 from datetime import timedelta
@@ -753,15 +755,29 @@ class CutucaoPublicoQuerySet(models.QuerySet):
         return self.filter(destinatario=usuario, lida_em__isnull=True)
 
     def atividades_recentes(self, usuario, limite=15):
-        return self.do_destinatario(usuario).order_by('-created_at')[:limite]
+        return (
+            self.do_destinatario(usuario)
+            .exclude(status=CutucaoPublico.Status.CANCELADA)
+            .order_by('-created_at')[:limite]
+        )
 
 
 class CutucaoPublico(BaseModel):
-    TEMPO_MAXIMO_ALERTA = timedelta(seconds=45)
+    TEMPO_MAXIMO_ESPERA = timedelta(seconds=45)
+    TEMPO_MAXIMO_ALERTA = TEMPO_MAXIMO_ESPERA
 
     class Status(models.TextChoices):
-        ENVIADO = 'enviado', 'Enviado'
-        DISPENSADO = 'dispensado', 'Dispensado'
+        PENDENTE = 'pendente', 'Pendente'
+        RESPONDIDA = 'respondida', 'Respondida'
+        ATENDIDA = 'atendida', 'Atendida'
+        RECUSADA = 'recusada', 'Recusada'
+        CANCELADA = 'cancelada', 'Cancelada'
+        PERDIDA = 'perdida', 'Perdida'
+
+    class RespostaRapida(models.TextChoices):
+        JA_VOU = 'ja_vou', 'Já vou'
+        OCUPADO = 'ocupado', 'Tô ocupado'
+        LIGO_DEPOIS = 'ligo_depois', 'Ligo em 5 min'
 
     canal = models.ForeignKey(
         CanalPublico,
@@ -788,7 +804,21 @@ class CutucaoPublico(BaseModel):
         'Status',
         max_length=20,
         choices=Status.choices,
-        default=Status.ENVIADO,
+        default=Status.PENDENTE,
+    )
+    resposta_rapida = models.CharField(
+        'Resposta rápida',
+        max_length=20,
+        choices=RespostaRapida.choices,
+        blank=True,
+        null=True,
+    )
+    token_visita = models.CharField(
+        'Token de visita',
+        max_length=64,
+        blank=True,
+        default='',
+        db_index=True,
     )
     lida_em = models.DateTimeField('Lida em', null=True, blank=True)
 
@@ -812,6 +842,19 @@ class CutucaoPublico(BaseModel):
             raise ValueError('Informe um nickname entre 2 e 40 caracteres.')
         return texto
 
+    @staticmethod
+    def gerar_token():
+        return secrets.token_urlsafe(32)
+
+    @staticmethod
+    def hash_token(token):
+        return hashlib.sha256((token or '').encode()).hexdigest()
+
+    def conferir_token(self, token):
+        if not self.token_visita or not token:
+            return False
+        return secrets.compare_digest(self.token_visita, self.hash_token(token))
+
     @property
     def nome_exibicao(self):
         if self.remetente_id:
@@ -821,6 +864,41 @@ class CutucaoPublico(BaseModel):
     @property
     def origem_anonima(self):
         return self.remetente_id is None
+
+    @property
+    def expirada(self):
+        return self.created_at <= timezone.now() - self.TEMPO_MAXIMO_ESPERA
+
+    @property
+    def expira_em(self):
+        return self.created_at + self.TEMPO_MAXIMO_ESPERA
+
+    def rotulo_desfecho(self):
+        if self.status == self.Status.RESPONDIDA and self.resposta_rapida:
+            return self.get_resposta_rapida_display()
+        if self.status == self.Status.RECUSADA:
+            return 'Recusou'
+        if self.status == self.Status.PERDIDA:
+            return 'Sem resposta'
+        if self.status == self.Status.CANCELADA:
+            return 'Cancelado'
+        if self.status == self.Status.ATENDIDA:
+            return 'Atendeu'
+        return self.get_status_display()
+
+    def serializar_status(self):
+        return {
+            'ok': True,
+            'cutucao_id': str(self.id),
+            'status': self.status,
+            'pendente': self.status == self.Status.PENDENTE,
+            'resposta_rapida': self.resposta_rapida or '',
+            'resposta_rotulo': self.rotulo_desfecho(),
+            'destinatario_nome': (
+                self.destinatario.name or self.destinatario.username or 'alguém'
+            ),
+            'expira_em': self.expira_em.isoformat(),
+        }
 
     def payload_recebida(self):
         return {
@@ -864,7 +942,11 @@ class CutucaoPublico(BaseModel):
             'buzina_id': str(self.id),
             'cutucao_id': str(self.id),
             'tipo': 'cutucao_publico_recebido',
-            'rotulo': 'Cutucão pelo link público',
+            'rotulo': (
+                self.rotulo_desfecho()
+                if self.status != self.Status.PENDENTE
+                else 'Cutucão pelo link público'
+            ),
             'contato_nome': self.nome_exibicao,
             'contato_avatar': (
                 self.remetente.avatar.url
@@ -880,29 +962,115 @@ class CutucaoPublico(BaseModel):
             'origem_anonima': self.origem_anonima,
         }
 
-    def dispensar(self):
-        if self.status == self.Status.DISPENSADO:
-            return False
-        self.status = self.Status.DISPENSADO
-        if self.lida_em is None:
-            self.lida_em = timezone.now()
-            self.save(update_fields=['status', 'lida_em', 'updated_at'])
+    def responder(self, resposta_rapida=None, recusar=False, atender=False):
+        if recusar:
+            novo_status = self.Status.RECUSADA
+            rotulo = 'Recusou'
+            extras = {}
+        elif atender:
+            novo_status = self.Status.ATENDIDA
+            rotulo = 'Atendeu'
+            extras = {}
         else:
-            self.save(update_fields=['status', 'updated_at'])
+            novo_status = self.Status.RESPONDIDA
+            extras = {'resposta_rapida': resposta_rapida}
+
+        atualizadas = CutucaoPublico.objects.filter(
+            pk=self.pk,
+            status=self.Status.PENDENTE,
+        ).update(
+            status=novo_status,
+            lida_em=timezone.now(),
+            updated_at=timezone.now(),
+            **extras,
+        )
+        if not atualizadas:
+            return False
+
+        self.refresh_from_db()
+        if novo_status == self.Status.RESPONDIDA:
+            rotulo = self.get_resposta_rapida_display()
+        self.notificar_visitante(rotulo, self.resposta_rapida or '')
         return True
+
+    def dispensar(self):
+        return self.responder(recusar=True)
+
+    def cancelar(self):
+        return self._encerrar(self.Status.CANCELADA)
+
+    def marcar_perdida(self):
+        return self._encerrar(self.Status.PERDIDA)
+
+    def _encerrar(self, novo_status):
+        atualizadas = CutucaoPublico.objects.filter(
+            pk=self.pk,
+            status=self.Status.PENDENTE,
+        ).update(status=novo_status, updated_at=timezone.now())
+        if not atualizadas:
+            return False
+
+        self.refresh_from_db()
+        payload = {
+            'tipo': 'buzina_encerrada',
+            'buzina_id': str(self.id),
+            'cutucao_id': str(self.id),
+            'motivo': novo_status,
+            'origem_publica': True,
+        }
+        self._notificar(str(self.destinatario_id), 'buzina_encerrada', payload)
+        if self.remetente_id:
+            self._notificar(str(self.remetente_id), 'buzina_encerrada', payload)
+        return True
+
+    def encerrar(self, motivo='usuario'):
+        if motivo == 'timeout':
+            return self.marcar_perdida()
+        return self.cancelar()
+
+    def notificar_visitante(self, resposta_rotulo, resposta=''):
+        if not self.remetente_id:
+            return
+        self._notificar(
+            str(self.remetente_id),
+            'resposta_recebida',
+            {
+                'tipo': 'resposta_recebida',
+                'buzina_id': str(self.id),
+                'cutucao_id': str(self.id),
+                'resposta': resposta,
+                'resposta_rotulo': resposta_rotulo,
+                'destinatario_nome': (
+                    self.destinatario.name or self.destinatario.username
+                ),
+                'origem_publica': True,
+            },
+        )
 
     @classmethod
     def marcar_lidas(cls, usuario):
         return cls.objects.nao_lidas_de(usuario).update(lida_em=timezone.now())
 
     @classmethod
+    def limpar_expiradas(cls, destinatario=None):
+        filtro = cls.objects.filter(
+            status=cls.Status.PENDENTE,
+            created_at__lte=timezone.now() - cls.TEMPO_MAXIMO_ESPERA,
+        )
+        if destinatario is not None:
+            filtro = filtro.filter(destinatario=destinatario)
+
+        expiradas = list(filtro.select_related('remetente', 'destinatario'))
+        for cutucao in expiradas:
+            cutucao.marcar_perdida()
+        return expiradas
+
+    @classmethod
     def pendentes_para(cls, usuario):
+        cls.limpar_expiradas(destinatario=usuario)
         return (
             cls.objects.do_destinatario(usuario)
-            .filter(
-                status=cls.Status.ENVIADO,
-                created_at__gt=timezone.now() - cls.TEMPO_MAXIMO_ALERTA,
-            )
+            .filter(status=cls.Status.PENDENTE)
             .order_by('-created_at')[:1]
         )
 
@@ -919,12 +1087,15 @@ class CutucaoPublico(BaseModel):
         else:
             nickname_final = cls.normalizar_nickname(nickname)
 
+        token = cls.gerar_token()
         cutucao = cls.objects.create(
             canal=canal,
             destinatario_id=canal.proprietario_id,
             remetente=remetente,
             nickname=nickname_final,
+            token_visita=cls.hash_token(token),
         )
+        cutucao.token_visita_claro = token
         cutucao._entregar()
         return cutucao
 

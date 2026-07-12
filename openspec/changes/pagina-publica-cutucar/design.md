@@ -20,9 +20,9 @@ O fluxo público não pode criar usuários artificiais nem enfraquecer as invari
 
 - Criar conta automaticamente para visitantes anônimos.
 - Criar conexão ou adicionar alguém aos próximos ao usar o link.
-- Permitir resposta rápida ao visitante anônimo no primeiro MVP.
 - Exibir presença, e-mail, username ou outros dados privados do proprietário.
 - Transformar o link em canal de emergência ou garantir entrega quando push não estiver configurado.
+- Abrir WebSocket anônimo; o visitante acompanha a chamada por sessão e polling.
 
 ## Decisões
 
@@ -53,7 +53,7 @@ Após persistir o evento, o serviço enviará:
 - Web Push e push nativo com título contendo o nome público;
 - registro na central de atividades do proprietário.
 
-O overlay global tratará o novo tipo e mostrará “Cutucão pelo link público”, nome do visitante e ação de fechar. Não haverá botões de resposta para origem anônima.
+O overlay global tratará o novo tipo e mostrará “Cutucão pelo link público”, nome do visitante e as mesmas respostas rápidas do fluxo autenticado. Cancelamento e timeout fecham o overlay.
 
 **Por quê:** reutilizar o pipeline reduz latência, mas um tipo explícito evita que o frontend chame endpoints de resposta de `Buzina`.
 
@@ -75,11 +75,13 @@ Visitantes autenticados não verão o campo; o backend ignorará qualquer nickna
 
 O botão exigirá segurar por dois segundos, coerente com o fluxo atual, mas isso é apenas proteção de UX; o backend continua sendo a autoridade.
 
-### 6. Estado de entrega sem vazar presença
+### 6. Chamada pública com acompanhamento seguro
 
-A página pública não exibirá se o proprietário está online, ocupado ou offline. Um envio aceito significa apenas que o Cutuca registrou e tentou entregar o alerta. A confirmação ao visitante será “Cutucão enviado”.
+Após o envio, a página pública entra em estado de chamada: “Cutucando…”, countdown, cancelamento e desfecho. A página não revela presença do proprietário.
 
-**Por quê:** presença é informação privada e push pode funcionar mesmo sem WebSocket ativo.
+O visitante autoriza acompanhamento e cancelamento por uma referência na sessão do navegador; usuário autenticado também prova autoria pelo `remetente`. IDs sem sessão/autoria retornam 404. Visitantes anônimos consultam status por polling curto; remetentes autenticados também podem receber o desfecho via WebSocket.
+
+**Por quê:** presença é informação privada e o visitante anônimo não possui canal WebSocket autenticado.
 
 ### 7. Compartilhamento e QR
 
@@ -118,4 +120,3 @@ O template estenderá `base.html`, mas removerá `nav`, `menu` e `footer` do app
 ## Questões em aberto
 
 - Captcha será avaliado se os limites por cache não forem suficientes em produção.
-- Respostas ao visitante anônimo podem ser adicionadas futuramente por sessão assinada, mas não fazem parte desta mudança.

@@ -300,56 +300,99 @@
 
       <form id="form-cutucar-publico" method="post" class="relative z-[2] mt-lg" novalidate>
         {% csrf_token %}
-        {% if not user.is_authenticated %}
-          <label for="{{ form.nickname.id_for_label }}" class="block">
-            <span class="app-rotulo block mb-sm">Como devemos te chamar?</span>
+        <div id="painel-envio-publico" class="{% if chamada_ativa %}hidden{% endif %}">
+          {% if not user.is_authenticated %}
+            <label for="{{ form.nickname.id_for_label }}" class="block">
+              <span class="app-rotulo block mb-sm">Como devemos te chamar?</span>
+              {{ form.nickname }}
+            </label>
+          {% else %}
             {{ form.nickname }}
-          </label>
-        {% else %}
-          {{ form.nickname }}
-        {% endif %}
+          {% endif %}
 
-        <div class="publico-acao">
-          <svg class="publico-anel" viewBox="0 0 100 100" aria-hidden="true">
-            <circle class="publico-anel-fundo" cx="50" cy="50" r="46"></circle>
-            <circle id="anel-progresso-publico" class="publico-anel-carga" cx="50" cy="50" r="46"></circle>
-          </svg>
-          <button
-            type="button"
-            id="botao-cutucar-publico"
-            class="publico-botao"
-            aria-label="Segure 2 segundos para cutucar {{ nome_publico }}"
-            aria-describedby="feedback-publico"
-            {% if eh_proprietario %}disabled{% endif %}
-          >
-            <span class="publico-botao-miolo">
-              <span class="material-symbols-outlined text-primary text-[56px]" style="font-variation-settings:'FILL' 1;" aria-hidden="true">touch_app</span>
-              <span class="font-button-text text-button-text tracking-wider">CUTUCAR</span>
-            </span>
-          </button>
+          <div class="publico-acao">
+            <svg class="publico-anel" viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="publico-anel-fundo" cx="50" cy="50" r="46"></circle>
+              <circle id="anel-progresso-publico" class="publico-anel-carga" cx="50" cy="50" r="46"></circle>
+            </svg>
+            <button
+              type="button"
+              id="botao-cutucar-publico"
+              class="publico-botao"
+              aria-label="Segure 2 segundos para cutucar {{ nome_publico }}"
+              aria-describedby="feedback-publico"
+              {% if eh_proprietario %}disabled{% endif %}
+            >
+              <span class="publico-botao-miolo">
+                <span class="material-symbols-outlined text-primary text-[56px]" style="font-variation-settings:'FILL' 1;" aria-hidden="true">touch_app</span>
+                <span class="font-button-text text-button-text tracking-wider">CUTUCAR</span>
+              </span>
+            </button>
+          </div>
+
+          {% if form.non_field_errors %}
+            <p id="feedback-publico" class="publico-feedback" data-estado="erro" role="alert">{{ form.non_field_errors.0 }}</p>
+          {% elif form.nickname.errors %}
+            <p id="feedback-publico" class="publico-feedback" data-estado="erro" role="alert">{{ form.nickname.errors.0 }}</p>
+          {% else %}
+            <p id="feedback-publico" class="publico-feedback" role="status" aria-live="polite">
+              {% if eh_proprietario %}
+                Abra este link em outra conta para testar
+              {% else %}
+                Segure o botão por 2 segundos
+              {% endif %}
+            </p>
+          {% endif %}
         </div>
 
-        {% if form.non_field_errors %}
-          <p id="feedback-publico" class="publico-feedback" data-estado="erro" role="alert">{{ form.non_field_errors.0 }}</p>
-        {% elif form.nickname.errors %}
-          <p id="feedback-publico" class="publico-feedback" data-estado="erro" role="alert">{{ form.nickname.errors.0 }}</p>
-        {% else %}
-          <p id="feedback-publico" class="publico-feedback" {% if enviado %}data-estado="sucesso"{% endif %} role="status" aria-live="polite">
-            {% if enviado %}
-              Cutucão enviado
-            {% elif eh_proprietario %}
-              Abra este link em outra conta para testar
-            {% else %}
-              Segure o botão por 2 segundos
-            {% endif %}
-          </p>
-        {% endif %}
+        <div id="painel-chamada-publico" class="{% if not chamada_ativa %}hidden{% endif %}" aria-live="polite"
+             {% if chamada_ativa %}data-cutucao-id="{{ chamada_ativa.cutucao_id }}" data-token="{{ chamada_ativa.token }}" data-status="{{ chamada_ativa.status }}" data-rotulo="{{ chamada_ativa.resposta_rotulo }}" data-pendente="{% if chamada_ativa.pendente %}1{% else %}0{% endif %}"{% endif %}>
+          <header class="text-center mt-md">
+            <h2 id="chamada-publico-titulo" class="font-display-lg-mobile text-display-lg-mobile text-on-surface mb-2 tracking-tighter">
+              {% if chamada_ativa and not chamada_ativa.pendente %}
+                {% if chamada_ativa.status == 'perdida' %}Sem resposta{% elif chamada_ativa.status == 'cancelada' %}Cutucão cancelado{% else %}Resposta recebida{% endif %}
+              {% else %}
+                Cutucando…
+              {% endif %}
+            </h2>
+            <p id="chamada-publico-subtitulo" class="font-headline-md text-headline-md {% if chamada_ativa and not chamada_ativa.pendente %}{% if chamada_ativa.status == 'perdida' %}text-error{% elif chamada_ativa.status == 'cancelada' %}text-outline{% else %}text-secondary{% endif %}{% else %}text-primary animate-pulse{% endif %}">
+              {% if chamada_ativa and not chamada_ativa.pendente %}
+                {{ chamada_ativa.resposta_rotulo }}
+              {% else %}
+                Aguardando resposta
+              {% endif %}
+            </p>
+          </header>
+
+          <div class="flex flex-col items-center gap-4 w-full mt-lg mb-md">
+            <div class="relative flex items-center justify-center w-40 h-40">
+              <div class="absolute inset-0 rounded-full border-2 border-primary/40 animacao-ripple-alerta scale-110"></div>
+              <div class="absolute inset-0 rounded-full border-2 border-secondary/40 animacao-ripple-alerta scale-110" style="animation-delay: 0.6s;"></div>
+              <div class="relative z-20 w-full h-full rounded-full p-2 bg-gradient-to-tr from-primary to-primary-container shadow-cutuca-primary">
+                <div class="w-full h-full rounded-full overflow-hidden border-4 border-white bg-surface-container-high flex items-center justify-center">
+                  <span class="material-symbols-outlined text-outline text-5xl" aria-hidden="true">person</span>
+                </div>
+              </div>
+            </div>
+            <p id="chamada-publico-destinatario" class="relative z-20 max-w-[90%] px-5 py-2.5 bg-surface rounded-full border border-outline-variant sombra-cutuca font-headline-md text-headline-md text-on-surface whitespace-nowrap truncate">{{ nome_publico }}</p>
+          </div>
+
+          <div id="chamada-publico-resposta" class="{% if not chamada_ativa or chamada_ativa.pendente %}hidden{% endif %} w-full py-4 px-6 rounded-xl bg-secondary-container border border-secondary/20 text-center mb-md">
+            <p class="font-label-bold text-label-bold text-on-secondary-container uppercase mb-2">Resposta</p>
+            <p id="chamada-publico-resposta-texto" class="font-headline-md text-headline-md text-on-surface">{% if chamada_ativa %}{{ chamada_ativa.resposta_rotulo }}{% endif %}</p>
+          </div>
+
+          <button type="button" id="chamada-publico-encerrar" class="w-full py-4 px-6 rounded-full bg-surface text-on-surface font-button-text border border-outline-variant sombra-cutuca hover:bg-surface-container-low active:scale-95 transition-all flex items-center justify-center gap-3 min-h-[48px]">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;" aria-hidden="true">close</span>
+            <span id="chamada-publico-encerrar-label">{% if chamada_ativa and not chamada_ativa.pendente %}Fechar{% else %}Cancelar{% endif %}</span>
+          </button>
+        </div>
       </form>
     </section>
 
     <aside class="publico-privacidade" aria-label="Privacidade">
       <span class="material-symbols-outlined text-primary" aria-hidden="true">shield</span>
-      <p>Este link não mostra presença, e-mail ou outros dados privados. O envio confirma apenas que o alerta foi registrado.</p>
+      <p>Este link não mostra presença, e-mail ou outros dados privados. Você acompanha só o seu próprio cutucão neste navegador.</p>
     </aside>
   </main>
 </div>
@@ -361,6 +404,8 @@
   const form = document.getElementById('form-cutucar-publico');
   const botao = document.getElementById('botao-cutucar-publico');
   const anel = document.getElementById('anel-progresso-publico');
+  const painelEnvio = document.getElementById('painel-envio-publico');
+  const painelChamada = document.getElementById('painel-chamada-publico');
   const campoNickname = form?.querySelector('[name="nickname"]:not([type="hidden"])');
   const feedback = document.getElementById('feedback-publico')
     || form?.querySelector('.publico-feedback');
@@ -369,11 +414,38 @@
   const csrf = form.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
   const circunferencia = 2 * Math.PI * 46;
   const duracao = 2000;
+  const intervaloPollMs = 1500;
+  const tempoMaximoMs = 45000;
   const reduzirMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let quadro = null;
   let espera = null;
   let inicio = 0;
   let enviando = false;
+  let cutucaoId = null;
+  let tokenVisita = '';
+  let pollTimer = null;
+  let timeoutTimer = null;
+  let chamadaAtiva = false;
+
+  const titulo = document.getElementById('chamada-publico-titulo');
+  const subtitulo = document.getElementById('chamada-publico-subtitulo');
+  const destinatario = document.getElementById('chamada-publico-destinatario');
+  const respostaBox = document.getElementById('chamada-publico-resposta');
+  const respostaTexto = document.getElementById('chamada-publico-resposta-texto');
+  const botaoEncerrar = document.getElementById('chamada-publico-encerrar');
+  const encerrarLabel = document.getElementById('chamada-publico-encerrar-label');
+
+  if (painelChamada?.dataset.cutucaoId) {
+    cutucaoId = painelChamada.dataset.cutucaoId;
+    tokenVisita = painelChamada.dataset.token || '';
+    if (painelChamada.dataset.pendente === '1') {
+      chamadaAtiva = true;
+      pollTimer = setInterval(consultarStatus, intervaloPollMs);
+      timeoutTimer = setTimeout(() => encerrarChamada('timeout'), tempoMaximoMs);
+    } else {
+      chamadaAtiva = false;
+    }
+  }
 
   function atualizarFeedback(texto, estado = '') {
     if (!feedback) return;
@@ -397,6 +469,13 @@
     setProgresso(0);
   }
 
+  function limparTimersChamada() {
+    if (pollTimer) clearInterval(pollTimer);
+    if (timeoutTimer) clearTimeout(timeoutTimer);
+    pollTimer = null;
+    timeoutTimer = null;
+  }
+
   function validarNickname() {
     if (!campoNickname) return true;
     const tamanho = campoNickname.value.trim().length;
@@ -404,6 +483,123 @@
     atualizarFeedback('Informe um nome entre 2 e 40 caracteres.', 'erro');
     campoNickname.focus();
     return false;
+  }
+
+  function mostrarPainelChamada(nome) {
+    chamadaAtiva = true;
+    if (destinatario && nome) destinatario.textContent = nome;
+    if (titulo) titulo.textContent = 'Cutucando…';
+    if (subtitulo) {
+      subtitulo.textContent = 'Aguardando resposta';
+      subtitulo.classList.add('animate-pulse', 'text-primary');
+      subtitulo.classList.remove('text-secondary', 'text-error', 'text-outline');
+    }
+    respostaBox?.classList.add('hidden');
+    if (encerrarLabel) encerrarLabel.textContent = 'Cancelar';
+    painelEnvio?.classList.add('hidden');
+    painelChamada?.classList.remove('hidden');
+  }
+
+  function mostrarDesfecho(rotulo, status) {
+    chamadaAtiva = false;
+    limparTimersChamada();
+    const perdida = status === 'perdida';
+    const cancelada = status === 'cancelada';
+    if (titulo) {
+      titulo.textContent = perdida
+        ? 'Sem resposta'
+        : cancelada
+          ? 'Cutucão cancelado'
+          : 'Resposta recebida';
+    }
+    if (subtitulo) {
+      subtitulo.textContent = perdida
+        ? 'Ninguém respondeu a tempo'
+        : cancelada
+          ? 'Você cancelou o cutucão'
+          : (destinatario?.textContent || 'Resposta');
+      subtitulo.classList.remove('animate-pulse', 'text-primary');
+      subtitulo.classList.add(
+        perdida ? 'text-error' : cancelada ? 'text-outline' : 'text-secondary',
+      );
+    }
+    if (respostaTexto) respostaTexto.textContent = rotulo || '—';
+    respostaBox?.classList.remove('hidden');
+    if (encerrarLabel) encerrarLabel.textContent = 'Fechar';
+  }
+
+  async function consultarStatus() {
+    if (!cutucaoId || !chamadaAtiva) return;
+    try {
+      const url = new URL(`/api/cutucao-publico/${cutucaoId}/status/`, window.location.origin);
+      if (tokenVisita) url.searchParams.set('token', tokenVisita);
+      const resposta = await fetch(url, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      if (resposta.status === 404) return;
+      const dados = await resposta.json().catch(() => ({}));
+      if (!resposta.ok || !dados.ok) return;
+      if (dados.pendente) return;
+      mostrarDesfecho(dados.resposta_rotulo, dados.status);
+    } catch (_) {
+      /* polling silencioso */
+    }
+  }
+
+  function iniciarAcompanhamento(dados) {
+    cutucaoId = dados.cutucao_id;
+    tokenVisita = dados.token || '';
+    mostrarPainelChamada(dados.destinatario_nome);
+    limparTimersChamada();
+    pollTimer = setInterval(consultarStatus, intervaloPollMs);
+    timeoutTimer = setTimeout(() => encerrarChamada('timeout'), tempoMaximoMs);
+    consultarStatus();
+  }
+
+  async function encerrarChamada(motivo = 'usuario') {
+    if (!cutucaoId) {
+      painelChamada?.classList.add('hidden');
+      painelEnvio?.classList.remove('hidden');
+      return;
+    }
+    if (!chamadaAtiva && encerrarLabel?.textContent === 'Fechar') {
+      limparTimersChamada();
+      painelChamada?.classList.add('hidden');
+      painelEnvio?.classList.remove('hidden');
+      cutucaoId = null;
+      tokenVisita = '';
+      atualizarFeedback('Segure o botão por 2 segundos');
+      return;
+    }
+
+    limparTimersChamada();
+    try {
+      const corpo = new FormData();
+      corpo.append('motivo', motivo);
+      if (tokenVisita) corpo.append('token', tokenVisita);
+      const resposta = await fetch(`/api/cutucao-publico/${cutucaoId}/encerrar/`, {
+        method: 'POST',
+        body: corpo,
+        credentials: 'same-origin',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          Accept: 'application/json',
+          'X-CSRFToken': csrf,
+        },
+      });
+      const dados = await resposta.json().catch(() => ({}));
+      if (resposta.ok && dados.ok) {
+        mostrarDesfecho(dados.resposta_rotulo, dados.status);
+        return;
+      }
+    } catch (_) {
+      /* segue para desfecho local */
+    }
+    mostrarDesfecho(
+      motivo === 'timeout' ? 'Sem resposta' : 'Cancelado',
+      motivo === 'timeout' ? 'perdida' : 'cancelada',
+    );
   }
 
   async function enviar() {
@@ -420,7 +616,7 @@
         credentials: 'same-origin',
         headers: {
           'X-Requested-With': 'XMLHttpRequest',
-          'Accept': 'application/json',
+          Accept: 'application/json',
           'X-CSRFToken': csrf,
         },
       });
@@ -436,7 +632,7 @@
         atualizarFeedback(dados.erro || 'Não foi possível enviar.', 'erro');
         return;
       }
-      atualizarFeedback(dados.mensagem || 'Cutucão enviado', 'sucesso');
+      iniciarAcompanhamento(dados);
     } catch (_) {
       atualizarFeedback('Sem conexão. Verifique a internet e tente novamente.', 'erro');
     } finally {
@@ -491,6 +687,13 @@
   });
   botao.addEventListener('keyup', (evento) => {
     if (evento.key === ' ' || evento.key === 'Enter') cancelar();
+  });
+  botaoEncerrar?.addEventListener('click', () => {
+    if (encerrarLabel?.textContent === 'Fechar') {
+      encerrarChamada('fechar');
+      return;
+    }
+    encerrarChamada('usuario');
   });
   setProgresso(0);
 })();

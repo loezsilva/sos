@@ -1,4 +1,5 @@
 import pytest
+from django.test import Client
 from django.urls import reverse
 from unittest.mock import patch
 
@@ -910,3 +911,195 @@ class TestCutucaoPublicoEntrega:
 
         assert resposta.status_code == 200
         assert CutucaoPublico.objects.filter(nickname='Lia').count() == 1
+
+
+@pytest.mark.django_db
+class TestRespostaCutucaoPublico:
+    def _enviar(self, client, canal, nickname='Visitante'):
+        url = reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
+        with patch.object(CutucaoPublico, '_notificar'), patch(
+            'apps.dashboard.push.ServicoPush.enviar_cutucao_publico'
+        ), patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'):
+            resposta = client.post(
+                url,
+                {'nickname': nickname},
+                HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+                HTTP_ACCEPT='application/json',
+            )
+        return resposta
+
+    def test_post_retorna_token_e_autoriza_sessao(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        resposta = self._enviar(client, canal)
+        dados = resposta.json()
+        cutucao = CutucaoPublico.objects.get()
+
+        assert dados['ok'] is True
+        assert dados['cutucao_id'] == str(cutucao.id)
+        assert dados['token']
+        assert cutucao.conferir_token(dados['token'])
+        assert cutucao.status == CutucaoPublico.Status.PENDENTE
+        assert str(cutucao.id) in client.session.get('cutucao_publico_tokens', {})
+
+    def test_status_sem_autorizacao_retorna_404(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        cutucao = CutucaoPublico.objects.create(
+            canal=canal,
+            destinatario=alice,
+            nickname='Lia',
+            token_visita=CutucaoPublico.hash_token('segredo'),
+        )
+        resposta = client.get(
+            reverse('dashboard:status_cutucao_publico', args=[cutucao.id])
+        )
+        assert resposta.status_code == 404
+
+    def test_status_com_token_na_sessao(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        envio = self._enviar(client, canal).json()
+        resposta = client.get(
+            reverse('dashboard:status_cutucao_publico', args=[envio['cutucao_id']])
+        )
+        assert resposta.status_code == 200
+        assert resposta.json()['pendente'] is True
+
+    def test_status_com_token_query(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        token = 'token-visita-xyz'
+        cutucao = CutucaoPublico.objects.create(
+            canal=canal,
+            destinatario=alice,
+            nickname='Lia',
+            token_visita=CutucaoPublico.hash_token(token),
+        )
+        outro = Client()
+        resposta = outro.get(
+            reverse('dashboard:status_cutucao_publico', args=[cutucao.id]),
+            {'token': token},
+        )
+        assert resposta.status_code == 200
+        assert resposta.json()['status'] == 'pendente'
+
+    def test_cancelar_pelo_visitante(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        envio = self._enviar(client, canal).json()
+        with patch.object(CutucaoPublico, '_notificar') as notificar:
+            resposta = client.post(
+                reverse(
+                    'dashboard:encerrar_cutucao_publico',
+                    args=[envio['cutucao_id']],
+                ),
+                {'motivo': 'usuario', 'token': envio['token']},
+            )
+        cutucao = CutucaoPublico.objects.get(id=envio['cutucao_id'])
+        assert resposta.status_code == 200
+        assert cutucao.status == CutucaoPublico.Status.CANCELADA
+        assert notificar.called
+
+    def test_timeout_marca_perdida(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        envio = self._enviar(client, canal).json()
+        with patch.object(CutucaoPublico, '_notificar'):
+            resposta = client.post(
+                reverse(
+                    'dashboard:encerrar_cutucao_publico',
+                    args=[envio['cutucao_id']],
+                ),
+                {'motivo': 'timeout', 'token': envio['token']},
+            )
+        assert resposta.status_code == 200
+        assert resposta.json()['status'] == 'perdida'
+
+    def test_responder_rapida(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        envio = self._enviar(client, canal).json()
+        client.force_login(alice)
+        with patch.object(CutucaoPublico, '_notificar'):
+            resposta = client.post(
+                reverse(
+                    'dashboard:responder_cutucao_publico',
+                    args=[envio['cutucao_id']],
+                ),
+                {'resposta_rapida': 'ja_vou'},
+            )
+        cutucao = CutucaoPublico.objects.get(id=envio['cutucao_id'])
+        assert resposta.status_code == 200
+        assert cutucao.status == CutucaoPublico.Status.RESPONDIDA
+        assert cutucao.resposta_rapida == 'ja_vou'
+
+        client.logout()
+        status = client.get(
+            reverse('dashboard:status_cutucao_publico', args=[envio['cutucao_id']]),
+            {'token': envio['token']},
+        )
+        assert status.json()['resposta_rotulo'] == 'Já vou'
+        assert status.json()['pendente'] is False
+
+    def test_corrida_resposta_e_cancelamento(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        envio = self._enviar(client, canal).json()
+        client.force_login(alice)
+        with patch.object(CutucaoPublico, '_notificar'):
+            ok_resposta = client.post(
+                reverse(
+                    'dashboard:responder_cutucao_publico',
+                    args=[envio['cutucao_id']],
+                ),
+                {'resposta_rapida': 'ocupado'},
+            )
+            ok_cancel = client.post(
+                reverse(
+                    'dashboard:encerrar_cutucao_publico',
+                    args=[envio['cutucao_id']],
+                ),
+                {'motivo': 'usuario', 'token': envio['token']},
+            )
+        cutucao = CutucaoPublico.objects.get(id=envio['cutucao_id'])
+        assert ok_resposta.status_code == 200
+        assert cutucao.status == CutucaoPublico.Status.RESPONDIDA
+        assert ok_cancel.json()['ja_encerrada'] is True
+
+    def test_remetente_autenticado_consulta_sem_token(self, client, usuarios):
+        alice, bob = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        client.force_login(bob)
+        url = reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
+        with patch.object(CutucaoPublico, '_notificar'), patch(
+            'apps.dashboard.push.ServicoPush.enviar_cutucao_publico'
+        ), patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'):
+            envio = client.post(
+                url,
+                {},
+                HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+                HTTP_ACCEPT='application/json',
+            ).json()
+
+        session = client.session
+        session.pop('cutucao_publico_tokens', None)
+        session.save()
+
+        status = client.get(
+            reverse('dashboard:status_cutucao_publico', args=[envio['cutucao_id']])
+        )
+        assert status.status_code == 200
+        assert status.json()['pendente'] is True
+
+    def test_refresh_recupera_chamada_pendente(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        self._enviar(client, canal)
+        pagina = client.get(
+            reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
+        )
+        html = pagina.content.decode()
+        assert 'painel-chamada-publico' in html
+        assert 'data-pendente="1"' in html
+        assert 'Cancelar' in html
