@@ -552,3 +552,27 @@ class TestConviteCirculo:
         assert resposta.status_code == 200
         assert resposta['Content-Type'] == 'image/png'
         assert resposta.content[:8] == b'\x89PNG\r\n\x1a\n'
+
+
+@pytest.mark.django_db
+class TestLandingVendas:
+    def test_anonimo_ve_landing(self, client):
+        resposta = client.get(reverse('dashboard:index'))
+        assert resposta.status_code == 200
+        html = resposta.content.decode()
+        assert 'Criar conta' in html
+        assert 'Chame a atenção' in html
+        assert 'Perguntas frequentes' in html
+        assert 'home_app_logo' not in html
+        assert reverse('cadastro') in html or '/contas/cadastro/' in html
+        assert 'Criar conta grátis' not in html
+
+    def test_autenticado_ve_dashboard(self, client, usuarios):
+        alice, _ = usuarios
+        client.force_login(alice)
+        resposta = client.get(reverse('dashboard:index'))
+        assert resposta.status_code == 200
+        html = resposta.content.decode()
+        assert 'Criar conta grátis' not in html
+        assert 'landing-fade' not in html
+        assert 'home_app_logo' in html

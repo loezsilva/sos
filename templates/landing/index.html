@@ -1,0 +1,306 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Cutuca — Atenção imediata para quem importa{% endblock %}
+
+{% block body_overflow %}{% endblock %}
+{% block nav %}{% endblock %}
+{% block menu %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block main_padding %}pt-0 pb-0{% endblock %}
+
+{% block extra_css %}
+<style>
+  .landing-fade { animation: landing-fade-in 0.7s ease-out both; }
+  .landing-fade-delay { animation: landing-fade-in 0.7s ease-out 0.15s both; }
+  .landing-fade-delay-2 { animation: landing-fade-in 0.7s ease-out 0.3s both; }
+  .landing-pulso { animation: pulso-anel 2.2s ease-out infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .landing-fade, .landing-fade-delay, .landing-fade-delay-2, .landing-pulso { animation: none; }
+  }
+  @keyframes landing-fade-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+{% endblock %}
+
+{% block main %}
+<header class="sticky top-0 z-40 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/40">
+  <div class="max-w-5xl mx-auto px-margin-mobile md:px-margin-desktop h-16 flex items-center justify-between gap-4">
+    <a href="{% url 'dashboard:index' %}" class="flex items-center no-underline" aria-label="Cutuca">
+      <img src="{% static 'icons/logo-cutuca-online.png' %}" alt="Cutuca.online" class="h-9 w-auto object-contain">
+    </a>
+    <div class="flex items-center gap-3">
+      <a href="{% url 'login' %}" class="font-label-bold text-sm text-on-surface-variant hover:text-primary transition-colors min-h-[48px] inline-flex items-center px-2">Entrar</a>
+      <a href="{% url 'cadastro' %}" class="botao-cutuca text-sm !px-5">Criar conta</a>
+    </div>
+  </div>
+</header>
+
+{# —— Hero: marca + headline + subtítulo + CTAs + visual full-bleed —— #}
+<section class="relative overflow-hidden min-h-[calc(100dvh-4rem)] flex flex-col justify-center">
+  <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
+    <div class="absolute -top-24 -right-24 w-[28rem] h-[28rem] rounded-full bg-primary/15 blur-3xl"></div>
+    <div class="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-primary/10 to-transparent"></div>
+  </div>
+
+  <div class="relative z-10 max-w-5xl mx-auto w-full px-margin-mobile md:px-margin-desktop py-xl grid md:grid-cols-2 gap-lg md:gap-xl items-center">
+    <div class="landing-fade">
+      <p class="font-headline-md text-headline-md md:text-4xl text-primary mb-md tracking-tight">Cutuca</p>
+      <h1 class="font-headline-md text-3xl md:text-5xl text-on-surface leading-tight mb-md">
+        Chame a atenção de quem importa — agora.
+      </h1>
+      <p class="font-body-md text-on-surface-variant text-lg mb-lg max-w-md">
+        Um toque. Sem chat. Sem “viu?”. Só a pessoa certa, na hora certa.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-3 landing-fade-delay">
+        <a href="{% url 'cadastro' %}" class="botao-cutuca text-base">Criar conta</a>
+        <a href="{% url 'login' %}" class="inline-flex items-center justify-center min-h-[48px] px-6 rounded-full border border-outline-variant text-on-surface font-button-text hover:border-primary hover:text-primary transition-colors">Já tenho conta</a>
+      </div>
+    </div>
+
+    <div class="flex justify-center landing-fade-delay-2" aria-hidden="true">
+      <div class="relative flex items-center justify-center w-56 h-56 md:w-72 md:h-72">
+        <div class="absolute inset-0 rounded-full border-2 border-primary/20 landing-pulso"></div>
+        <div class="absolute inset-6 rounded-full border border-primary/30"></div>
+        <div class="botao-cutuca-xl flex flex-col gap-1 shadow-lg">
+          <span class="material-symbols-outlined text-5xl md:text-6xl" style="font-variation-settings: 'FILL' 1;">touch_app</span>
+          <span class="text-sm md:text-base font-button-text">Cutucar</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# —— Problema (PAS) —— #}
+<section class="bg-surface border-y border-outline-variant/40 py-16 md:py-20">
+  <div class="max-w-3xl mx-auto px-margin-mobile md:px-margin-desktop">
+    <h2 class="font-headline-md text-headline-md text-on-surface mb-md">Quando “oi” não basta</h2>
+    <p class="font-body-md text-on-surface-variant text-lg mb-lg">
+      Mensagem no grupo. Ligação que não atende. Áudio que ninguém ouve. Você precisa da atenção de alguém agora — e o chat trata isso como mais uma bolha na lista.
+    </p>
+    <ul class="flex flex-col gap-md text-on-surface font-body-md">
+      <li class="flex gap-3 items-start">
+        <span class="material-symbols-outlined text-primary shrink-0" aria-hidden="true">elderly</span>
+        <span>Filho cuidando da mãe: “preciso saber se ela está bem” — sem esperar a conversa fluir.</span>
+      </li>
+      <li class="flex gap-3 items-start">
+        <span class="material-symbols-outlined text-primary shrink-0" aria-hidden="true">favorite</span>
+        <span>Casal ou amigo próximo: urgência real, sem drama de status “online” mentiroso.</span>
+      </li>
+      <li class="flex gap-3 items-start">
+        <span class="material-symbols-outlined text-primary shrink-0" aria-hidden="true">notifications_off</span>
+        <span>Notificação de chat some no meio de dezenas. O cutucão é feito para ser impossível de ignorar.</span>
+      </li>
+    </ul>
+  </div>
+</section>
+
+{# —— Solução —— #}
+<section class="py-16 md:py-20">
+  <div class="max-w-3xl mx-auto px-margin-mobile md:px-margin-desktop">
+    <h2 class="font-headline-md text-headline-md text-on-surface mb-md">Atenção imediata, só entre próximos</h2>
+    <p class="font-body-md text-on-surface-variant text-lg mb-lg">
+      O Cutuca conecta você às pessoas que autorizaram o vínculo. Um cutucão chega em tempo real — com som, vibração e tela de prioridade. Resposta rápida em um toque: “Já vou”, “Tô ocupado”, “Ligo em 5”.
+    </p>
+    <div class="grid sm:grid-cols-3 gap-md">
+      <div>
+        <p class="font-label-bold text-primary uppercase text-sm mb-2">Um toque</p>
+        <p class="text-on-surface-variant font-body-md text-sm">Segure o botão e cutuque. Sem digitar. Sem abrir chat.</p>
+      </div>
+      <div>
+        <p class="font-label-bold text-primary uppercase text-sm mb-2">Presença real</p>
+        <p class="text-on-surface-variant font-body-md text-sm">Veja quem está alcançável antes de chamar — online, ocupado ou offline.</p>
+      </div>
+      <div>
+        <p class="font-label-bold text-primary uppercase text-sm mb-2">Opt-in</p>
+        <p class="text-on-surface-variant font-body-md text-sm">Só entra nos seus próximos quem aceitar o convite. Zero spam de desconhecidos.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# —— Como funciona —— #}
+<section class="bg-surface border-y border-outline-variant/40 py-16 md:py-20">
+  <div class="max-w-3xl mx-auto px-margin-mobile md:px-margin-desktop">
+    <h2 class="font-headline-md text-headline-md text-on-surface mb-lg">Como funciona</h2>
+    <ol class="flex flex-col gap-lg">
+      <li class="flex gap-md items-start">
+        <span class="shrink-0 w-10 h-10 rounded-full bg-primary text-on-primary font-label-bold flex items-center justify-center">1</span>
+        <div>
+          <p class="font-button-text text-on-surface mb-1">Crie sua conta</p>
+          <p class="text-on-surface-variant font-body-md text-sm">Em menos de um minuto. Nome, usuário e senha.</p>
+        </div>
+      </li>
+      <li class="flex gap-md items-start">
+        <span class="shrink-0 w-10 h-10 rounded-full bg-primary text-on-primary font-label-bold flex items-center justify-center">2</span>
+        <div>
+          <p class="font-button-text text-on-surface mb-1">Convide seus próximos</p>
+          <p class="text-on-surface-variant font-body-md text-sm">Por username ou QR. Eles aceitam — e o vínculo fica mútuo.</p>
+        </div>
+      </li>
+      <li class="flex gap-md items-start">
+        <span class="shrink-0 w-10 h-10 rounded-full bg-primary text-on-primary font-label-bold flex items-center justify-center">3</span>
+        <div>
+          <p class="font-button-text text-on-surface mb-1">Cutuque quando precisar</p>
+          <p class="text-on-surface-variant font-body-md text-sm">Um toque. Eles sentem. Você recebe a resposta na hora.</p>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+{# —— Confiança —— #}
+<section class="py-16 md:py-20">
+  <div class="max-w-3xl mx-auto px-margin-mobile md:px-margin-desktop">
+    <h2 class="font-headline-md text-headline-md text-on-surface mb-md">Feito para quem realmente importa</h2>
+    <ul class="flex flex-col gap-sm text-on-surface-variant font-body-md">
+      <li class="flex gap-2 items-center"><span class="material-symbols-outlined text-secondary text-[20px]" aria-hidden="true">bolt</span> Entrega em tempo real — pensado para menos de 2 segundos</li>
+      <li class="flex gap-2 items-center"><span class="material-symbols-outlined text-secondary text-[20px]" aria-hidden="true">phonelink_lock</span> Só quem você autorizou pode cutucar você</li>
+      <li class="flex gap-2 items-center"><span class="material-symbols-outlined text-secondary text-[20px]" aria-hidden="true">do_not_disturb_on</span> Modo não perturbe — favoritos ainda passam, se você quiser</li>
+      <li class="flex gap-2 items-center"><span class="material-symbols-outlined text-secondary text-[20px]" aria-hidden="true">install_mobile</span> PWA: use no celular como app, com notificações</li>
+    </ul>
+  </div>
+</section>
+
+{# —— Depoimentos —— #}
+<section class="bg-surface border-y border-outline-variant/40 py-16 md:py-20" id="depoimentos">
+  <div class="max-w-5xl mx-auto px-margin-mobile md:px-margin-desktop">
+    <h2 class="font-headline-md text-headline-md text-on-surface mb-2 text-center">Quem cutuca, não espera</h2>
+    <p class="font-body-md text-on-surface-variant text-center mb-lg max-w-xl mx-auto">Histórias de quem precisa da atenção certa — na hora certa.</p>
+    <div class="grid md:grid-cols-3 gap-md">
+      <figure class="rounded-xl border border-outline-variant bg-background p-lg flex flex-col gap-md">
+        <div class="flex gap-0.5 text-primary" aria-hidden="true">
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+        </div>
+        <blockquote class="font-body-md text-on-surface text-sm leading-relaxed flex-1">
+          “Minha mãe não responde mensagem. Com o Cutuca eu chamo e ela sente na hora — sem eu precisar ligar três vezes.”
+        </blockquote>
+        <figcaption class="flex items-center gap-3">
+          <span class="avatar-cutuca w-10 h-10 text-sm bg-primary-fixed text-on-primary-fixed">C</span>
+          <div>
+            <p class="font-label-bold text-on-surface text-sm">Camila</p>
+            <p class="text-on-surface-variant text-xs">Cuida da mãe a distância</p>
+          </div>
+        </figcaption>
+      </figure>
+      <figure class="rounded-xl border border-outline-variant bg-background p-lg flex flex-col gap-md">
+        <div class="flex gap-0.5 text-primary" aria-hidden="true">
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+        </div>
+        <blockquote class="font-body-md text-on-surface text-sm leading-relaxed flex-1">
+          “A gente morava ‘no WhatsApp’ e ainda assim perdia urgência. Agora é um toque: ele sabe que é sério.”
+        </blockquote>
+        <figcaption class="flex items-center gap-3">
+          <span class="avatar-cutuca w-10 h-10 text-sm bg-secondary-container text-on-secondary-container">R</span>
+          <div>
+            <p class="font-label-bold text-on-surface text-sm">Rafael</p>
+            <p class="text-on-surface-variant text-xs">Casal, rotina corrida</p>
+          </div>
+        </figcaption>
+      </figure>
+      <figure class="rounded-xl border border-outline-variant bg-background p-lg flex flex-col gap-md">
+        <div class="flex gap-0.5 text-primary" aria-hidden="true">
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+        </div>
+        <blockquote class="font-body-md text-on-surface text-sm leading-relaxed flex-1">
+          “Não é mais um chat. É o botão de ‘preciso de você agora’ — e só quem eu autorizei aparece.”
+        </blockquote>
+        <figcaption class="flex items-center gap-3">
+          <span class="avatar-cutuca w-10 h-10 text-sm bg-tertiary-container text-on-tertiary-container">J</span>
+          <div>
+            <p class="font-label-bold text-on-surface text-sm">Juliana</p>
+            <p class="text-on-surface-variant text-xs">Amigos próximos</p>
+          </div>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+{# —— Preço —— #}
+<section class="py-16 md:py-20" id="preco">
+  <div class="max-w-3xl mx-auto px-margin-mobile md:px-margin-desktop">
+    <h2 class="font-headline-md text-headline-md text-on-surface mb-2 text-center">Simples como um cutucão</h2>
+    <p class="font-body-md text-on-surface-variant text-center mb-lg">Um plano. Tudo incluso. Cancele quando quiser.</p>
+    <div class="rounded-xl border-2 border-primary bg-surface p-lg flex flex-col sombra-cutuca max-w-md mx-auto w-full">
+      <p class="font-label-bold text-primary uppercase text-sm mb-1">Cutuca</p>
+      <p class="flex items-baseline gap-1 mb-1">
+        <span class="font-headline-md text-4xl text-on-surface">R$&nbsp;14,90</span>
+        <span class="text-on-surface-variant font-body-md text-sm">/mês</span>
+      </p>
+      <p class="text-on-surface-variant font-body-md text-sm mb-lg">Atenção imediata para quem importa — sem limite artificial.</p>
+      <ul class="flex flex-col gap-sm text-on-surface font-body-md text-sm mb-lg">
+        <li class="flex gap-2 items-start"><span class="material-symbols-outlined text-primary text-[20px] shrink-0" aria-hidden="true">check</span> Próximos e cutucões ilimitados</li>
+        <li class="flex gap-2 items-start"><span class="material-symbols-outlined text-primary text-[20px] shrink-0" aria-hidden="true">check</span> Entrega em tempo real + push</li>
+        <li class="flex gap-2 items-start"><span class="material-symbols-outlined text-primary text-[20px] shrink-0" aria-hidden="true">check</span> Presença, favoritos e não perturbe</li>
+        <li class="flex gap-2 items-start"><span class="material-symbols-outlined text-primary text-[20px] shrink-0" aria-hidden="true">check</span> Convite por username ou QR</li>
+        <li class="flex gap-2 items-start"><span class="material-symbols-outlined text-primary text-[20px] shrink-0" aria-hidden="true">check</span> PWA no celular, como app</li>
+      </ul>
+      <a href="{% url 'cadastro' %}" class="botao-cutuca w-full text-base">Começar agora</a>
+      <p class="text-center text-on-surface-variant text-xs font-body-md mt-md">Sem fidelidade. Cancele a qualquer momento.</p>
+    </div>
+  </div>
+</section>
+
+{# —— FAQ —— #}
+<section class="bg-surface border-y border-outline-variant/40 py-16 md:py-20" id="faq">
+  <div class="max-w-3xl mx-auto px-margin-mobile md:px-margin-desktop">
+    <h2 class="font-headline-md text-headline-md text-on-surface mb-lg">Perguntas frequentes</h2>
+    <div class="flex flex-col gap-lg">
+      <div>
+        <h3 class="font-button-text text-on-surface mb-1">Isso não vira spam?</h3>
+        <p class="text-on-surface-variant font-body-md text-sm">Não. Só entram nos seus próximos quem aceitar o convite. Desconhecido não cutuca você.</p>
+      </div>
+      <div>
+        <h3 class="font-button-text text-on-surface mb-1">Por que não usar WhatsApp?</h3>
+        <p class="text-on-surface-variant font-body-md text-sm">Chat é conversa. Cutuca é atenção. Sem digitar, sem thread, sem sumir no meio de mil mensagens — com tela e som de prioridade.</p>
+      </div>
+      <div>
+        <h3 class="font-button-text text-on-surface mb-1">Funciona no iPhone?</h3>
+        <p class="text-on-surface-variant font-body-md text-sm">Sim. Adicione à Tela de Início e ative as notificações. Também há app nativo quando disponível.</p>
+      </div>
+      <div>
+        <h3 class="font-button-text text-on-surface mb-1">E a privacidade?</h3>
+        <p class="text-on-surface-variant font-body-md text-sm">Seus dados servem para operar a conta, os próximos e as notificações. Não vendemos dados. Detalhes nos <a href="{% url 'core:termos_de_uso' %}" class="text-primary font-semibold hover:underline">termos de uso</a>.</p>
+      </div>
+      <div>
+        <h3 class="font-button-text text-on-surface mb-1">Quanto custa?</h3>
+        <p class="text-on-surface-variant font-body-md text-sm">Plano único por <strong class="text-on-surface">R$&nbsp;14,90/mês</strong>, sem fidelidade. Veja <a href="#preco" class="text-primary font-semibold hover:underline">preços</a>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+{# —— CTA final —— #}
+<section class="py-16 md:py-20">
+  <div class="max-w-3xl mx-auto px-margin-mobile md:px-margin-desktop text-center">
+    <h2 class="font-headline-md text-headline-md text-on-surface mb-md">Pronto para cutucar quem importa?</h2>
+    <p class="font-body-md text-on-surface-variant mb-lg">Crie sua conta e convide a primeira pessoa em poucos minutos.</p>
+    <a href="{% url 'cadastro' %}" class="botao-cutuca text-base">Começar agora</a>
+  </div>
+</section>
+
+<footer class="border-t border-outline-variant/40 py-lg px-margin-mobile md:px-margin-desktop">
+  <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-md text-sm text-on-surface-variant font-label-bold">
+    <img src="{% static 'icons/logo-cutuca-online.png' %}" alt="Cutuca.online" class="h-8 w-auto object-contain opacity-80">
+    <div class="flex flex-wrap items-center justify-center gap-4">
+      <a href="{% url 'core:termos_de_uso' %}" class="hover:text-primary transition-colors">Termos de uso</a>
+      <a href="{% url 'login' %}" class="hover:text-primary transition-colors">Entrar</a>
+      <a href="{% url 'cadastro' %}" class="hover:text-primary transition-colors">Criar conta</a>
+    </div>
+  </div>
+</footer>
+{% endblock %}

@@ -29,7 +29,10 @@ from apps.dashboard.push_nativo import ServicoPushNativo
 
 
 class PaginaInicioView(TemplateView):
-    template_name = 'dashboard/index.html'
+    def get_template_names(self):
+        if self.request.user.is_authenticated:
+            return ['dashboard/index.html']
+        return ['landing/index.html']
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
