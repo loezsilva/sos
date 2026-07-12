@@ -64,6 +64,19 @@ class ServicoPush:
             cls._enviar(inscricao_id, payload)
 
     @classmethod
+    def enviar_cutucao_publico(cls, cutucao):
+        if not cls.configurado():
+            return
+
+        from apps.dashboard.models import InscricaoPush
+
+        payload = cutucao.payload_push()
+        for inscricao_id in InscricaoPush.objects.filter(
+            usuario_id=cutucao.destinatario_id,
+        ).values_list('id', flat=True):
+            cls._enviar(inscricao_id, payload)
+
+    @classmethod
     def _enviar(cls, inscricao_id, payload):
         from apps.dashboard.models import InscricaoPush
 

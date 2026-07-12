@@ -83,12 +83,14 @@
     Push.addListener('pushNotificationReceived', async (notificacao) => {
       await vibrarNativo();
       const dados = notificacao.data || {};
-      if (dados.tipo === 'buzina_recebida' && mostrarAlerta) {
+      if ((dados.tipo === 'buzina_recebida' || dados.tipo === 'cutucao_publico_recebido') && mostrarAlerta) {
         mostrarAlerta({
           buzina_id: dados.buzina_id,
           remetente_nome: dados.remetente_nome,
-          remetente_avatar: '',
+          remetente_avatar: dados.remetente_avatar || '',
           mensagem: dados.mensagem || '',
+          origem_publica: dados.tipo === 'cutucao_publico_recebido' || dados.origem_publica === '1',
+          rotulo_origem: 'pelo link público',
         });
         window.BuzzSom?.tocarRecebido?.();
       }
@@ -97,7 +99,12 @@
     Push.addListener('pushNotificationActionPerformed', async (acao) => {
       const dados = acao.notification?.data || {};
       if (dados.buzina_id && mostrarAlerta) {
-        await window.BuzzPush?.sincronizarPendentes?.(mostrarAlerta);
+        const publica = dados.tipo === 'cutucao_publico_recebido'
+          || dados.origem_publica === '1';
+        await window.BuzzPush?.sincronizarPendentes?.(mostrarAlerta, {
+          buzinaId: publica ? null : dados.buzina_id,
+          cutucaoId: publica ? (dados.cutucao_id || dados.buzina_id) : null,
+        });
       }
       if (dados.url) {
         const destino = dados.url.startsWith('/') ? dados.url : `/${dados.url}`;
@@ -107,10 +114,16 @@
 
     App?.addListener?.('appUrlOpen', async (evento) => {
       const url = evento.url || '';
-      const match = url.match(/[?&]buzina=([^&]+)/) || url.match(/buzina\/([^/?#]+)/);
-      if (match && mostrarAlerta) {
-        await window.BuzzPush?.sincronizarPendentes?.(mostrarAlerta);
-        window.location.href = `/?buzina=${match[1]}`;
+      const buzina = url.match(/[?&]buzina=([^&]+)/) || url.match(/buzina\/([^/?#]+)/);
+      const cutucao = url.match(/[?&]cutucao=([^&]+)/);
+      if ((buzina || cutucao) && mostrarAlerta) {
+        await window.BuzzPush?.sincronizarPendentes?.(mostrarAlerta, {
+          buzinaId: buzina?.[1] || null,
+          cutucaoId: cutucao?.[1] || null,
+        });
+        window.location.href = buzina
+          ? `/?buzina=${buzina[1]}`
+          : `/?cutucao=${cutucao[1]}`;
       }
     });
   }
@@ -194,9 +207,10 @@
       }
 
       const params = new URLSearchParams(window.location.search);
-      if (params.get('buzina')) {
-        await window.BuzzPush?.sincronizarPendentes?.(mostrarAlerta);
-      }
+      await window.BuzzPush?.sincronizarPendentes?.(mostrarAlerta, {
+        buzinaId: params.get('buzina'),
+        cutucaoId: params.get('cutucao'),
+      });
     } catch {
       /* push nativo opcional */
     }

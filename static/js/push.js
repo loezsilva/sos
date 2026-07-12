@@ -142,15 +142,17 @@
     notificacoes.forEach((n) => n.close());
   }
 
-  async function sincronizarPendentes(mostrarAlerta) {
+  async function sincronizarPendentes(mostrarAlerta, filtro = {}) {
     const dados = await buscarJson(URL_PENDENTES);
     if (!dados.ok || !dados.pendentes?.length) return;
 
     const params = new URLSearchParams(window.location.search);
-    const buzinaDeepLink = params.get('buzina');
+    const buzinaDeepLink = filtro.buzinaId || params.get('buzina');
+    const cutucaoDeepLink = filtro.cutucaoId || params.get('cutucao');
 
     dados.pendentes.forEach((payload) => {
       if (buzinaDeepLink && payload.buzina_id !== buzinaDeepLink) return;
+      if (cutucaoDeepLink && payload.cutucao_id !== cutucaoDeepLink) return;
       if (typeof mostrarAlerta === 'function') {
         mostrarAlerta(payload);
         fecharNotificacoesPorTag(payload.buzina_id);
@@ -171,7 +173,10 @@
 
       if (dados.tipo === 'notificacao_clicada') {
         await window.BuzzSom?.desbloquear();
-        await sincronizarPendentes(mostrarAlerta);
+        await sincronizarPendentes(mostrarAlerta, {
+          buzinaId: dados.origem_publica ? null : dados.buzina_id,
+          cutucaoId: dados.origem_publica ? dados.cutucao_id : null,
+        });
       }
     });
   }
@@ -385,11 +390,11 @@
         if (estado === 'ativo') {
           inscricaoAtiva = await (await navigator.serviceWorker.ready).pushManager.getSubscription();
         }
-        await sincronizarPendentes(mostrarAlerta);
         const params = new URLSearchParams(window.location.search);
-        if (params.get('buzina')) {
-          await sincronizarPendentes(mostrarAlerta);
-        }
+        await sincronizarPendentes(mostrarAlerta, {
+          buzinaId: params.get('buzina'),
+          cutucaoId: params.get('cutucao'),
+        });
       }
     } catch {
       /* push opcional — não bloqueia o app */

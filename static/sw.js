@@ -38,6 +38,9 @@ self.addEventListener('push', (event) => {
     data: {
       url: dados.url || '/',
       buzina_id: dados.buzina_id,
+      cutucao_id: dados.cutucao_id,
+      tipo: dados.tipo,
+      origem_publica: Boolean(dados.origem_publica),
       remetente_nome: dados.remetente_nome,
       mensagem: dados.mensagem,
     },
@@ -48,7 +51,13 @@ self.addEventListener('push', (event) => {
       self.registration.showNotification(titulo, opcoes),
       self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientes) => {
         clientes.forEach((cliente) => {
-          cliente.postMessage({ tipo: 'buzina_push', ...dados, titulo, corpo });
+          cliente.postMessage({
+            ...dados,
+            tipo_evento: dados.tipo,
+            tipo: 'buzina_push',
+            titulo,
+            corpo,
+          });
         });
       }),
     ]),
@@ -72,6 +81,8 @@ self.addEventListener('notificationclick', (event) => {
           cliente.postMessage({
             tipo: 'notificacao_clicada',
             buzina_id: event.notification.data?.buzina_id,
+            cutucao_id: event.notification.data?.cutucao_id,
+            origem_publica: event.notification.data?.origem_publica,
             url,
           });
           return;
@@ -117,10 +128,10 @@ self.addEventListener('activate', (event) => {
 // Não precachear HTML (/) — evita UI antiga (ex.: texto "Cutuca" ao lado da logo).
 
 const PRECACHE = [
-  { url: '/static/css/buzz.css', revision: 'cutuca-v2' },
-  { url: '/static/js/push.js', revision: 'cutuca-ios-push-1' },
-  { url: '/static/js/buzz.js', revision: 'cutuca-v2' },
-  { url: '/static/js/push-nativo.js', revision: 'cutuca-v2' },
+  { url: '/static/css/buzz.css', revision: 'pagina-publica-1' },
+  { url: '/static/js/push.js', revision: 'pagina-publica-1' },
+  { url: '/static/js/buzz.js', revision: 'pagina-publica-1' },
+  { url: '/static/js/push-nativo.js', revision: 'pagina-publica-1' },
   { url: '/static/sounds/buzina.wav', revision: null },
   { url: '/static/icons/web-app-manifest-192x192.png', revision: 'cutuca-v2' },
   { url: '/static/icons/favicon.svg', revision: 'cutuca-v2' },

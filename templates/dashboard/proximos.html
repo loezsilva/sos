@@ -30,7 +30,7 @@
     </div>
     {% if user.is_authenticated %}
       <div class="flex items-center gap-sm shrink-0">
-        <button type="button" id="botao-meu-qr" class="app-botao-icone" aria-label="Mostrar meu QR" title="Meu QR">
+        <button type="button" id="botao-meu-qr" class="app-botao-icone" aria-label="Compartilhar por link ou QR" title="Compartilhar">
           <span class="material-symbols-outlined" aria-hidden="true">qr_code_2</span>
         </button>
         <button type="button" id="botao-adicionar" class="app-botao-icone app-botao-icone-primario" aria-label="Adicionar pessoa" title="Adicionar por username">
@@ -118,14 +118,90 @@
 </div>
 
 {% if user.is_authenticated %}
-<dialog id="modal-meu-qr" class="rounded-xl p-0 border-0 bg-transparent max-w-sm w-[calc(100%-2rem)] backdrop:bg-on-surface/40">
-  <div class="bg-surface rounded-xl px-xl py-xl text-center border border-outline-variant sombra-cutuca">
-    <h2 class="font-headline-md text-on-surface mb-sm">Meu QR</h2>
-    <p class="text-on-surface-variant text-sm mb-lg">Escaneie para me adicionar</p>
-    <img src="{% url 'dashboard:meu_qr' %}" alt="QR code de conexão" class="mx-auto w-52 h-52 rounded-xl bg-white p-md" width="208" height="208">
-    <p class="mt-lg font-semibold text-on-surface">@{{ user.username }}</p>
-    <p class="mt-sm text-xs text-on-surface-variant break-all select-all px-sm">{{ url_conectar }}</p>
-    <button type="button" id="fechar-meu-qr" class="mt-lg botao-cutuca w-full">Fechar</button>
+<dialog id="modal-meu-qr" class="rounded-xl p-0 border-0 bg-transparent max-w-md w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto backdrop:bg-on-surface/40">
+  <div class="app-superficie p-lg md:p-xl">
+    <header class="flex items-start justify-between gap-md mb-lg">
+      <div>
+        <p class="app-sobretitulo">Compartilhar</p>
+        <h2 class="font-headline-md text-on-surface font-extrabold">Meu Cutuca</h2>
+        <p class="text-on-surface-variant text-sm mt-xs">Escolha o que a outra pessoa poderá fazer.</p>
+      </div>
+      <button type="button" id="fechar-meu-qr" class="app-botao-icone" aria-label="Fechar">
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+      </button>
+    </header>
+
+    <div class="grid grid-cols-2 gap-xs p-xs rounded-full bg-surface-container-low mb-lg" role="tablist" aria-label="Tipo de compartilhamento">
+      <button type="button" id="aba-cutucar" class="min-h-[48px] rounded-full px-md font-bold text-sm bg-surface text-primary sombra-cutuca" role="tab" aria-selected="true" aria-controls="painel-cutucar" data-aba-compartilhar="cutucar">
+        <span class="material-symbols-outlined align-middle text-[19px] mr-xs" aria-hidden="true">touch_app</span>
+        Cutucar
+      </button>
+      <button type="button" id="aba-conectar" class="min-h-[48px] rounded-full px-md font-bold text-sm text-on-surface-variant" role="tab" aria-selected="false" aria-controls="painel-conectar" data-aba-compartilhar="conectar">
+        <span class="material-symbols-outlined align-middle text-[19px] mr-xs" aria-hidden="true">person_add</span>
+        Conectar
+      </button>
+    </div>
+
+    <section id="painel-cutucar" role="tabpanel" aria-labelledby="aba-cutucar">
+      <div class="flex items-center justify-between gap-md mb-md">
+        <div>
+          <h3 class="font-extrabold text-on-surface">Receber um cutucão</h3>
+          <p class="text-on-surface-variant text-sm mt-xs">Não cria conta nem adiciona aos próximos.</p>
+        </div>
+        <span id="estado-canal-publico" class="shrink-0 text-xs font-bold px-sm py-xs rounded-full {% if canal_publico.ativo %}bg-secondary-container text-on-secondary-container{% else %}bg-surface-container-high text-on-surface-variant{% endif %}">
+          {% if canal_publico.ativo %}Ativo{% else %}Inativo{% endif %}
+        </span>
+      </div>
+
+      <p id="feedback-canal-publico" class="hidden mb-md rounded-xl px-md py-sm text-sm font-bold" role="status" aria-live="polite"></p>
+
+      <div id="canal-publico-ativo" class="{% if not canal_publico.ativo %}hidden{% endif %}">
+        <img id="qr-canal-publico" {% if canal_publico.ativo %}src="{% url 'dashboard:qr_publico' %}?v={{ canal_publico.chave }}"{% endif %} data-src="{% url 'dashboard:qr_publico' %}" alt="QR code para cutucar" class="mx-auto w-44 h-44 rounded-xl bg-white p-sm border border-outline-variant" width="176" height="176">
+        <div class="flex items-center gap-sm mt-md rounded-full px-md min-h-[48px] bg-surface-container-low border border-outline-variant">
+          <input id="input-url-publico" type="text" readonly value="{{ url_cutucar }}" class="min-w-0 flex-1 bg-transparent border-0 text-xs text-on-surface truncate focus:outline-none" aria-label="Link público para cutucar">
+          <button type="button" id="botao-copiar-publico" class="w-10 h-10 shrink-0 rounded-full grid place-items-center text-primary hover:bg-primary-fixed" aria-label="Copiar link público">
+            <span class="material-symbols-outlined text-[20px]" aria-hidden="true">content_copy</span>
+          </button>
+        </div>
+
+        <details class="mt-md border-t border-outline-variant pt-md">
+          <summary class="min-h-[48px] flex items-center justify-between gap-md cursor-pointer text-sm font-bold text-on-surface">
+            Configurar link público
+            <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">expand_more</span>
+          </summary>
+          <div class="flex flex-wrap gap-sm pt-sm">
+            <form method="post" action="{% url 'dashboard:gerenciar_canal_publico' %}" data-gerenciar-canal>
+              {% csrf_token %}
+              <input type="hidden" name="acao" value="desativar">
+              <button type="submit" class="app-acao-secundaria">Desativar</button>
+            </form>
+            <form method="post" action="{% url 'dashboard:gerenciar_canal_publico' %}" data-gerenciar-canal data-confirmacao="Gerar novo link invalida o atual. Continuar?">
+              {% csrf_token %}
+              <input type="hidden" name="acao" value="regenerar">
+              <button type="submit" class="app-acao-secundaria">Gerar novo link</button>
+            </form>
+          </div>
+        </details>
+      </div>
+
+      <div id="canal-publico-inativo" class="app-superficie-suave p-lg text-center {% if canal_publico.ativo %}hidden{% endif %}">
+        <span class="material-symbols-outlined text-primary text-3xl" aria-hidden="true">link_off</span>
+        <p class="text-sm text-on-surface-variant mt-sm">Ative o link para gerar um QR e receber cutucões públicos.</p>
+        <form method="post" action="{% url 'dashboard:gerenciar_canal_publico' %}" class="mt-md" data-gerenciar-canal>
+          {% csrf_token %}
+          <input type="hidden" name="acao" value="ativar">
+          <button type="submit" class="app-acao w-full">Ativar link</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="painel-conectar" class="hidden text-center" role="tabpanel" aria-labelledby="aba-conectar">
+      <h3 class="font-extrabold text-on-surface">Adicionar aos próximos</h3>
+      <p class="text-on-surface-variant text-sm mt-xs mb-md">A outra pessoa abre o convite para se conectar com você.</p>
+      <img src="{% url 'dashboard:meu_qr' %}" alt="QR code de conexão" class="mx-auto w-44 h-44 rounded-xl bg-white p-sm border border-outline-variant" width="176" height="176">
+      <p class="mt-md font-semibold text-on-surface">@{{ user.username }}</p>
+      <p class="mt-xs text-xs text-on-surface-variant break-all select-all px-sm">{{ url_conectar }}</p>
+    </section>
   </div>
 </dialog>
 
@@ -149,7 +225,7 @@
     </div>
     <div class="mt-lg flex gap-md">
       <button type="button" id="fechar-adicionar" class="flex-1 min-h-[48px] py-md rounded-full border border-outline-variant text-on-surface-variant font-button-text">Cancelar</button>
-      <button type="submit" class="flex-1 botao-cutuca">Convidar</button>
+      <button type="submit" class="flex-1 botao-cutuca min-h-[48px]">Convidar</button>
     </div>
   </form>
 </dialog>
@@ -164,6 +240,104 @@
     }
     ligarModal('botao-meu-qr', 'modal-meu-qr', 'fechar-meu-qr');
     ligarModal('botao-adicionar', 'modal-adicionar', 'fechar-adicionar');
+
+    document.querySelectorAll('[data-aba-compartilhar]').forEach((botao) => {
+      botao.addEventListener('click', () => {
+        const ativa = botao.dataset.abaCompartilhar;
+        document.querySelectorAll('[data-aba-compartilhar]').forEach((item) => {
+          const selecionada = item === botao;
+          item.setAttribute('aria-selected', selecionada ? 'true' : 'false');
+          item.classList.toggle('bg-surface', selecionada);
+          item.classList.toggle('text-primary', selecionada);
+          item.classList.toggle('sombra-cutuca', selecionada);
+          item.classList.toggle('text-on-surface-variant', !selecionada);
+        });
+        document.getElementById('painel-cutucar')?.classList.toggle('hidden', ativa !== 'cutucar');
+        document.getElementById('painel-conectar')?.classList.toggle('hidden', ativa !== 'conectar');
+      });
+    });
+
+    function atualizarCanalPublico(dados, acao) {
+      const ativo = Boolean(dados.ativo);
+      const estado = document.getElementById('estado-canal-publico');
+      const blocoAtivo = document.getElementById('canal-publico-ativo');
+      const blocoInativo = document.getElementById('canal-publico-inativo');
+      const input = document.getElementById('input-url-publico');
+      const qr = document.getElementById('qr-canal-publico');
+      const feedback = document.getElementById('feedback-canal-publico');
+
+      blocoAtivo?.classList.toggle('hidden', !ativo);
+      blocoInativo?.classList.toggle('hidden', ativo);
+      if (input && dados.url) input.value = dados.url;
+      if (qr && ativo) qr.src = `${qr.dataset.src}?v=${dados.chave}`;
+
+      if (estado) {
+        estado.textContent = ativo ? 'Ativo' : 'Inativo';
+        estado.className = `shrink-0 text-xs font-bold px-sm py-xs rounded-full ${
+          ativo
+            ? 'bg-secondary-container text-on-secondary-container'
+            : 'bg-surface-container-high text-on-surface-variant'
+        }`;
+      }
+
+      if (feedback) {
+        const mensagens = {
+          ativar: 'Link público ativado.',
+          desativar: 'Link público desativado.',
+          regenerar: 'Novo link gerado. O anterior não funciona mais.',
+        };
+        feedback.textContent = mensagens[acao] || 'Link público atualizado.';
+        feedback.className = 'mb-md rounded-xl px-md py-sm text-sm font-bold bg-secondary-container text-on-secondary-container';
+      }
+
+      document.querySelector('#canal-publico-ativo details')?.removeAttribute('open');
+    }
+
+    document.querySelectorAll('[data-gerenciar-canal]').forEach((form) => {
+      form.addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+        if (form.dataset.confirmacao && !window.confirm(form.dataset.confirmacao)) return;
+
+        const botao = form.querySelector('[type="submit"]');
+        const acao = form.querySelector('[name="acao"]')?.value;
+        if (botao) botao.disabled = true;
+
+        try {
+          const resposta = await fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            credentials: 'same-origin',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'Accept': 'application/json',
+            },
+          });
+          const dados = await resposta.json();
+          if (!resposta.ok || dados.erro) throw new Error(dados.erro || 'Não foi possível atualizar o link.');
+          atualizarCanalPublico(dados, acao);
+        } catch (erro) {
+          const feedback = document.getElementById('feedback-canal-publico');
+          if (feedback) {
+            feedback.textContent = erro.message;
+            feedback.className = 'mb-md rounded-xl px-md py-sm text-sm font-bold bg-error-container text-on-error-container';
+          }
+        } finally {
+          if (botao) botao.disabled = false;
+        }
+      });
+    });
+
+    document.getElementById('botao-copiar-publico')?.addEventListener('click', async () => {
+      const input = document.getElementById('input-url-publico');
+      if (!input) return;
+      try {
+        await navigator.clipboard.writeText(input.value);
+        window.mostrarToastPush?.('Link copiado');
+      } catch (_) {
+        input.select();
+        document.execCommand('copy');
+      }
+    });
   })();
 </script>
 {% endif %}

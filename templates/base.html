@@ -16,7 +16,7 @@
   <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/buzz.css' %}?v=cutuca-landing-1">
+  <link rel="stylesheet" href="{% static 'css/buzz.css' %}?v=pagina-publica-1">
   {% if user.is_authenticated %}<link rel="stylesheet" href="{% static 'css/app.css' %}?v=experiencia-app-1">{% endif %}
   {% block extra_css %}{% endblock %}
 </head>
@@ -51,9 +51,9 @@
     }
   </script>
   {% if user.is_authenticated %}
-    <script src="{% static 'js/push-nativo.js' %}?v=cutuca-ios-push-1"></script>
-    <script src="{% static 'js/push.js' %}?v=cutuca-ios-push-1"></script>
-    <script src="{% static 'js/buzz.js' %}?v=cutuca-ios-push-1"></script>
+    <script src="{% static 'js/push-nativo.js' %}?v=pagina-publica-1"></script>
+    <script src="{% static 'js/push.js' %}?v=pagina-publica-1"></script>
+    <script src="{% static 'js/buzz.js' %}?v=pagina-publica-1"></script>
   {% endif %}
 </body>
 </html>

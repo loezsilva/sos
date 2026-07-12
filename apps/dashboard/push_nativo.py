@@ -73,24 +73,43 @@ class ServicoPushNativo:
         if not cls.configurado() or getattr(buzina, 'silenciada', False):
             return
 
-        from apps.dashboard.models import InscricaoNativa, PlataformaNativa
+        from apps.dashboard.models import PlataformaNativa
         from firebase_admin import messaging
 
         cls._firebase()
         payload = buzina.payload_push()
+        cls._disparar(payload, buzina.destinatario_id, messaging, PlataformaNativa)
+
+    @classmethod
+    def enviar_cutucao_publico(cls, cutucao):
+        if not cls.configurado():
+            return
+
+        from apps.dashboard.models import PlataformaNativa
+        from firebase_admin import messaging
+
+        cls._firebase()
+        payload = cutucao.payload_push()
+        cls._disparar(payload, cutucao.destinatario_id, messaging, PlataformaNativa)
+
+    @classmethod
+    def _disparar(cls, payload, destinatario_id, messaging, PlataformaNativa):
+        from apps.dashboard.models import InscricaoNativa
+
         dados = {
             'tipo': payload['tipo'],
             'buzina_id': payload['buzina_id'],
+            'cutucao_id': payload.get('cutucao_id', ''),
             'remetente_nome': payload['remetente_nome'],
+            'remetente_avatar': payload.get('remetente_avatar', ''),
             'mensagem': payload['mensagem'] or '',
             'url': payload['url'],
             'titulo': payload['titulo'],
             'corpo': payload['corpo'],
+            'origem_publica': '1' if payload.get('origem_publica') else '0',
         }
 
-        for inscricao in InscricaoNativa.objects.filter(
-            usuario_id=buzina.destinatario_id
-        ):
+        for inscricao in InscricaoNativa.objects.filter(usuario_id=destinatario_id):
             dados_str = {chave: str(valor) for chave, valor in dados.items()}
             if inscricao.plataforma == PlataformaNativa.ANDROID:
                 mensagem = messaging.Message(

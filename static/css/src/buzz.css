@@ -341,3 +341,23 @@
     transform: translate(-50%, 0);
   }
 }
+
+#alerta-buzina.alerta-origem-publica .animacao-ripple-alerta,
+#alerta-buzina.alerta-origem-publica .animate-pulse {
+  animation: none;
+}
+
+#alerta-buzina.alerta-origem-publica .animacao-ripple-alerta {
+  opacity: 0.2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animacao-ripple,
+  .animacao-ripple-alerta,
+  .animacao-flutuar,
+  .pulso-buzz,
+  .pulso-cutuca,
+  .animate-pulse {
+    animation: none !important;
+  }
+}

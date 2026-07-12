@@ -3,7 +3,14 @@ from django.urls import reverse
 from unittest.mock import patch
 
 from apps.accounts.models import User
-from apps.dashboard.models import Buzina, ConviteCirculo, MembroCirculo, StatusPresenca
+from apps.dashboard.models import (
+    Buzina,
+    CanalPublico,
+    ConviteCirculo,
+    CutucaoPublico,
+    MembroCirculo,
+    StatusPresenca,
+)
 from apps.dashboard.presenca import Presenca
 from apps.dashboard.push_nativo import ServicoPushNativo
 
@@ -553,6 +560,18 @@ class TestConviteCirculo:
         assert resposta['Content-Type'] == 'image/png'
         assert resposta.content[:8] == b'\x89PNG\r\n\x1a\n'
 
+    def test_compartilhamento_fica_no_modal_de_qr(self, client, usuarios):
+        alice, _ = usuarios
+        client.force_login(alice)
+
+        resposta = client.get(reverse('dashboard:proximos'))
+        html = resposta.content.decode()
+
+        assert 'id="modal-meu-qr"' in html
+        assert 'id="painel-cutucar"' in html
+        assert 'id="painel-conectar"' in html
+        assert 'Receber cutucões sem conexão' not in html
+
 
 @pytest.mark.django_db
 class TestLandingVendas:
@@ -576,3 +595,318 @@ class TestLandingVendas:
         assert 'Criar conta grátis' not in html
         assert 'landing-fade' not in html
         assert 'home_app_logo' in html
+
+
+@pytest.mark.django_db
+class TestCanalPublico:
+    def test_criar_e_regenerar(self, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        chave = canal.chave
+        canal.regenerar()
+        assert canal.chave != chave
+        assert canal.ativo is True
+        assert CanalPublico.ativo_por_chave(chave) is None
+
+    def test_desativar_retorna_404(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        canal.desativar()
+        resposta = client.get(
+            reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
+        )
+        assert resposta.status_code == 404
+
+    def test_normalizar_nickname(self):
+        assert CutucaoPublico.normalizar_nickname('  Ana  Maria ') == 'Ana Maria'
+        with pytest.raises(ValueError):
+            CutucaoPublico.normalizar_nickname('a')
+        with pytest.raises(ValueError):
+            CutucaoPublico.normalizar_nickname('x' * 41)
+        with pytest.raises(ValueError):
+            CutucaoPublico.normalizar_nickname('Visitante\u202e')
+
+    def test_nome_publico_nao_expoe_username(self, usuarios):
+        alice, _ = usuarios
+        alice.name = ''
+        alice.save(update_fields=['name'])
+        canal = CanalPublico.obter_ou_criar_para(alice)
+
+        assert canal.nome_publico == 'alguém'
+        assert alice.username not in canal.nome_publico
+
+    def test_impede_proprio_canal(self, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        with pytest.raises(ValueError):
+            CutucaoPublico.enviar(canal, remetente=alice)
+
+
+@pytest.mark.django_db
+class TestPaginaCutucarPublico:
+    def test_get_anonimo(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        resposta = client.get(
+            reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
+        )
+        assert resposta.status_code == 200
+        html = resposta.content.decode()
+        assert 'Alice' in html
+        assert 'nickname' in html or 'Seu nome' in html
+        assert alice.email not in html
+        assert f'@{alice.username}' not in html
+        assert 'css/app.css' in html
+
+    def test_get_autenticado_sem_nickname(self, client, usuarios):
+        alice, bob = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        client.force_login(bob)
+        resposta = client.get(
+            reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
+        )
+        assert resposta.status_code == 200
+        html = resposta.content.decode()
+        assert 'Como quer ser chamado' not in html
+        assert 'Bob' in html
+
+    def test_post_anonimo(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        url = reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
+        with patch.object(CutucaoPublico, '_notificar'), patch(
+            'apps.dashboard.push.ServicoPush.enviar_cutucao_publico'
+        ), patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'):
+            resposta = client.post(
+                url,
+                {'nickname': 'Visitante'},
+                HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+                HTTP_ACCEPT='application/json',
+            )
+        assert resposta.status_code == 200
+        dados = resposta.json()
+        assert dados['ok'] is True
+        cutucao = CutucaoPublico.objects.get()
+        assert cutucao.nickname == 'Visitante'
+        assert cutucao.remetente_id is None
+        assert client.session.get('cutucao_publico_nickname') == 'Visitante'
+
+    def test_post_autenticado_ignora_nickname(self, client, usuarios):
+        alice, bob = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        client.force_login(bob)
+        url = reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
+        with patch.object(CutucaoPublico, '_notificar'), patch(
+            'apps.dashboard.push.ServicoPush.enviar_cutucao_publico'
+        ), patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'):
+            resposta = client.post(
+                url,
+                {'nickname': 'Fake'},
+                HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+                HTTP_ACCEPT='application/json',
+            )
+        assert resposta.status_code == 200
+        cutucao = CutucaoPublico.objects.get()
+        assert cutucao.remetente_id == bob.id
+        assert cutucao.nickname == ''
+        assert cutucao.nome_exibicao == 'Bob'
+
+    def test_post_proprio_link(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        client.force_login(alice)
+        resposta = client.post(
+            reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave}),
+            {},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+            HTTP_ACCEPT='application/json',
+        )
+        assert resposta.status_code == 400
+        assert CutucaoPublico.objects.count() == 0
+
+    def test_csrf_obrigatorio(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        client.handler.enforce_csrf_checks = True
+        resposta = client.post(
+            reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave}),
+            {'nickname': 'X'},
+        )
+        assert resposta.status_code == 403
+
+    def test_rate_limit(self, client, usuarios, settings):
+        settings.CUTUCAO_PUBLICO_MAX_POR_MINUTO = 2
+        settings.CUTUCAO_PUBLICO_COOLDOWN_SEGUNDOS = 0
+        settings.CUTUCAO_PUBLICO_CONFIAR_X_FORWARDED_FOR = False
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        url = reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
+        with patch.object(CutucaoPublico, '_notificar'), patch(
+            'apps.dashboard.push.ServicoPush.enviar_cutucao_publico'
+        ), patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'):
+            for indice in range(2):
+                resposta = client.post(
+                    url,
+                    {'nickname': 'Spam'},
+                    HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+                    HTTP_ACCEPT='application/json',
+                    HTTP_X_FORWARDED_FOR=f'198.51.100.{indice}',
+                )
+                assert resposta.status_code == 200
+            resposta = client.post(
+                url,
+                {'nickname': 'Spam'},
+                HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+                HTTP_ACCEPT='application/json',
+                HTTP_X_FORWARDED_FOR='203.0.113.50',
+            )
+
+        assert resposta.status_code == 429
+        assert resposta.json()['codigo'] == 'rate_limit'
+        assert CutucaoPublico.objects.count() == 2
+
+    def test_qr_publico_png(self, client, usuarios):
+        alice, _ = usuarios
+        client.force_login(alice)
+        resposta = client.get(reverse('dashboard:qr_publico'))
+        assert resposta.status_code == 200
+        assert resposta['Content-Type'] == 'image/png'
+
+    def test_qr_publico_inativo_retorna_404(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        canal.desativar()
+        client.force_login(alice)
+
+        assert client.get(reverse('dashboard:qr_publico')).status_code == 404
+
+    def test_regenerar_invalida_url(self, client, usuarios):
+        alice, _ = usuarios
+        client.force_login(alice)
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        antiga = canal.chave
+        client.post(
+            reverse('dashboard:gerenciar_canal_publico'),
+            {'acao': 'regenerar'},
+        )
+        canal.refresh_from_db()
+        assert canal.chave != antiga
+        assert (
+            client.get(
+                reverse('dashboard:cutucar_publico', kwargs={'chave': antiga})
+            ).status_code
+            == 404
+        )
+
+    def test_gerenciar_canal_ajax_retorna_estado_sem_redirecionar(
+        self, client, usuarios
+    ):
+        alice, _ = usuarios
+        client.force_login(alice)
+        canal = CanalPublico.obter_ou_criar_para(alice)
+
+        resposta = client.post(
+            reverse('dashboard:gerenciar_canal_publico'),
+            {'acao': 'desativar'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+            HTTP_ACCEPT='application/json',
+        )
+
+        canal.refresh_from_db()
+        assert resposta.status_code == 200
+        assert resposta.json()['ativo'] is False
+        assert canal.ativo is False
+
+
+@pytest.mark.django_db
+class TestCutucaoPublicoEntrega:
+    def test_payload_e_atividades(self, client, usuarios):
+        alice, bob = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        with patch.object(CutucaoPublico, '_notificar') as notificar, patch(
+            'apps.dashboard.push.ServicoPush.enviar_cutucao_publico'
+        ) as push_web, patch(
+            'apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'
+        ) as push_nat:
+            cutucao = CutucaoPublico.enviar(canal, nickname='Lia')
+        notificar.assert_called_once()
+        push_web.assert_called_once_with(cutucao)
+        push_nat.assert_called_once_with(cutucao)
+        payload = cutucao.payload_recebida()
+        assert payload['tipo'] == 'cutucao_publico_recebido'
+        assert payload['origem_publica'] is True
+        assert payload['remetente_nome'] == 'Lia'
+
+        client.force_login(alice)
+        resposta = client.get(reverse('dashboard:notificacoes'))
+        dados = resposta.json()
+        assert any(i.get('origem_publica') for i in dados['itens'])
+        assert dados['nao_lidas'] >= 1
+
+    def test_cutucao_publico_entra_no_catch_up(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        cutucao = CutucaoPublico.objects.create(
+            canal=canal,
+            destinatario=alice,
+            nickname='Lia',
+        )
+        client.force_login(alice)
+
+        resposta = client.get(reverse('dashboard:buzinas_pendentes'))
+
+        assert resposta.status_code == 200
+        assert resposta.json()['pendentes'] == [cutucao.payload_recebida()]
+
+    def test_dispensar_remove_cutucao_do_catch_up(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        cutucao = CutucaoPublico.objects.create(
+            canal=canal,
+            destinatario=alice,
+            nickname='Lia',
+        )
+        client.force_login(alice)
+
+        resposta = client.post(
+            reverse('dashboard:dispensar_cutucao_publico', args=[cutucao.id])
+        )
+
+        assert resposta.status_code == 200
+        assert CutucaoPublico.pendentes_para(alice).count() == 0
+
+    def test_marcar_atividades_publicas_como_lidas(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        cutucao = CutucaoPublico.objects.create(
+            canal=canal,
+            destinatario=alice,
+            nickname='Lia',
+        )
+        client.force_login(alice)
+
+        resposta = client.post(reverse('dashboard:marcar_notificacoes_lidas'))
+
+        cutucao.refresh_from_db()
+        assert resposta.status_code == 200
+        assert cutucao.lida_em is not None
+
+    def test_falha_de_push_nao_descarta_envio(self, client, usuarios, settings):
+        settings.CUTUCAO_PUBLICO_COOLDOWN_SEGUNDOS = 0
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        url = reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
+
+        with patch.object(CutucaoPublico, '_notificar'), patch(
+            'apps.dashboard.push.ServicoPush.enviar_cutucao_publico',
+            side_effect=RuntimeError('push indisponível'),
+        ), patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'):
+            resposta = client.post(
+                url,
+                {'nickname': 'Lia'},
+                HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+                HTTP_ACCEPT='application/json',
+            )
+
+        assert resposta.status_code == 200
+        assert CutucaoPublico.objects.filter(nickname='Lia').count() == 1

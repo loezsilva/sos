@@ -1,4 +1,7 @@
-from apps.dashboard.models import Buzina, MembroCirculo, StatusPresenca
+from types import SimpleNamespace
+
+from apps.dashboard.atividades import atividades_mescladas, nao_lidas_total
+from apps.dashboard.models import MembroCirculo, StatusPresenca
 from apps.dashboard.presenca import Presenca
 
 
@@ -7,18 +10,38 @@ def notificacoes(request):
         return {'nao_lidas': 0, 'notificacoes_recentes': []}
 
     usuario = request.user
-    recentes = [
-        {
-            'buzina': b,
-            'membro_id': b.membro_id_para(usuario),
-            'contato': b.contato_para(usuario),
-            'rotulo': b.rotulo_atividade(usuario),
-            'lida': b.lida_em is not None,
-        }
-        for b in Buzina.objects.atividades_recentes(usuario, 15)
-    ]
+    recentes = []
+    for _, tipo, obj in atividades_mescladas(usuario, 15):
+        if tipo == 'buzina':
+            recentes.append(
+                {
+                    'buzina': obj,
+                    'membro_id': obj.membro_id_para(usuario),
+                    'contato': obj.contato_para(usuario),
+                    'rotulo': obj.rotulo_atividade(usuario),
+                    'lida': obj.lida_em is not None,
+                    'origem_publica': False,
+                }
+            )
+        else:
+            contato = obj.remetente or SimpleNamespace(
+                name=obj.nickname,
+                username=obj.nickname,
+                avatar=None,
+            )
+            recentes.append(
+                {
+                    'buzina': obj,
+                    'membro_id': None,
+                    'contato': contato,
+                    'rotulo': 'Cutucão pelo link público',
+                    'lida': obj.lida_em is not None,
+                    'origem_publica': True,
+                }
+            )
+
     return {
-        'nao_lidas': Buzina.objects.nao_lidas_de(usuario).count(),
+        'nao_lidas': nao_lidas_total(usuario),
         'notificacoes_recentes': recentes,
     }
 

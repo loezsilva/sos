@@ -59,6 +59,29 @@
 
     <section class="app-superficie app-config-card">
       <div class="app-config-icone">
+        <span class="material-symbols-outlined" aria-hidden="true">link</span>
+      </div>
+      <span class="app-rotulo">Link público</span>
+      <h2>Receber cutucões</h2>
+      <p>
+        {% if canal_publico.ativo %}
+          Link ativo — compartilhe para receber cutucões sem conexão.
+        {% else %}
+          Link desativado. Ative em Próximos para voltar a receber.
+        {% endif %}
+      </p>
+      {% if url_cutucar %}
+        <p class="mt-md text-xs text-on-surface-variant break-all {% if canal_publico.ativo %}select-all{% else %}opacity-60{% endif %}">
+          {% if not canal_publico.ativo %}<strong>Link inativo:</strong> {% endif %}{{ url_cutucar }}
+        </p>
+      {% endif %}
+      <a href="{% url 'dashboard:proximos' %}" class="app-acao-secundaria mt-lg inline-flex">
+        Gerenciar em Próximos
+      </a>
+    </section>
+
+    <section class="app-superficie app-config-card">
+      <div class="app-config-icone">
         <span class="material-symbols-outlined" aria-hidden="true">person</span>
       </div>
       <span class="app-rotulo">Conta</span>

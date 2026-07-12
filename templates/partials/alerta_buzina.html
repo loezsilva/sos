@@ -8,10 +8,10 @@
 
   <main class="relative z-10 flex flex-col items-center w-full min-h-[100dvh] px-margin-mobile py-xl md:px-margin-desktop max-w-md mx-auto">
     <header class="w-full text-center mt-md flex-shrink-0">
-      <h1 class="font-display-lg-mobile text-display-lg-mobile text-on-surface mb-2 tracking-tighter">
+      <h1 id="alerta-titulo" class="font-display-lg-mobile text-display-lg-mobile text-on-surface mb-2 tracking-tighter">
         Cutucão recebido
       </h1>
-      <p class="font-headline-md text-headline-md text-primary animate-pulse">
+      <p id="alerta-subtitulo" class="font-headline-md text-headline-md text-primary animate-pulse">
         Prioridade urgente
       </p>
     </header>
@@ -34,13 +34,14 @@
 
     <div class="w-full flex-shrink-0 flex flex-col gap-md mb-xl z-20">
       <div class="flex flex-col items-center gap-sm">
-        <h2 class="text-center font-body-lg text-body-lg text-on-surface-variant">
+        <h2 id="alerta-contexto" class="text-center font-body-lg text-body-lg text-on-surface-variant">
           está cutucando você!
         </h2>
+        <p id="alerta-identidade-publica" class="hidden text-center text-xs font-label-bold text-on-surface-variant uppercase tracking-wide"></p>
         <p id="alerta-mensagem" class="hidden text-center font-headline-md text-headline-md text-on-surface px-2"></p>
       </div>
 
-      <div class="grid grid-cols-1 gap-sm w-full mt-sm">
+      <div id="alerta-respostas" class="grid grid-cols-1 gap-sm w-full mt-sm">
         <button type="button" data-resposta="ja_vou" class="alerta-resposta w-full py-3 px-6 rounded-full bg-surface text-on-surface font-button-text border border-outline-variant sombra-cutuca hover:bg-surface-container-low active:scale-95 transition-all min-h-[48px]">
           Já vou
         </button>

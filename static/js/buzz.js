@@ -287,17 +287,55 @@
     }, INTERVALO_SLIDER_MS);
   }
 
+  let alertaOrigemPublica = false;
+
   function mostrarAlertaRecebido(dados) {
     buzinaRecebida = dados.buzina_id;
+    alertaOrigemPublica = Boolean(dados.origem_publica);
     const alerta = document.getElementById('alerta-buzina');
     const nome = document.getElementById('alerta-remetente');
     const avatar = document.getElementById('alerta-avatar');
     const mensagem = document.getElementById('alerta-mensagem');
+    const titulo = document.getElementById('alerta-titulo');
+    const subtitulo = document.getElementById('alerta-subtitulo');
+    const contexto = document.getElementById('alerta-contexto');
+    const identidadePublica = document.getElementById('alerta-identidade-publica');
+    const respostas = document.getElementById('alerta-respostas');
+    const dispensar = document.getElementById('alerta-recusar');
 
     if (!alerta || !nome) return;
 
+    alerta.classList.toggle('alerta-origem-publica', alertaOrigemPublica);
     nome.textContent = dados.remetente_nome;
     definirAvatar(avatar, dados.remetente_nome, dados.remetente_avatar);
+
+    if (titulo) {
+      titulo.textContent = alertaOrigemPublica
+        ? 'Cutucão pelo link público'
+        : 'Cutucão recebido';
+    }
+    if (subtitulo) {
+      subtitulo.textContent = alertaOrigemPublica
+        ? 'Chamada externa'
+        : 'Prioridade urgente';
+    }
+    if (contexto) {
+      contexto.textContent = alertaOrigemPublica
+        ? `${dados.remetente_nome} usou seu link para chamar você.`
+        : 'está cutucando você!';
+    }
+    if (identidadePublica) {
+      identidadePublica.textContent = dados.origem_anonima
+        ? 'Nome informado pelo visitante'
+        : 'Conta Cutuca via link público';
+      identidadePublica.classList.toggle('hidden', !alertaOrigemPublica);
+    }
+    if (respostas) {
+      respostas.classList.toggle('hidden', alertaOrigemPublica);
+    }
+    if (dispensar) {
+      dispensar.setAttribute('aria-label', alertaOrigemPublica ? 'Fechar' : 'Dispensar');
+    }
 
     if (mensagem) {
       const texto = (dados.mensagem || '').trim();
@@ -820,6 +858,12 @@
 
   async function responderBuzina(opcoes = {}) {
     if (!buzinaRecebida) return;
+    if (alertaOrigemPublica) {
+      await postForm(`/api/cutucao-publico/${buzinaRecebida}/dispensar/`, {});
+      alertaOrigemPublica = false;
+      ocultarAlertaRecebido();
+      return;
+    }
     await postForm(`/api/buzina/${buzinaRecebida}/responder/`, opcoes);
     ocultarAlertaRecebido();
   }
@@ -875,16 +919,19 @@
     const avatar = item.contato_avatar
       ? `<img class="w-full h-full object-cover" src="${item.contato_avatar}" alt="${item.contato_nome}">`
       : '<span class="material-symbols-outlined text-outline">person</span>';
-    const href = item.membro_id ? `/proximos/${item.membro_id}/chamar/` : '#';
     const naoLida = !item.lida;
-    return `<a href="${href}" class="item-notificacao flex items-center gap-3 px-4 py-3 hover:bg-surface-container-low transition-colors no-underline ${naoLida ? 'bg-primary-container/10' : ''}" data-buzina-id="${item.buzina_id}">
+    const classe = `item-notificacao flex items-center gap-3 px-4 py-3 ${item.membro_id ? 'hover:bg-surface-container-low transition-colors no-underline' : ''} ${naoLida ? 'bg-primary-container/10' : ''}`;
+    const miolo = `
       <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden border border-white/10">${avatar}</div>
       <div class="min-w-0 flex-1">
         <p class="font-button-text text-button-text text-on-surface truncate">${item.contato_nome}</p>
         <p class="font-label-bold text-label-bold text-on-surface-variant text-xs mt-0.5 truncate">${item.rotulo}</p>
       </div>
-      <time class="font-label-bold text-label-bold text-outline text-xs shrink-0">${formatarTempoRelativo(item.horario)}</time>
-    </a>`;
+      <time class="font-label-bold text-label-bold text-outline text-xs shrink-0">${formatarTempoRelativo(item.horario)}</time>`;
+    if (item.membro_id) {
+      return `<a href="/proximos/${item.membro_id}/chamar/" class="${classe}" data-buzina-id="${item.buzina_id}">${miolo}</a>`;
+    }
+    return `<div class="${classe}" data-buzina-id="${item.buzina_id}">${miolo}</div>`;
   }
 
   async function carregarNotificacoes() {
@@ -1251,7 +1298,7 @@
 
     socket.onmessage = (evento) => {
       const dados = JSON.parse(evento.data);
-      if (dados.tipo === 'buzina_recebida') {
+      if (dados.tipo === 'buzina_recebida' || dados.tipo === 'cutucao_publico_recebido') {
         mostrarAlertaRecebido(dados);
       } else if (dados.tipo === 'resposta_recebida') {
         mostrarRespostaNaChamada(dados);

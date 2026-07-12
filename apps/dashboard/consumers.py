@@ -4,7 +4,7 @@ import json
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-from apps.dashboard.models import Buzina
+from apps.dashboard.atividades import alertas_pendentes
 from apps.dashboard.presenca import Presenca
 
 
@@ -53,7 +53,7 @@ class BuzzConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def _pendentes_ativas(self, usuario):
-        return [b.payload_recebida() for b in Buzina.pendentes_ativas_para(usuario)]
+        return alertas_pendentes(usuario)
 
     async def _entregar_pendentes(self, usuario):
         for payload in await self._pendentes_ativas(usuario):
@@ -65,6 +65,9 @@ class BuzzConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps(payload))
 
     async def buzina_recebida(self, event):
+        await self.send(text_data=json.dumps(event['payload']))
+
+    async def cutucao_publico_recebido(self, event):
         await self.send(text_data=json.dumps(event['payload']))
 
     async def resposta_recebida(self, event):

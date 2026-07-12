@@ -1,8 +1,15 @@
+{% if item.membro_id %}
 <a
-  href="{% if item.membro_id %}{% url 'dashboard:chamar_contato' item.membro_id %}{% else %}#{% endif %}"
+  href="{% url 'dashboard:chamar_contato' item.membro_id %}"
   class="item-notificacao flex items-center gap-3 px-4 py-3 hover:bg-surface-container-low transition-colors no-underline {% if not item.lida %}bg-primary-container/10{% endif %}"
   data-buzina-id="{{ item.buzina.id }}"
 >
+{% else %}
+<div
+  class="item-notificacao flex items-center gap-3 px-4 py-3 {% if not item.lida %}bg-primary-container/10{% endif %}"
+  data-buzina-id="{{ item.buzina.id }}"
+>
+{% endif %}
   <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden border border-outline-variant">
     {% if item.contato.avatar %}
       <img class="w-full h-full object-cover" src="{{ item.contato.avatar.url }}" alt="{{ item.contato.name|default:item.contato.username }}">
@@ -21,4 +28,8 @@
   <time class="font-label-bold text-label-bold text-outline text-xs shrink-0" datetime="{{ item.buzina.created_at|date:'c' }}">
     {{ item.buzina.created_at|timesince }} atrás
   </time>
+{% if item.membro_id %}
 </a>
+{% else %}
+</div>
+{% endif %}

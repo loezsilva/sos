@@ -1,3 +1,6 @@
+import logging
+import unicodedata
+import uuid
 from datetime import timedelta
 
 from asgiref.sync import async_to_sync
@@ -8,6 +11,8 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.core.models import BaseModel
+
+logger = logging.getLogger(__name__)
 
 
 class StatusPresenca(models.TextChoices):
@@ -448,6 +453,9 @@ class Buzina(BaseModel):
             'tipo': 'buzina_recebida',
             'buzina_id': str(self.id),
             'remetente_nome': nome,
+            'remetente_avatar': self.remetente.avatar.url
+            if self.remetente.avatar
+            else '',
             'mensagem': self.mensagem,
             'titulo': titulo,
             'corpo': corpo,
@@ -676,3 +684,278 @@ class InscricaoPush(BaseModel):
 
     def __str__(self):
         return f'Push de {self.usuario}'
+
+
+class CanalPublico(BaseModel):
+    proprietario = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='canal_publico',
+        verbose_name='Proprietário',
+    )
+    chave = models.UUIDField('Chave pública', default=uuid.uuid4, unique=True, editable=False)
+    ativo = models.BooleanField('Ativo', default=True)
+    regenerado_em = models.DateTimeField('Regenerado em', null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Canal público'
+        verbose_name_plural = 'Canais públicos'
+
+    def __str__(self):
+        return f'Canal de {self.proprietario}'
+
+    @property
+    def nome_publico(self):
+        return self.proprietario.name.strip() or 'alguém'
+
+    @classmethod
+    def obter_ou_criar_para(cls, usuario):
+        canal, _ = cls.objects.get_or_create(proprietario=usuario)
+        return canal
+
+    @classmethod
+    def ativo_por_chave(cls, chave):
+        return (
+            cls.objects.filter(chave=chave, ativo=True)
+            .select_related('proprietario')
+            .first()
+        )
+
+    def desativar(self):
+        if not self.ativo:
+            return self
+        self.ativo = False
+        self.save(update_fields=['ativo', 'updated_at'])
+        return self
+
+    def ativar(self):
+        if self.ativo:
+            return self
+        self.ativo = True
+        self.save(update_fields=['ativo', 'updated_at'])
+        return self
+
+    def regenerar(self):
+        self.chave = uuid.uuid4()
+        self.ativo = True
+        self.regenerado_em = timezone.now()
+        self.save(update_fields=['chave', 'ativo', 'regenerado_em', 'updated_at'])
+        return self
+
+
+class CutucaoPublicoQuerySet(models.QuerySet):
+    def do_destinatario(self, usuario):
+        return self.filter(destinatario=usuario).select_related(
+            'destinatario', 'remetente', 'canal'
+        )
+
+    def nao_lidas_de(self, usuario):
+        return self.filter(destinatario=usuario, lida_em__isnull=True)
+
+    def atividades_recentes(self, usuario, limite=15):
+        return self.do_destinatario(usuario).order_by('-created_at')[:limite]
+
+
+class CutucaoPublico(BaseModel):
+    TEMPO_MAXIMO_ALERTA = timedelta(seconds=45)
+
+    class Status(models.TextChoices):
+        ENVIADO = 'enviado', 'Enviado'
+        DISPENSADO = 'dispensado', 'Dispensado'
+
+    canal = models.ForeignKey(
+        CanalPublico,
+        on_delete=models.CASCADE,
+        related_name='cutucoes',
+        verbose_name='Canal',
+    )
+    destinatario = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='cutucoes_publicos_recebidos',
+        verbose_name='Destinatário',
+    )
+    remetente = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cutucoes_publicos_enviados',
+        verbose_name='Remetente autenticado',
+    )
+    nickname = models.CharField('Nickname', max_length=40, blank=True, default='')
+    status = models.CharField(
+        'Status',
+        max_length=20,
+        choices=Status.choices,
+        default=Status.ENVIADO,
+    )
+    lida_em = models.DateTimeField('Lida em', null=True, blank=True)
+
+    objects = CutucaoPublicoQuerySet.as_manager()
+
+    class Meta:
+        verbose_name = 'Cutucão público'
+        verbose_name_plural = 'Cutucões públicos'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.nome_exibicao} → {self.destinatario}'
+
+    @staticmethod
+    def normalizar_nickname(valor):
+        normalizado = unicodedata.normalize('NFKC', valor or '')
+        if any(unicodedata.category(c).startswith('C') for c in normalizado):
+            raise ValueError('Nickname inválido.')
+        texto = ' '.join(normalizado.split())
+        if len(texto) < 2 or len(texto) > 40:
+            raise ValueError('Informe um nickname entre 2 e 40 caracteres.')
+        return texto
+
+    @property
+    def nome_exibicao(self):
+        if self.remetente_id:
+            return self.remetente.name or self.remetente.username
+        return self.nickname
+
+    @property
+    def origem_anonima(self):
+        return self.remetente_id is None
+
+    def payload_recebida(self):
+        return {
+            'tipo': 'cutucao_publico_recebido',
+            'cutucao_id': str(self.id),
+            'buzina_id': str(self.id),
+            'remetente_nome': self.nome_exibicao,
+            'remetente_avatar': (
+                self.remetente.avatar.url
+                if self.remetente_id and self.remetente.avatar
+                else ''
+            ),
+            'mensagem': '',
+            'origem_publica': True,
+            'origem_anonima': self.origem_anonima,
+            'rotulo_origem': 'pelo link público',
+        }
+
+    def payload_push(self):
+        nome = self.nome_exibicao
+        return {
+            'tipo': 'cutucao_publico_recebido',
+            'cutucao_id': str(self.id),
+            'buzina_id': str(self.id),
+            'remetente_nome': nome,
+            'remetente_avatar': (
+                self.remetente.avatar.url
+                if self.remetente_id and self.remetente.avatar
+                else ''
+            ),
+            'mensagem': '',
+            'titulo': f'{nome} te cutucou',
+            'corpo': f'{nome} usou seu link público. Toque para abrir.',
+            'url': f'/?cutucao={self.id}',
+            'origem_publica': True,
+            'origem_anonima': self.origem_anonima,
+        }
+
+    def serializar_notificacao(self, usuario):
+        return {
+            'buzina_id': str(self.id),
+            'cutucao_id': str(self.id),
+            'tipo': 'cutucao_publico_recebido',
+            'rotulo': 'Cutucão pelo link público',
+            'contato_nome': self.nome_exibicao,
+            'contato_avatar': (
+                self.remetente.avatar.url
+                if self.remetente_id and self.remetente.avatar
+                else ''
+            ),
+            'membro_id': None,
+            'horario': self.created_at.isoformat(),
+            'lida': self.lida_em is not None,
+            'status': self.status,
+            'direcao': 'recebida',
+            'origem_publica': True,
+            'origem_anonima': self.origem_anonima,
+        }
+
+    def dispensar(self):
+        if self.status == self.Status.DISPENSADO:
+            return False
+        self.status = self.Status.DISPENSADO
+        if self.lida_em is None:
+            self.lida_em = timezone.now()
+            self.save(update_fields=['status', 'lida_em', 'updated_at'])
+        else:
+            self.save(update_fields=['status', 'updated_at'])
+        return True
+
+    @classmethod
+    def marcar_lidas(cls, usuario):
+        return cls.objects.nao_lidas_de(usuario).update(lida_em=timezone.now())
+
+    @classmethod
+    def pendentes_para(cls, usuario):
+        return (
+            cls.objects.do_destinatario(usuario)
+            .filter(
+                status=cls.Status.ENVIADO,
+                created_at__gt=timezone.now() - cls.TEMPO_MAXIMO_ALERTA,
+            )
+            .order_by('-created_at')[:1]
+        )
+
+    @classmethod
+    def enviar(cls, canal, *, nickname='', remetente=None):
+        if not canal.ativo:
+            raise ValueError('Canal público indisponível.')
+
+        if remetente is not None and remetente.pk == canal.proprietario_id:
+            raise ValueError('Este é o seu próprio link público.')
+
+        if remetente is not None:
+            nickname_final = ''
+        else:
+            nickname_final = cls.normalizar_nickname(nickname)
+
+        cutucao = cls.objects.create(
+            canal=canal,
+            destinatario_id=canal.proprietario_id,
+            remetente=remetente,
+            nickname=nickname_final,
+        )
+        cutucao._entregar()
+        return cutucao
+
+    def _entregar(self):
+        from apps.dashboard.push import ServicoPush
+        from apps.dashboard.push_nativo import ServicoPushNativo
+
+        entregas = (
+            lambda: self._notificar(
+                str(self.destinatario_id),
+                'cutucao_publico_recebido',
+                self.payload_recebida(),
+            ),
+            lambda: ServicoPush.enviar_cutucao_publico(self),
+            lambda: ServicoPushNativo.enviar_cutucao_publico(self),
+        )
+        for entregar in entregas:
+            try:
+                entregar()
+            except Exception:
+                logger.exception(
+                    'Falha ao entregar cutucão público %s',
+                    self.pk,
+                )
+
+    @classmethod
+    def _notificar(cls, usuario_id, tipo_evento, payload):
+        canal = get_channel_layer()
+        if canal is None:
+            return
+        async_to_sync(canal.group_send)(
+            f'buzz_{usuario_id}',
+            {'type': tipo_evento, 'payload': payload},
+        )

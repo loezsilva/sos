@@ -16,16 +16,28 @@ import qrcode
 from apps.accounts.models import User
 from apps.dashboard.models import (
     Buzina,
+    CanalPublico,
     ConviteCirculo,
+    CutucaoPublico,
     InscricaoNativa,
     InscricaoPush,
     MembroCirculo,
     StatusConvite,
     StatusPresenca,
 )
+from apps.dashboard.atividades import (
+    alertas_pendentes,
+    atividades_mescladas,
+    nao_lidas_total,
+)
+from apps.dashboard.forms import FormCutucaoPublico
+from apps.dashboard.limite_publico import LimiteCutucaoPublico
 from apps.dashboard.presenca import Presenca
 from apps.dashboard.push import ServicoPush
 from apps.dashboard.push_nativo import ServicoPushNativo
+
+
+SESSAO_NICKNAME_PUBLICO = 'cutucao_publico_nickname'
 
 
 class PaginaInicioView(TemplateView):
@@ -81,6 +93,11 @@ class PaginaProximosView(TemplateView):
                     'dashboard:conectar_usuario',
                     kwargs={'username': self.request.user.username},
                 )
+            )
+            canal = CanalPublico.obter_ou_criar_para(self.request.user)
+            contexto['canal_publico'] = canal
+            contexto['url_cutucar'] = self.request.build_absolute_uri(
+                reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
             )
         else:
             contexto['membros'] = MembroCirculo.objects.none()
@@ -198,6 +215,17 @@ class PaginaConfiguracoesView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
+        canal = CanalPublico.obter_ou_criar_para(self.request.user)
+        contexto['canal_publico'] = canal
+        contexto['url_cutucar'] = self.request.build_absolute_uri(
+            reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
+        )
+        contexto['url_conectar'] = self.request.build_absolute_uri(
+            reverse(
+                'dashboard:conectar_usuario',
+                kwargs={'username': self.request.user.username},
+            )
+        )
         contexto['push_configurado'] = ServicoPush.configurado()
         contexto['push_nativo_configurado'] = ServicoPushNativo.configurado()
         contexto['push_ativo'] = InscricaoPush.objects.filter(
@@ -315,12 +343,14 @@ class AlternarFavoritoView(LoginRequiredMixin, View):
 
 class NotificacoesView(LoginRequiredMixin, View):
     def get(self, request):
-        itens = Buzina.objects.atividades_recentes(request.user, 15)
+        itens = []
+        for _, tipo, obj in atividades_mescladas(request.user, 15):
+            itens.append(obj.serializar_notificacao(request.user))
         return JsonResponse(
             {
                 'ok': True,
-                'nao_lidas': Buzina.objects.nao_lidas_de(request.user).count(),
-                'itens': [b.serializar_notificacao(request.user) for b in itens],
+                'nao_lidas': nao_lidas_total(request.user),
+                'itens': itens,
             }
         )
 
@@ -328,6 +358,7 @@ class NotificacoesView(LoginRequiredMixin, View):
 class MarcarNotificacoesLidasView(LoginRequiredMixin, View):
     def post(self, request):
         Buzina.marcar_lidas(request.user)
+        CutucaoPublico.marcar_lidas(request.user)
         return JsonResponse({'ok': True, 'nao_lidas': 0})
 
 
@@ -462,10 +493,9 @@ class DesinscreverPushView(LoginRequiredMixin, View):
 
 class BuzinasPendentesView(LoginRequiredMixin, View):
     def get(self, request):
-        pendentes = [
-            b.payload_recebida() for b in Buzina.pendentes_ativas_para(request.user)
-        ]
-        return JsonResponse({'ok': True, 'pendentes': pendentes})
+        return JsonResponse(
+            {'ok': True, 'pendentes': alertas_pendentes(request.user)}
+        )
 
 
 class InscreverPushNativoView(LoginRequiredMixin, View):
@@ -511,3 +541,158 @@ class DesinscreverPushNativoView(LoginRequiredMixin, View):
             token = dados.get('token')
         removidas = ServicoPushNativo.desinscrever(request.user, token=token)
         return JsonResponse({'ok': True, 'removidas': removidas})
+
+
+class PaginaCutucarPublicoView(TemplateView):
+    template_name = 'dashboard/cutucar_publico.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.canal = CanalPublico.ativo_por_chave(kwargs['chave'])
+        if not self.canal:
+            from django.http import Http404
+
+            raise Http404
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        autenticado = self.request.user.is_authenticated
+        nickname_sessao = self.request.session.get(SESSAO_NICKNAME_PUBLICO, '')
+        form = getattr(self, 'form', None) or FormCutucaoPublico(
+            autenticado=autenticado,
+            initial={'nickname': nickname_sessao} if not autenticado else None,
+        )
+        contexto.update(
+            {
+                'canal': self.canal,
+                'nome_publico': self.canal.nome_publico,
+                'form': form,
+                'eh_proprietario': (
+                    autenticado and self.request.user.pk == self.canal.proprietario_id
+                ),
+                'enviado': getattr(self, 'enviado', False),
+            }
+        )
+        return contexto
+
+    def post(self, request, *args, **kwargs):
+        autenticado = request.user.is_authenticated
+        if autenticado and request.user.pk == self.canal.proprietario_id:
+            if request.headers.get('HX-Request') or 'application/json' in (
+                request.headers.get('Accept') or ''
+            ):
+                return JsonResponse(
+                    {'ok': False, 'erro': 'Este é o seu próprio link público.'},
+                    status=400,
+                )
+            messages.info(request, 'Este é o seu próprio link público.')
+            return self.get(request, *args, **kwargs)
+
+        form = FormCutucaoPublico(request.POST, autenticado=autenticado)
+        self.form = form
+        quer_json = (
+            request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            or 'application/json' in (request.headers.get('Accept') or '')
+        )
+
+        if not form.is_valid():
+            if quer_json:
+                erros = form.errors.get('nickname') or form.non_field_errors()
+                return JsonResponse(
+                    {'ok': False, 'erro': erros[0] if erros else 'Dados inválidos.'},
+                    status=400,
+                )
+            return self.get(request, *args, **kwargs)
+
+        ok, codigo, restante = LimiteCutucaoPublico.reservar(request, self.canal)
+        if not ok:
+            msg = (
+                f'Aguarde {restante}s antes de cutucar de novo.'
+                if codigo == 'cooldown'
+                else f'Muitos cutucões. Tente novamente em {restante}s.'
+            )
+            if quer_json:
+                return JsonResponse(
+                    {'ok': False, 'erro': msg, 'codigo': codigo, 'aguardar': restante},
+                    status=429,
+                )
+            form.add_error(None, msg)
+            return self.get(request, *args, **kwargs)
+
+        try:
+            CutucaoPublico.enviar(
+                self.canal,
+                nickname=form.cleaned_data.get('nickname', ''),
+                remetente=request.user if autenticado else None,
+            )
+        except ValueError as erro:
+            if quer_json:
+                return JsonResponse({'ok': False, 'erro': str(erro)}, status=400)
+            form.add_error(None, str(erro))
+            return self.get(request, *args, **kwargs)
+
+        if not autenticado:
+            request.session[SESSAO_NICKNAME_PUBLICO] = form.cleaned_data['nickname']
+
+        if quer_json:
+            return JsonResponse({'ok': True, 'mensagem': 'Cutucão enviado'})
+
+        self.enviado = True
+        return self.get(request, *args, **kwargs)
+
+
+class CanalPublicoQrView(LoginRequiredMixin, View):
+    def get(self, request):
+        canal = CanalPublico.obter_ou_criar_para(request.user)
+        if not canal.ativo:
+            from django.http import Http404
+
+            raise Http404
+        url = request.build_absolute_uri(
+            reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
+        )
+        imagem = qrcode.make(url)
+        buffer = io.BytesIO()
+        imagem.save(buffer, format='PNG')
+        return HttpResponse(buffer.getvalue(), content_type='image/png')
+
+
+class GerenciarCanalPublicoView(LoginRequiredMixin, View):
+    def post(self, request):
+        canal = CanalPublico.obter_ou_criar_para(request.user)
+        acao = request.POST.get('acao')
+        if acao == 'desativar':
+            canal.desativar()
+        elif acao == 'ativar':
+            canal.ativar()
+        elif acao == 'regenerar':
+            canal.regenerar()
+        else:
+            return JsonResponse({'erro': 'Ação inválida.'}, status=400)
+
+        url = request.build_absolute_uri(
+            reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
+        )
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse(
+                {
+                    'ok': True,
+                    'ativo': canal.ativo,
+                    'chave': str(canal.chave),
+                    'url': url,
+                }
+            )
+        messages.success(request, 'Canal público atualizado.')
+        return HttpResponseRedirect(reverse('dashboard:proximos'))
+
+
+class DispensarCutucaoPublicoView(LoginRequiredMixin, View):
+    def post(self, request, cutucao_id):
+        cutucao = CutucaoPublico.objects.filter(
+            id=cutucao_id,
+            destinatario=request.user,
+        ).first()
+        if not cutucao:
+            return JsonResponse({'erro': 'Cutucão não encontrado.'}, status=404)
+        cutucao.dispensar()
+        return JsonResponse({'ok': True})
