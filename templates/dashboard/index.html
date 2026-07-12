@@ -3,39 +3,36 @@
 {% block title %}Cutuca — Início{% endblock %}
 
 {% block main %}
-<section class="w-full max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop min-h-[calc(100dvh-4rem)] flex flex-col items-center justify-center">
-  <div class="w-full max-w-md flex flex-col items-center">
-    <div
-      id="alerta-push-inicio"
-      class="hidden w-full mb-lg p-lg rounded-xl bg-primary-fixed border border-primary/20 sombra-cutuca text-left"
-      role="status"
-    >
-      <div class="flex items-start gap-sm">
-        <span class="material-symbols-outlined text-primary shrink-0 mt-0.5" aria-hidden="true">notifications_active</span>
-        <div class="flex-1 min-w-0 flex flex-col gap-sm">
-          <p class="font-label-bold text-on-surface" data-push-titulo>Ative notificações em segundo plano</p>
-          <p class="text-on-surface-variant text-sm font-body-md" data-push-texto>Receba cutucões mesmo com a aba minimizada ou em outro app.</p>
-          <div class="flex flex-wrap items-center gap-sm pt-1">
-            <button
-              type="button"
-              id="alerta-push-ativar"
-              class="botao-cutuca px-4 py-2 text-sm"
-            >
-              Ativar
-            </button>
-            <button
-              type="button"
-              id="alerta-push-dispensar"
-              class="px-4 py-2 rounded-full text-on-surface-variant font-label-bold text-sm hover:text-on-surface transition-colors"
-            >
-              Agora não
-            </button>
-          </div>
+<section class="app-pagina">
+  <header class="app-cabecalho-pagina">
+    <div>
+      <p class="app-sobretitulo">Seu círculo próximo</p>
+      <h1 class="app-titulo">Olá, {{ user.name|default:user.username }}</h1>
+      <p class="app-descricao">Quando precisar de atenção, segure o botão para cutucar seus favoritos disponíveis.</p>
+    </div>
+  </header>
+
+  <div
+    id="alerta-push-inicio"
+    class="hidden app-superficie mb-lg p-lg text-left"
+    role="status"
+  >
+    <div class="flex items-start gap-sm">
+      <span class="material-symbols-outlined text-primary shrink-0 mt-0.5" aria-hidden="true">notifications_active</span>
+      <div class="flex-1 min-w-0 flex flex-col gap-sm">
+        <p class="font-label-bold text-on-surface" data-push-titulo>Ative notificações em segundo plano</p>
+        <p class="text-on-surface-variant text-sm font-body-md" data-push-texto>Receba cutucões mesmo com a aba minimizada ou em outro app.</p>
+        <div class="flex flex-wrap items-center gap-sm pt-1">
+          <button type="button" id="alerta-push-ativar" class="app-acao">Ativar notificações</button>
+          <button type="button" id="alerta-push-dispensar" class="app-acao-secundaria">Agora não</button>
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="relative flex flex-col items-center justify-center w-full mb-xl gap-md">
+  <div class="app-dashboard-grade">
+    <div class="app-dashboard-acao">
+      <p class="app-rotulo mb-md">Cutucar favoritos</p>
       <div class="relative flex items-center justify-center w-56 h-56 md:w-72 md:h-72">
         <div id="ondas-chamada" class="hidden absolute inset-0 flex items-center justify-center pointer-events-none">
           <div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-primary/40 animacao-ripple-alerta"></div>
@@ -72,6 +69,14 @@
           Marque favoritos em Próximos
         {% endif %}
       </p>
+      {% if favoritos %}
+        <p class="mt-sm text-sm text-on-surface-variant">{{ favoritos|length }} favorito{{ favoritos|length|pluralize }} selecionado{{ favoritos|length|pluralize }}</p>
+      {% else %}
+        <a href="{% url 'dashboard:proximos' %}" class="app-acao-secundaria mt-md">
+          <span class="material-symbols-outlined text-[20px]" aria-hidden="true">star</span>
+          Escolher favoritos
+        </a>
+      {% endif %}
     </div>
 
     {% if user.is_authenticated %}
@@ -87,10 +92,38 @@
       </script>
     {% endif %}
 
+    <aside class="app-dashboard-lateral" aria-label="Resumo da conta">
+      <div class="app-superficie app-dashboard-resumo">
+        <div class="app-config-icone">
+          <span class="material-symbols-outlined" aria-hidden="true">quickreply</span>
+        </div>
+        <h2>Um sinal, sem conversa longa</h2>
+        <p>Seus favoritos recebem o alerta e podem responder “Já vou”, “Tô ocupado” ou “Ligo em 5”.</p>
+      </div>
+
+      <div class="app-estatisticas">
+        <div class="app-superficie app-estatistica">
+          <span class="app-rotulo">Atividade</span>
+          <strong class="app-estatistica-valor">{{ total_chamadas }}</strong>
+          <span class="app-estatistica-detalhe">chamada{{ total_chamadas|pluralize }}</span>
+        </div>
+        <div class="app-superficie app-estatistica">
+          <span class="app-rotulo">Disponíveis</span>
+          <strong id="contador-online-inicio" class="app-estatistica-valor" data-total="{{ total_online|default:0 }}">{{ total_online }} online</strong>
+          <span class="app-estatistica-detalhe">agora</span>
+        </div>
+      </div>
+
+      <a href="{% url 'dashboard:proximos' %}" class="app-superficie app-dashboard-resumo flex items-center justify-between gap-md">
+        <div>
+          <span class="app-rotulo">Seus próximos</span>
+          <p class="mt-sm text-on-surface font-semibold">Gerenciar pessoas e favoritos</p>
+        </div>
+        <span class="material-symbols-outlined text-primary" aria-hidden="true">arrow_forward</span>
+      </a>
+    </aside>
+
     {% if favoritos %}
-      <p class="text-center text-on-surface-variant font-label-bold text-sm mt-2 mb-md">
-        {{ favoritos|length }} favorito{{ favoritos|length|pluralize }}
-      </p>
       <script type="application/json" id="favoritos-presenca">
         [
           {% for fav in favoritos %}
@@ -104,27 +137,6 @@
         ]
       </script>
     {% endif %}
-
-    <div class="w-full grid grid-cols-2 gap-4">
-      <div class="card-cutuca rounded-xl p-4 flex flex-col gap-2">
-        <span class="text-on-surface-variant font-label-bold text-xs uppercase">Atividade recente</span>
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center">
-            <span class="material-symbols-outlined text-sm text-primary">touch_app</span>
-          </div>
-          <span class="text-on-surface text-sm">{{ total_chamadas }} chamadas</span>
-        </div>
-      </div>
-      <div class="card-cutuca rounded-xl p-4 flex flex-col gap-2">
-        <span class="text-on-surface-variant font-label-bold text-xs uppercase">Rede</span>
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center">
-            <span class="material-symbols-outlined text-sm text-on-secondary-container">group</span>
-          </div>
-          <span id="contador-online-inicio" class="text-on-surface text-sm" data-total="{{ total_online|default:0 }}">{{ total_online }} online</span>
-        </div>
-      </div>
-    </div>
   </div>
 </section>
 {% endblock %}

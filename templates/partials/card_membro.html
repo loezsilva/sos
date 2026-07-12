@@ -1,5 +1,5 @@
 <div
-  class="card-membro card-cutuca block rounded-xl p-lg md:px-xl md:py-lg transition-shadow {% if membro.pode_buzinar %}hover:shadow-cutuca-lg{% else %}{{ membro.classe_card }}{% endif %} {{ membro.classe_borda_status }}"
+  class="card-membro app-card-membro {% if not membro.pode_buzinar %}{{ membro.classe_card }}{% endif %} {{ membro.classe_borda_status }}"
   data-contato-id="{{ membro.contato_id }}"
   data-membro-id="{{ membro.id }}"
   data-status="{{ membro.status_para_dono }}"
@@ -36,7 +36,7 @@
       </button>
       <a
         href="{% url 'dashboard:chamar_contato' membro.id %}"
-        class="card-membro-bolt shrink-0 w-10 h-10 min-w-[48px] min-h-[48px] rounded-full flex items-center justify-center sombra-cutuca no-underline {% if membro.pode_buzinar %}bg-primary text-on-primary pulso-cutuca{% else %}bg-surface-container text-outline pointer-events-none{% endif %}"
+        class="card-membro-bolt shrink-0 w-10 h-10 min-w-[48px] min-h-[48px] rounded-full flex items-center justify-center sombra-cutuca no-underline {% if membro.pode_buzinar %}bg-primary text-on-primary{% else %}bg-surface-container text-outline pointer-events-none{% endif %}"
         aria-label="Cutucar {{ membro.nome_exibicao }}"
       >
         <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' {% if membro.pode_buzinar %}1{% else %}0{% endif %};">touch_app</span>

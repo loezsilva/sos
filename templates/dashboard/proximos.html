@@ -4,7 +4,7 @@
 {% block title %}Cutuca — Próximos{% endblock %}
 
 {% block main %}
-<div class="w-full max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop pt-8 md:pt-24">
+<div class="app-pagina">
   {% if messages %}
     <div class="mb-lg w-full flex flex-col gap-sm">
       {% for message in messages %}
@@ -15,9 +15,34 @@
     </div>
   {% endif %}
 
+  <header class="app-cabecalho-pagina">
+    <div>
+      <p class="app-sobretitulo">Pessoas autorizadas</p>
+      <h1 class="app-titulo">Meus próximos</h1>
+      <p class="app-descricao">
+        {% if total_online %}
+          <span id="contador-online" data-total="{{ total_online|default:0 }}"><strong id="contador-online-numero">{{ total_online|default:0 }}</strong> online agora.</span>
+        {% else %}
+          <span id="contador-online" class="hidden" data-total="{{ total_online|default:0 }}"><strong id="contador-online-numero">{{ total_online|default:0 }}</strong> online agora.</span>
+          Convide alguém de confiança para começar.
+        {% endif %}
+      </p>
+    </div>
+    {% if user.is_authenticated %}
+      <div class="flex items-center gap-sm shrink-0">
+        <button type="button" id="botao-meu-qr" class="app-botao-icone" aria-label="Mostrar meu QR" title="Meu QR">
+          <span class="material-symbols-outlined" aria-hidden="true">qr_code_2</span>
+        </button>
+        <button type="button" id="botao-adicionar" class="app-botao-icone app-botao-icone-primario" aria-label="Adicionar pessoa" title="Adicionar por username">
+          <span class="material-symbols-outlined" aria-hidden="true">person_add</span>
+        </button>
+      </div>
+    {% endif %}
+  </header>
+
   {% if user.is_authenticated %}
   <form method="get" class="mb-lg w-full" role="search">
-    <label class="campo-pill-cutuca">
+    <label class="app-busca">
       <span class="material-symbols-outlined text-outline shrink-0" aria-hidden="true">search</span>
       <input
         type="search"
@@ -31,29 +56,11 @@
   </form>
   {% endif %}
 
-  <div class="mb-lg flex justify-between items-center gap-md">
-    <div class="flex items-baseline gap-md min-w-0">
-      <h1 class="font-headline-md text-headline-md text-on-surface">Meus próximos</h1>
-      <span id="contador-online" class="font-label-bold text-label-bold text-secondary shrink-0 {% if not total_online %}hidden{% endif %}" data-total="{{ total_online|default:0 }}">
-        <span id="contador-online-numero">{{ total_online|default:0 }}</span> online
-      </span>
-    </div>
-    {% if user.is_authenticated %}
-    <div class="flex items-center gap-sm shrink-0">
-      <button type="button" id="botao-meu-qr" class="w-12 h-12 rounded-full bg-surface border border-outline-variant sombra-cutuca flex items-center justify-center text-primary hover:text-secondary transition-colors" aria-label="Meu QR" title="Meu QR">
-        <span class="material-symbols-outlined">qr_code_2</span>
-      </button>
-      <button type="button" id="botao-adicionar" class="w-12 h-12 rounded-full bg-primary text-on-primary sombra-cutuca flex items-center justify-center hover:opacity-90 transition-opacity" aria-label="Adicionar pessoa" title="Adicionar por username">
-        <span class="material-symbols-outlined">person_add</span>
-      </button>
-    </div>
-    {% endif %}
-  </div>
-
   {% if user.is_authenticated and convites_recebidos %}
     <section class="mb-lg flex flex-col gap-md">
+      <p class="app-rotulo">Convites recebidos</p>
       {% for convite in convites_recebidos %}
-        <div class="rounded-xl bg-surface border border-outline-variant px-lg py-md flex flex-wrap items-center justify-between gap-md sombra-cutuca">
+        <div class="app-superficie px-lg py-md flex flex-wrap items-center justify-between gap-md">
           <div class="min-w-0">
             <p class="font-body-md text-on-surface font-semibold truncate">{{ convite.remetente.name|default:convite.remetente.username }}</p>
             <p class="text-on-surface-variant text-sm mt-xs">@{{ convite.remetente.username }} quer conectar</p>
@@ -79,20 +86,27 @@
 
   {% if user.is_authenticated %}
     {% if membros %}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg pb-xl">
+      <div class="app-lista-cards">
         {% for membro in membros %}
           {% include 'partials/card_membro.html' %}
         {% endfor %}
       </div>
     {% else %}
-      <div class="rounded-xl border border-dashed border-outline-variant px-lg py-xl text-center">
-        <p class="text-on-surface-variant font-body-md">
+      <div class="app-estado-vazio">
+        <div class="app-estado-vazio-conteudo">
+          <div class="app-estado-vazio-icone"><span class="material-symbols-outlined" aria-hidden="true">{% if termo_busca %}search_off{% else %}group_add{% endif %}</span></div>
           {% if termo_busca %}
-            Ninguém encontrado para “{{ termo_busca }}”.
+            <h2>Ninguém encontrado</h2>
+            <p>Não há pessoas correspondentes a “{{ termo_busca }}”. Tente outro nome.</p>
           {% else %}
-            Ainda não tem ninguém por perto. Toque em <span class="text-primary font-semibold">+</span> ou no QR para convidar.
+            <h2>Seu círculo começa aqui</h2>
+            <p>Adicione alguém pelo nome de usuário ou mostre seu QR para criar uma conexão.</p>
+            <button type="button" class="app-acao mt-lg" onclick="document.getElementById('botao-adicionar').click()">
+              <span class="material-symbols-outlined" aria-hidden="true">person_add</span>
+              Convidar alguém
+            </button>
           {% endif %}
-        </p>
+        </div>
       </div>
     {% endif %}
   {% else %}

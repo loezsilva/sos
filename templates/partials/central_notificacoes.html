@@ -2,7 +2,7 @@
 <div class="central-notificacoes relative">
   <button
     type="button"
-    class="central-notificacoes-botao relative w-10 h-10 min-w-[48px] min-h-[48px] flex items-center justify-center rounded-full bg-surface border border-outline-variant hover:bg-surface-container-low active:scale-95 transition-all sombra-cutuca text-outline hover:text-primary"
+    class="central-notificacoes-botao app-botao-icone relative"
     aria-label="Notificações{% if nao_lidas %} ({{ nao_lidas }} não lidas){% endif %}"
     aria-expanded="false"
   >
@@ -14,12 +14,12 @@
   </button>
 
   <div
-    class="central-notificacoes-painel hidden absolute right-0 top-full mt-2 w-[min(100vw-2rem,22rem)] max-h-[70dvh] overflow-hidden rounded-xl z-[60]"
+    class="central-notificacoes-painel app-superficie hidden absolute right-0 top-full mt-2 w-[min(100vw-2rem,22rem)] max-h-[70dvh] overflow-hidden z-[60]"
     role="region"
     aria-label="Atividades recentes"
   >
     <div class="px-4 py-3 border-b border-outline-variant bg-surface">
-      <h2 class="font-label-bold text-label-bold text-on-surface-variant uppercase text-xs">Atividades recentes</h2>
+      <p class="app-rotulo">Atividades recentes</p>
     </div>
     <div class="central-notificacoes-lista overflow-y-auto max-h-[calc(70dvh-3rem)]">
       {% for item in notificacoes_recentes %}

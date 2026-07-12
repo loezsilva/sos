@@ -17,15 +17,17 @@
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/buzz.css' %}?v=cutuca-landing-1">
+  {% if user.is_authenticated %}<link rel="stylesheet" href="{% static 'css/app.css' %}?v=experiencia-app-1">{% endif %}
   {% block extra_css %}{% endblock %}
 </head>
-<body class="bg-background text-on-background min-h-screen font-body-md relative flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed {% block body_overflow %}overflow-hidden{% endblock %}"{% if user.is_authenticated %} data-usuario-autenticado="true" data-usuario-id="{{ user.id }}"{% endif %}>
+<body class="bg-background text-on-background min-h-screen font-body-md relative flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed {% block body_overflow %}overflow-x-hidden overflow-y-auto{% endblock %}"{% if user.is_authenticated %} data-usuario-autenticado="true" data-usuario-id="{{ user.id }}"{% endif %}>
   {% if user.is_authenticated %}{% csrf_token %}{% endif %}
   <div class="absolute inset-0 pointer-events-none overflow-hidden z-[-1]">
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[100px]"></div>
   </div>
 
   {% block nav %}{% include 'partials/nav.html' %}{% endblock %}
+  {% block sidebar %}{% endblock %}
 
   <div class="flex flex-col flex-1 w-full">
     <main class="flex-1 w-full z-10 {% block main_padding %}pt-16 pb-20 md:pb-8{% endblock %}">

@@ -10,25 +10,21 @@
 {% block main_padding %}pt-0 pb-0{% endblock %}
 
 {% block main %}
-<div class="relative min-h-[100dvh] flex flex-col items-center">
-  <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] bg-primary/15 rounded-full blur-[100px] animacao-flutuar"></div>
-    <div class="absolute top-1/3 right-1/4 w-[60vw] h-[60vw] max-w-[400px] max-h-[400px] bg-secondary/10 rounded-full blur-[80px] animacao-flutuar" style="animation-delay: -2s;"></div>
+<div class="app-foco">
+  <div class="app-foco-topo">
+    <a href="{% url 'dashboard:proximos' %}" class="app-acao-secundaria">
+      <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_back</span>
+      Próximos
+    </a>
   </div>
 
-  <a href="{% url 'dashboard:proximos' %}" class="sticky top-0 self-start z-20 mt-6 ml-margin-mobile md:ml-margin-desktop flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors font-label-bold text-sm bg-surface/80 backdrop-blur-sm rounded-full px-3 py-2 border border-outline-variant sombra-cutuca">
-    <span class="material-symbols-outlined text-lg">arrow_back</span>
-    Voltar
-  </a>
-
-  <main class="z-10 flex flex-col items-center w-full px-margin-mobile pt-xl pb-xl md:px-margin-desktop max-w-md mx-auto">
-    <header class="w-full text-center mt-xl flex-shrink-0">
-      <h1 class="font-display-lg-mobile text-display-lg-mobile text-on-surface mb-2 tracking-tighter">
-        Cutucar
-      </h1>
+  <div class="app-foco-conteudo flex flex-col items-center">
+    <header class="w-full text-center flex-shrink-0">
+      <p class="app-sobretitulo">Chamada direta</p>
+      <h1 class="app-titulo">Cutucar {{ membro.nome_exibicao }}</h1>
       <p
         id="status-chamada"
-        class="font-headline-md text-headline-md {{ membro.classe_cor_status }}"
+        class="font-label-bold mt-sm {{ membro.classe_cor_status }}"
         data-contato-id="{{ membro.contato_id }}"
         data-status="{{ membro.status }}"
         data-sou-favorito="{{ membro.sou_favorito_do_contato|yesno:'true,false' }}"
@@ -76,13 +72,7 @@
       </p>
     </div>
 
-    <div class="flex justify-center w-full mb-xl flex-shrink-0">
-      <div class="px-6 py-3 bg-surface rounded-full border border-outline-variant sombra-cutuca">
-        <p class="font-headline-md text-headline-md text-on-surface whitespace-nowrap">{{ membro.nome_exibicao }}</p>
-      </div>
-    </div>
-
-    <div class="w-full flex flex-col gap-lg mb-lg flex-shrink-0">
+    <div class="app-superficie w-full p-lg flex flex-col gap-lg mb-lg flex-shrink-0">
       {% if membro.status == 'ocupado' and not membro.sou_favorito_do_contato %}
         <div class="rounded-xl bg-tertiary-container border border-tertiary/30 px-4 py-3 text-on-tertiary-container text-sm text-center font-body-md">
           Em não perturbe. Só favoritos podem chamar.
@@ -123,7 +113,7 @@
         </div>
       </div>
     </div>
-  </main>
+  </div>
 </div>
 {% endblock %}
 
