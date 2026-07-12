@@ -487,6 +487,32 @@ class TestPushNativoApi:
         assert resposta.status_code == 200
         assert InscricaoNativa.objects.filter(usuario=alice).count() == 0
 
+    def test_assinatura_sonora_nativa(self):
+        from pathlib import Path
+
+        assert ServicoPushNativo.SOM_ASSINATURA == 'buzina.wav'
+        raiz = Path(__file__).resolve().parents[2]
+        sons = raiz / 'static' / 'sounds'
+        for nome in (
+            'buzina.wav',
+            'cutuca_recebido.wav',
+            'cutuca_sainte.wav',
+            'cutuca_resposta.wav',
+            'cutuca_encerrar.wav',
+        ):
+            assert (sons / nome).is_file()
+        assert (
+            raiz
+            / 'mobile'
+            / 'android'
+            / 'app'
+            / 'src'
+            / 'main'
+            / 'res'
+            / 'raw'
+            / 'buzina.wav'
+        ).is_file()
+
     @patch('apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True)
     @patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_buzina')
     @patch('apps.dashboard.push.ServicoPush.enviar_buzina')
@@ -675,9 +701,13 @@ class TestPaginaCutucarPublico:
         alice, _ = usuarios
         canal = CanalPublico.obter_ou_criar_para(alice)
         url = reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
-        with patch.object(CutucaoPublico, '_notificar'), patch(
-            'apps.dashboard.push.ServicoPush.enviar_cutucao_publico'
-        ), patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'):
+        with (
+            patch.object(CutucaoPublico, '_notificar'),
+            patch('apps.dashboard.push.ServicoPush.enviar_cutucao_publico'),
+            patch(
+                'apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'
+            ),
+        ):
             resposta = client.post(
                 url,
                 {'nickname': 'Visitante'},
@@ -697,9 +727,13 @@ class TestPaginaCutucarPublico:
         canal = CanalPublico.obter_ou_criar_para(alice)
         client.force_login(bob)
         url = reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
-        with patch.object(CutucaoPublico, '_notificar'), patch(
-            'apps.dashboard.push.ServicoPush.enviar_cutucao_publico'
-        ), patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'):
+        with (
+            patch.object(CutucaoPublico, '_notificar'),
+            patch('apps.dashboard.push.ServicoPush.enviar_cutucao_publico'),
+            patch(
+                'apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'
+            ),
+        ):
             resposta = client.post(
                 url,
                 {'nickname': 'Fake'},
@@ -742,9 +776,13 @@ class TestPaginaCutucarPublico:
         alice, _ = usuarios
         canal = CanalPublico.obter_ou_criar_para(alice)
         url = reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
-        with patch.object(CutucaoPublico, '_notificar'), patch(
-            'apps.dashboard.push.ServicoPush.enviar_cutucao_publico'
-        ), patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'):
+        with (
+            patch.object(CutucaoPublico, '_notificar'),
+            patch('apps.dashboard.push.ServicoPush.enviar_cutucao_publico'),
+            patch(
+                'apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'
+            ),
+        ):
             for indice in range(2):
                 resposta = client.post(
                     url,
@@ -824,11 +862,13 @@ class TestCutucaoPublicoEntrega:
     def test_payload_e_atividades(self, client, usuarios):
         alice, bob = usuarios
         canal = CanalPublico.obter_ou_criar_para(alice)
-        with patch.object(CutucaoPublico, '_notificar') as notificar, patch(
-            'apps.dashboard.push.ServicoPush.enviar_cutucao_publico'
-        ) as push_web, patch(
-            'apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'
-        ) as push_nat:
+        with (
+            patch.object(CutucaoPublico, '_notificar') as notificar,
+            patch('apps.dashboard.push.ServicoPush.enviar_cutucao_publico') as push_web,
+            patch(
+                'apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'
+            ) as push_nat,
+        ):
             cutucao = CutucaoPublico.enviar(canal, nickname='Lia')
         notificar.assert_called_once()
         push_web.assert_called_once_with(cutucao)
@@ -898,10 +938,16 @@ class TestCutucaoPublicoEntrega:
         canal = CanalPublico.obter_ou_criar_para(alice)
         url = reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
 
-        with patch.object(CutucaoPublico, '_notificar'), patch(
-            'apps.dashboard.push.ServicoPush.enviar_cutucao_publico',
-            side_effect=RuntimeError('push indisponível'),
-        ), patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'):
+        with (
+            patch.object(CutucaoPublico, '_notificar'),
+            patch(
+                'apps.dashboard.push.ServicoPush.enviar_cutucao_publico',
+                side_effect=RuntimeError('push indisponível'),
+            ),
+            patch(
+                'apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'
+            ),
+        ):
             resposta = client.post(
                 url,
                 {'nickname': 'Lia'},
@@ -917,9 +963,13 @@ class TestCutucaoPublicoEntrega:
 class TestRespostaCutucaoPublico:
     def _enviar(self, client, canal, nickname='Visitante'):
         url = reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
-        with patch.object(CutucaoPublico, '_notificar'), patch(
-            'apps.dashboard.push.ServicoPush.enviar_cutucao_publico'
-        ), patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'):
+        with (
+            patch.object(CutucaoPublico, '_notificar'),
+            patch('apps.dashboard.push.ServicoPush.enviar_cutucao_publico'),
+            patch(
+                'apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'
+            ),
+        ):
             resposta = client.post(
                 url,
                 {'nickname': nickname},
@@ -1072,9 +1122,13 @@ class TestRespostaCutucaoPublico:
         canal = CanalPublico.obter_ou_criar_para(alice)
         client.force_login(bob)
         url = reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
-        with patch.object(CutucaoPublico, '_notificar'), patch(
-            'apps.dashboard.push.ServicoPush.enviar_cutucao_publico'
-        ), patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'):
+        with (
+            patch.object(CutucaoPublico, '_notificar'),
+            patch('apps.dashboard.push.ServicoPush.enviar_cutucao_publico'),
+            patch(
+                'apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'
+            ),
+        ):
             envio = client.post(
                 url,
                 {},

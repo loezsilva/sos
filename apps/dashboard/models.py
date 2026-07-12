@@ -695,7 +695,9 @@ class CanalPublico(BaseModel):
         related_name='canal_publico',
         verbose_name='Proprietário',
     )
-    chave = models.UUIDField('Chave pública', default=uuid.uuid4, unique=True, editable=False)
+    chave = models.UUIDField(
+        'Chave pública', default=uuid.uuid4, unique=True, editable=False
+    )
     ativo = models.BooleanField('Ativo', default=True)
     regenerado_em = models.DateTimeField('Regenerado em', null=True, blank=True)
 

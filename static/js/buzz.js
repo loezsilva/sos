@@ -65,9 +65,22 @@
   }
 
   const SomBuzz = (() => {
+    const ASSETS = {
+      recebido: '/static/sounds/cutuca_recebido.wav',
+      sainte: '/static/sounds/cutuca_sainte.wav',
+      resposta: '/static/sounds/cutuca_resposta.wav',
+      encerrar: '/static/sounds/cutuca_encerrar.wav',
+    };
+    const VOLUMES = { recebido: 0.72, sainte: 0.38, resposta: 0.62, encerrar: 0.5 };
+    const FALLBACK = {
+      recebido: [[369.99, 0, 0.14, 0.55], [440, 0.18, 0.14, 0.5], [554.37, 0.36, 0.24, 0.45]],
+      sainte: [[369.99, 0, 0.2, 0.35], [440, 0.28, 0.24, 0.32]],
+    };
+
     let contexto = null;
-    let loopSainte = null;
-    let loopRecebido = null;
+    let ativo = null;
+    let loopFallback = null;
+    const players = {};
 
     function obterContexto() {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -75,6 +88,16 @@
       if (!contexto) contexto = new AudioCtx();
       if (contexto.state === 'suspended') contexto.resume();
       return contexto;
+    }
+
+    function obterPlayer(chave) {
+      if (players[chave]) return players[chave];
+      const audio = new Audio(ASSETS[chave]);
+      audio.preload = 'auto';
+      audio.loop = chave === 'recebido' || chave === 'sainte';
+      audio.volume = VOLUMES[chave] || 0.5;
+      players[chave] = audio;
+      return audio;
     }
 
     function tocarTom(destino, freq, inicio, duracao, volume) {
@@ -91,89 +114,134 @@
       osc.stop(inicio + duracao + 0.05);
     }
 
-    function pararLoop(loop) {
-      if (!loop) return;
-      clearInterval(loop.intervalo);
+    function pararFallback() {
+      if (!loopFallback) return;
+      clearInterval(loopFallback.intervalo);
       try {
-        loop.master.gain.exponentialRampToValueAtTime(0.001, loop.ctx.currentTime + 0.06);
+        loopFallback.master.gain.exponentialRampToValueAtTime(
+          0.001,
+          loopFallback.ctx.currentTime + 0.06,
+        );
       } catch {
-        /* osciladores curtos já encerraram */
+        /* osciladores curtos */
       }
+      loopFallback = null;
     }
 
-    function pararSainte() {
-      pararLoop(loopSainte);
-      loopSainte = null;
-    }
-
-    function pararRecebido() {
-      pararLoop(loopRecebido);
-      loopRecebido = null;
-    }
-
-    function pararTodos() {
-      pararSainte();
-      pararRecebido();
-    }
-
-    function iniciarPadrao(pararFn, volume, intervaloMs, sequencia) {
-      pararFn();
+    function iniciarFallback(chave) {
+      const sequencia = FALLBACK[chave];
+      if (!sequencia) return;
+      pararFallback();
       const ctx = obterContexto();
       if (!ctx) return;
-
       const master = ctx.createGain();
-      master.gain.value = volume;
+      master.gain.value = chave === 'sainte' ? 0.12 : 0.18;
       master.connect(ctx.destination);
-      const loop = { ctx, master, intervalo: null };
-
+      const intervaloMs = chave === 'sainte' ? 1600 : 1300;
       const tocarCiclo = () => {
         const t = ctx.currentTime;
         sequencia.forEach(([freq, offset, dur, vol]) => {
           tocarTom(master, freq, t + offset, dur, vol);
         });
       };
-
       tocarCiclo();
-      loop.intervalo = setInterval(tocarCiclo, intervaloMs);
-      return loop;
+      loopFallback = { ctx, master, intervalo: setInterval(tocarCiclo, intervaloMs) };
+    }
+
+    async function fadeOut(audio, ms = 90) {
+      if (!audio) return;
+      const inicio = audio.volume;
+      const passos = 6;
+      const passo = ms / passos;
+      for (let i = 1; i <= passos; i += 1) {
+        audio.volume = Math.max(0, inicio * (1 - i / passos));
+        await new Promise((r) => setTimeout(r, passo));
+      }
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = inicio;
+    }
+
+    async function pararAtivo({ fade = true } = {}) {
+      pararFallback();
+      const atual = ativo;
+      ativo = null;
+      if (!atual) return;
+      if (fade) await fadeOut(atual);
+      else {
+        atual.pause();
+        atual.currentTime = 0;
+      }
+    }
+
+    async function tocarWav(chave, { reiniciar = true } = {}) {
+      const audio = obterPlayer(chave);
+      if (ativo === audio && !audio.paused) return true;
+      await pararAtivo({ fade: true });
+      try {
+        if (reiniciar) audio.currentTime = 0;
+        audio.volume = VOLUMES[chave] || 0.5;
+        await audio.play();
+        ativo = audio;
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    async function tocarOneShot(chave) {
+      await pararAtivo({ fade: true });
+      const audio = obterPlayer(chave);
+      try {
+        audio.currentTime = 0;
+        audio.volume = VOLUMES[chave] || 0.5;
+        await audio.play();
+        ativo = audio;
+        audio.onended = () => {
+          if (ativo === audio) ativo = null;
+        };
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function precarregar() {
+      Object.keys(ASSETS).forEach((chave) => {
+        try {
+          obterPlayer(chave).load();
+        } catch {
+          /* preload best-effort */
+        }
+      });
     }
 
     return {
       obterContexto,
+      precarregar,
       async iniciarRecebido() {
-        const ctx = obterContexto();
-        if (ctx?.state === 'suspended') {
-          try {
-            await ctx.resume();
-          } catch {
-            /* autoplay bloqueado até gesto do usuário */
-          }
-        }
-        loopRecebido = iniciarPadrao(
-          pararRecebido,
-          0.2,
-          1300,
-          [
-            [659.25, 0, 0.14, 0.55],
-            [783.99, 0.16, 0.14, 0.5],
-            [987.77, 0.32, 0.22, 0.45],
-          ],
-        );
+        const ok = await tocarWav('recebido');
+        if (!ok) iniciarFallback('recebido');
       },
-      iniciarSainte() {
-        loopSainte = iniciarPadrao(
-          pararSainte,
-          0.14,
-          1800,
-          [
-            [392, 0, 0.2, 0.4],
-            [523.25, 0.24, 0.22, 0.38],
-          ],
-        );
+      async iniciarSainte() {
+        const ok = await tocarWav('sainte');
+        if (!ok) iniciarFallback('sainte');
       },
-      pararSainte,
-      pararRecebido,
-      pararTodos,
+      async tocarResposta() {
+        await tocarOneShot('resposta');
+      },
+      async tocarEncerrar() {
+        await tocarOneShot('encerrar');
+      },
+      async pararSainte() {
+        if (ativo === players.sainte || loopFallback) await pararAtivo({ fade: true });
+      },
+      async pararRecebido() {
+        if (ativo === players.recebido || loopFallback) await pararAtivo({ fade: true });
+      },
+      async pararTodos() {
+        await pararAtivo({ fade: true });
+      },
     };
   })();
 
@@ -187,32 +255,16 @@
         /* ignora */
       }
     }
+    SomBuzz.precarregar();
   }
-
-  let audioFallbackRecebido = null;
 
   async function tocarSomAlertaRecebido() {
     await desbloquearAudio();
     await SomBuzz.iniciarRecebido();
-
-    if (!audioFallbackRecebido) {
-      audioFallbackRecebido = new Audio('/static/sounds/buzina.wav');
-      audioFallbackRecebido.loop = true;
-    }
-    try {
-      audioFallbackRecebido.currentTime = 0;
-      await audioFallbackRecebido.play();
-    } catch {
-      /* Web Audio ou gesto do usuário cobre depois */
-    }
   }
 
   function pararSomAlertaRecebido() {
     SomBuzz.pararRecebido();
-    if (audioFallbackRecebido) {
-      audioFallbackRecebido.pause();
-      audioFallbackRecebido.currentTime = 0;
-    }
   }
 
   function bloquearScroll() {
@@ -439,13 +491,14 @@
         }
         if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
         incrementarContadorNotificacoes();
+        SomBuzz.tocarResposta();
         return;
       }
     }
 
     limparTimerChamada();
     pararSliderNomes();
-    SomBuzz.pararSainte();
+    SomBuzz.tocarResposta();
 
     if (estaNaPaginaChamar()) {
       buzinaSainte = null;
@@ -517,6 +570,8 @@
       : 'Chamada encerrada';
     respostaBox.classList.remove('hidden');
     encerrarLabel.textContent = 'Fechar';
+
+    SomBuzz.tocarEncerrar();
 
     clearTimeout(timeoutFecharChamada);
     timeoutFecharChamada = setTimeout(ocultarChamadaSainte, 5000);
@@ -633,8 +688,8 @@
   }
 
   async function encerrarChamadaSainte(motivo = 'usuario') {
-    SomBuzz.pararSainte();
     if (!chamadaSainteAtiva()) {
+      await SomBuzz.pararTodos();
       ocultarChamadaSainte();
       return;
     }
@@ -647,6 +702,7 @@
     // Já em desfecho (Fechar após resposta/perda): só fecha UI
     const encerrarLabel = document.getElementById('chamada-encerrar-label');
     if (encerrarLabel?.textContent === 'Fechar') {
+      await SomBuzz.pararTodos();
       ocultarChamadaSainte();
       return;
     }
@@ -656,6 +712,7 @@
       if (estaNaPaginaChamar()) {
         buzinaSainte = null;
         buzinasSaintes = [];
+        await SomBuzz.tocarEncerrar();
         restaurarPaginaChamar();
         const status = document.getElementById('status-chamada');
         if (status) {
@@ -672,6 +729,7 @@
     buzinaSainte = null;
     buzinasSaintes = [];
     await Promise.all(ids.map((id) => postForm(`/api/buzina/${id}/encerrar/`, { motivo: 'usuario' })));
+    await SomBuzz.tocarEncerrar();
     if (estaNaPaginaChamar()) {
       restaurarPaginaChamar();
       return;
@@ -1390,6 +1448,9 @@
       desbloquear: desbloquearAudio,
       tocarRecebido: tocarSomAlertaRecebido,
       pararRecebido: pararSomAlertaRecebido,
+      tocarResposta: () => SomBuzz.tocarResposta(),
+      tocarEncerrar: () => SomBuzz.tocarEncerrar(),
+      pararTodos: () => SomBuzz.pararTodos(),
     };
     window.BuzzPushNativo?.iniciar(mostrarAlertaRecebido);
     window.BuzzPush?.iniciar(mostrarAlertaRecebido);

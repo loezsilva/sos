@@ -8,6 +8,8 @@ _firebase_app = None
 
 
 class ServicoPushNativo:
+    SOM_ASSINATURA = 'buzina.wav'  # alias da assinatura cutuca_recebido
+
     @classmethod
     def configurado(cls):
         return bool(
@@ -132,7 +134,7 @@ class ServicoPushNativo:
                                     title=payload['titulo'],
                                     body=payload['corpo'],
                                 ),
-                                sound='buzina.wav',
+                                sound=cls.SOM_ASSINATURA,
                                 category='BUZINA',
                             ),
                         ),

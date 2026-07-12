@@ -35,11 +35,12 @@ public class MainActivity extends BridgeActivity {
             "Chamadas Buzz",
             NotificationManager.IMPORTANCE_HIGH
         );
-        canal.setDescription("Buzinas urgentes do seu círculo");
+        canal.setDescription("Cutucões urgentes do Cutuca");
         canal.enableVibration(true);
         canal.setVibrationPattern(new long[] { 0, 200, 100, 200, 100, 400 });
         canal.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
 
+        // Assinatura oficial (alias buzina.wav = cutuca_recebido)
         Uri som = Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.buzina);
         AudioAttributes attrs = new AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)

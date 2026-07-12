@@ -57,15 +57,15 @@ def _cutucao_autorizada_para_visitante(request, cutucao, token=None):
         candidato = _token_cutucao_sessao(request, cutucao.id)
     if cutucao.conferir_token(candidato):
         return True
-    return (
-        request.user.is_authenticated and cutucao.remetente_id == request.user.id
-    )
+    return request.user.is_authenticated and cutucao.remetente_id == request.user.id
 
 
 def _obter_cutucao_visitante(request, cutucao_id):
-    cutucao = CutucaoPublico.objects.filter(id=cutucao_id).select_related(
-        'destinatario', 'remetente'
-    ).first()
+    cutucao = (
+        CutucaoPublico.objects.filter(id=cutucao_id)
+        .select_related('destinatario', 'remetente')
+        .first()
+    )
     if not cutucao or not _cutucao_autorizada_para_visitante(request, cutucao):
         return None
     if cutucao.status == CutucaoPublico.Status.PENDENTE and cutucao.expirada:
@@ -527,9 +527,7 @@ class DesinscreverPushView(LoginRequiredMixin, View):
 
 class BuzinasPendentesView(LoginRequiredMixin, View):
     def get(self, request):
-        return JsonResponse(
-            {'ok': True, 'pendentes': alertas_pendentes(request.user)}
-        )
+        return JsonResponse({'ok': True, 'pendentes': alertas_pendentes(request.user)})
 
 
 class InscreverPushNativoView(LoginRequiredMixin, View):
@@ -655,9 +653,10 @@ class PaginaCutucarPublicoView(TemplateView):
 
         form = FormCutucaoPublico(request.POST, autenticado=autenticado)
         self.form = form
-        quer_json = (
-            request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-            or 'application/json' in (request.headers.get('Accept') or '')
+        quer_json = request.headers.get(
+            'X-Requested-With'
+        ) == 'XMLHttpRequest' or 'application/json' in (
+            request.headers.get('Accept') or ''
         )
 
         if not form.is_valid():

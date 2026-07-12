@@ -128,11 +128,15 @@ self.addEventListener('activate', (event) => {
 // Não precachear HTML (/) — evita UI antiga (ex.: texto "Cutuca" ao lado da logo).
 
 const PRECACHE = [
-  { url: '/static/css/buzz.css', revision: 'pagina-publica-1' },
-  { url: '/static/js/push.js', revision: 'pagina-publica-1' },
-  { url: '/static/js/buzz.js', revision: 'pagina-publica-1' },
-  { url: '/static/js/push-nativo.js', revision: 'pagina-publica-1' },
-  { url: '/static/sounds/buzina.wav', revision: null },
+  { url: '/static/css/buzz.css', revision: 'identidade-sonora-1' },
+  { url: '/static/js/push.js', revision: 'identidade-sonora-1' },
+  { url: '/static/js/buzz.js', revision: 'identidade-sonora-1' },
+  { url: '/static/js/push-nativo.js', revision: 'identidade-sonora-1' },
+  { url: '/static/sounds/buzina.wav', revision: 'identidade-sonora-1' },
+  { url: '/static/sounds/cutuca_recebido.wav', revision: 'identidade-sonora-1' },
+  { url: '/static/sounds/cutuca_sainte.wav', revision: 'identidade-sonora-1' },
+  { url: '/static/sounds/cutuca_resposta.wav', revision: 'identidade-sonora-1' },
+  { url: '/static/sounds/cutuca_encerrar.wav', revision: 'identidade-sonora-1' },
   { url: '/static/icons/web-app-manifest-192x192.png', revision: 'cutuca-v2' },
   { url: '/static/icons/favicon.svg', revision: 'cutuca-v2' },
   { url: '/static/icons/logo-cutuca-online.png', revision: 'cutuca-v2' },

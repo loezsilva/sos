@@ -447,6 +447,57 @@
     }
   }
 
+  const SomPublico = (() => {
+    const arquivos = {
+      sainte: '/static/sounds/cutuca_sainte.wav',
+      resposta: '/static/sounds/cutuca_resposta.wav',
+      encerrar: '/static/sounds/cutuca_encerrar.wav',
+    };
+    const volumes = { sainte: 0.36, resposta: 0.6, encerrar: 0.48 };
+    const players = {};
+    let ativo = null;
+
+    function obter(chave) {
+      if (!players[chave]) {
+        const audio = new Audio(arquivos[chave]);
+        audio.preload = 'auto';
+        audio.loop = chave === 'sainte';
+        audio.volume = volumes[chave];
+        players[chave] = audio;
+      }
+      return players[chave];
+    }
+
+    async function parar() {
+      if (!ativo) return;
+      const atual = ativo;
+      ativo = null;
+      atual.pause();
+      atual.currentTime = 0;
+    }
+
+    async function tocar(chave, { loop = false } = {}) {
+      await parar();
+      const audio = obter(chave);
+      audio.loop = loop;
+      audio.volume = volumes[chave];
+      try {
+        audio.currentTime = 0;
+        await audio.play();
+        ativo = audio;
+      } catch (_) {
+        /* autoplay pode bloquear até gesto */
+      }
+    }
+
+    return {
+      sainte: () => tocar('sainte', { loop: true }),
+      resposta: () => tocar('resposta'),
+      encerrar: () => tocar('encerrar'),
+      parar,
+    };
+  })();
+
   function atualizarFeedback(texto, estado = '') {
     if (!feedback) return;
     feedback.textContent = texto;
@@ -526,6 +577,8 @@
     if (respostaTexto) respostaTexto.textContent = rotulo || '—';
     respostaBox?.classList.remove('hidden');
     if (encerrarLabel) encerrarLabel.textContent = 'Fechar';
+    if (cancelada || perdida) SomPublico.encerrar();
+    else SomPublico.resposta();
   }
 
   async function consultarStatus() {
@@ -552,6 +605,7 @@
     tokenVisita = dados.token || '';
     mostrarPainelChamada(dados.destinatario_nome);
     limparTimersChamada();
+    SomPublico.sainte();
     pollTimer = setInterval(consultarStatus, intervaloPollMs);
     timeoutTimer = setTimeout(() => encerrarChamada('timeout'), tempoMaximoMs);
     consultarStatus();
@@ -565,6 +619,7 @@
     }
     if (!chamadaAtiva && encerrarLabel?.textContent === 'Fechar') {
       limparTimersChamada();
+      SomPublico.parar();
       painelChamada?.classList.add('hidden');
       painelEnvio?.classList.remove('hidden');
       cutucaoId = null;
