@@ -1157,3 +1157,103 @@ class TestRespostaCutucaoPublico:
         assert 'painel-chamada-publico' in html
         assert 'data-pendente="1"' in html
         assert 'Cancelar' in html
+
+
+@pytest.mark.django_db
+class TestLocalizacaoCutucao:
+    def test_normalizar_coordenadas_validas(self):
+        from apps.dashboard.models import normalizar_coordenadas
+
+        dados = normalizar_coordenadas('-23.55052', '-46.633308', '12.5')
+        assert dados['latitude']
+        assert dados['longitude']
+        assert dados['precisao_metros']
+
+    def test_coordenadas_invalidas(self):
+        from apps.dashboard.models import normalizar_coordenadas
+        import pytest as pt
+
+        with pt.raises(ValueError):
+            normalizar_coordenadas('999', '0')
+
+    def test_buzina_com_localizacao(self, usuarios, proximos_bidirecional):
+        alice, bob = usuarios
+        with (
+            patch(
+                'apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True
+            ),
+            patch('apps.dashboard.push.ServicoPush.enviar_buzina'),
+            patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_buzina'),
+            patch.object(Buzina, '_notificar'),
+        ):
+            buzina = Buzina.enviar(
+                alice,
+                bob.id,
+                latitude='-23.55052',
+                longitude='-46.633308',
+                precisao_metros='10',
+            )
+        payload = buzina.payload_recebida()
+        assert payload['tem_localizacao'] is True
+        assert 'maps.google.com' in payload['mapa_url']
+        assert buzina.latitude is not None
+
+    def test_cutucao_publico_com_localizacao(self, client, usuarios):
+        alice, _ = usuarios
+        canal = CanalPublico.obter_ou_criar_para(alice)
+        url = reverse('dashboard:cutucar_publico', kwargs={'chave': canal.chave})
+        with (
+            patch.object(CutucaoPublico, '_notificar'),
+            patch('apps.dashboard.push.ServicoPush.enviar_cutucao_publico'),
+            patch(
+                'apps.dashboard.push_nativo.ServicoPushNativo.enviar_cutucao_publico'
+            ),
+        ):
+            resposta = client.post(
+                url,
+                {
+                    'nickname': 'Lia',
+                    'latitude': '-23.55',
+                    'longitude': '-46.63',
+                },
+                HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+                HTTP_ACCEPT='application/json',
+            )
+        assert resposta.status_code == 200
+        cutucao = CutucaoPublico.objects.get()
+        assert cutucao.latitude is not None
+        assert cutucao.payload_recebida()['tem_localizacao'] is True
+
+    def test_coords_invalidas_nao_bloqueiam_envio(
+        self, client, usuarios, proximos_bidirecional
+    ):
+        alice, bob = usuarios
+        client.force_login(alice)
+        with (
+            patch(
+                'apps.dashboard.presenca.Presenca.esta_alcancavel', return_value=True
+            ),
+            patch('apps.dashboard.push.ServicoPush.enviar_buzina'),
+            patch('apps.dashboard.push_nativo.ServicoPushNativo.enviar_buzina'),
+            patch.object(Buzina, '_notificar'),
+        ):
+            resposta = client.post(
+                reverse('dashboard:enviar_buzina'),
+                {
+                    'destinatario_id': str(bob.id),
+                    'latitude': '999',
+                    'longitude': '0',
+                },
+            )
+        assert resposta.status_code == 200
+        assert resposta.json()['ok'] is True
+        assert Buzina.objects.get().latitude is None
+
+    def test_copy_contatos_na_nav(self, client, usuarios):
+        alice, _ = usuarios
+        client.force_login(alice)
+        resposta = client.get(reverse('dashboard:proximos'))
+        html = resposta.content.decode()
+        assert 'Contatos' in html
+        assert 'Meus contatos' in html
+        assert 'Meus próximos' not in html

@@ -43,6 +43,10 @@ self.addEventListener('push', (event) => {
       origem_publica: Boolean(dados.origem_publica),
       remetente_nome: dados.remetente_nome,
       mensagem: dados.mensagem,
+      tem_localizacao: Boolean(dados.tem_localizacao),
+      latitude: dados.latitude || '',
+      longitude: dados.longitude || '',
+      mapa_url: dados.mapa_url || '',
     },
   };
 

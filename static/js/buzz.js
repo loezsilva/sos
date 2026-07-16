@@ -382,6 +382,22 @@
         : 'Conta Cutuca via link público';
       identidadePublica.classList.toggle('hidden', !alertaOrigemPublica);
     }
+
+    const blocoLocal = document.getElementById('alerta-localizacao');
+    const temLocal = Boolean(dados.tem_localizacao) && dados.latitude && dados.longitude;
+    if (blocoLocal) {
+      blocoLocal.classList.toggle('hidden', !temLocal);
+      if (temLocal) {
+        const mapa = dados.mapa_url
+          || `https://maps.google.com/?q=${dados.latitude},${dados.longitude}`;
+        blocoLocal.href = mapa;
+        blocoLocal.title = `${dados.latitude}, ${dados.longitude}`;
+      } else {
+        blocoLocal.removeAttribute('href');
+        blocoLocal.removeAttribute('title');
+      }
+    }
+
     if (respostas) {
       respostas.classList.remove('hidden');
     }
@@ -588,7 +604,7 @@
     if (dica) {
       dica.textContent = document.getElementById('botao-buzz-inicio')
         ? (document.getElementById('botao-buzz-inicio').disabled
-          ? dica.dataset.dicaOriginal || 'Marque favoritos em Próximos'
+          ? dica.dataset.dicaOriginal || 'Marque favoritos em Contatos'
           : 'Segure 2s para chamar favoritos')
         : 'Segure 2s para chamar';
     }
@@ -834,6 +850,26 @@
     }, 3200);
   }
 
+  async function obterLocalizacaoAtual() {
+    if (!navigator.geolocation) return {};
+    try {
+      const pos = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 8000,
+          maximumAge: 30000,
+        });
+      });
+      return {
+        latitude: String(pos.coords.latitude),
+        longitude: String(pos.coords.longitude),
+        precisao_metros: String(Math.round(pos.coords.accuracy || 0)),
+      };
+    } catch {
+      return {};
+    }
+  }
+
   async function enviarBuzina(botao) {
     // Segundo clique enquanto buzina: cancela a chamada
     if (chamadaSainteAtiva()) {
@@ -852,6 +888,7 @@
     if (campoMensagem?.value.trim()) {
       dados.mensagem = campoMensagem.value.trim().slice(0, 80);
     }
+    Object.assign(dados, await obterLocalizacaoAtual());
 
     ativarOndasChamada();
 
@@ -890,8 +927,8 @@
 
   async function enviarBuzinaFavoritos() {
     ativarOndasChamada();
-
-    const resultado = await postForm('/api/buzina/enviar-favoritos/', {});
+    const coords = await obterLocalizacaoAtual();
+    const resultado = await postForm('/api/buzina/enviar-favoritos/', coords);
 
     if (resultado.erro) {
       restaurarPaginaChamar();

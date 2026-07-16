@@ -6,9 +6,9 @@
     <div class="absolute top-1/3 right-1/4 w-[60vw] h-[60vw] max-w-[400px] max-h-[400px] bg-secondary/10 rounded-full blur-[80px] animacao-flutuar" style="animation-delay: -2s;"></div>
   </div>
 
-  <main class="relative z-10 flex flex-col items-center w-full min-h-[100dvh] px-margin-mobile py-xl md:px-margin-desktop max-w-md mx-auto">
-    <header class="w-full text-center mt-md flex-shrink-0">
-      <h1 id="alerta-titulo" class="font-display-lg-mobile text-display-lg-mobile text-on-surface mb-2 tracking-tighter">
+  <main class="relative z-10 flex flex-col items-center w-full min-h-[100dvh] px-margin-mobile py-lg md:px-margin-desktop max-w-md mx-auto">
+    <header class="w-full text-center mt-sm flex-shrink-0">
+      <h1 id="alerta-titulo" class="font-display-lg-mobile text-display-lg-mobile text-on-surface mb-1 tracking-tighter">
         Cutucão recebido
       </h1>
       <p id="alerta-subtitulo" class="font-headline-md text-headline-md text-primary animate-pulse">
@@ -16,32 +16,32 @@
       </p>
     </header>
 
-    <div class="relative flex items-center justify-center w-full my-lg pb-14 flex-shrink-0">
-      <div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-primary/40 animacao-ripple-alerta"></div>
-      <div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-secondary/40 animacao-ripple-alerta" style="animation-delay: 0.6s;"></div>
-      <div class="absolute w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-primary/20 animacao-ripple-alerta" style="animation-delay: 1.2s;"></div>
-
-      <div class="relative z-20 w-48 h-48 md:w-64 md:h-64 rounded-full p-2 bg-gradient-to-tr from-primary to-primary-container shadow-cutuca-primary animacao-flutuar">
-        <div id="alerta-avatar" class="w-full h-full rounded-full overflow-hidden border-4 border-white relative bg-surface-container-high flex items-center justify-center">
-          <span class="material-symbols-outlined text-outline text-6xl">person</span>
+    <div class="flex flex-col items-center gap-4 w-full my-lg flex-shrink-0">
+      <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64">
+        <div class="absolute inset-0 rounded-full border-2 border-primary/40 animacao-ripple-alerta scale-110"></div>
+        <div class="absolute inset-0 rounded-full border-2 border-secondary/40 animacao-ripple-alerta scale-110" style="animation-delay: 0.6s;"></div>
+        <div class="absolute inset-0 rounded-full border-2 border-primary/20 animacao-ripple-alerta scale-[1.2]" style="animation-delay: 1.2s;"></div>
+        <div class="relative z-20 w-full h-full rounded-full p-2 bg-gradient-to-tr from-primary to-primary-container shadow-cutuca-primary animacao-flutuar">
+          <div id="alerta-avatar" class="w-full h-full rounded-full overflow-hidden border-4 border-white relative bg-surface-container-high flex items-center justify-center">
+            <span class="material-symbols-outlined text-outline text-6xl md:text-7xl">person</span>
+          </div>
         </div>
       </div>
-
-      <div class="absolute bottom-0 left-1/2 -translate-x-1/2 z-30 px-6 py-3 bg-surface rounded-full border border-outline-variant sombra-cutuca whitespace-nowrap">
-        <p id="alerta-remetente" class="font-headline-md text-headline-md text-on-surface">—</p>
-      </div>
+      <p id="alerta-remetente" class="relative z-20 max-w-[90%] px-6 py-3 bg-surface rounded-full border border-outline-variant sombra-cutuca font-headline-md text-headline-md text-on-surface whitespace-nowrap truncate">—</p>
+      <h2 id="alerta-contexto" class="text-center font-body-lg text-body-lg text-on-surface-variant px-2">
+        está cutucando você!
+      </h2>
+      <p id="alerta-identidade-publica" class="hidden text-center text-xs font-label-bold text-on-surface-variant uppercase tracking-wide"></p>
+      <p id="alerta-mensagem" class="hidden text-center font-headline-md text-headline-md text-on-surface px-2"></p>
     </div>
 
-    <div class="w-full flex-shrink-0 flex flex-col gap-md mb-xl z-20">
-      <div class="flex flex-col items-center gap-sm">
-        <h2 id="alerta-contexto" class="text-center font-body-lg text-body-lg text-on-surface-variant">
-          está cutucando você!
-        </h2>
-        <p id="alerta-identidade-publica" class="hidden text-center text-xs font-label-bold text-on-surface-variant uppercase tracking-wide"></p>
-        <p id="alerta-mensagem" class="hidden text-center font-headline-md text-headline-md text-on-surface px-2"></p>
-      </div>
+    <div class="w-full flex-shrink-0 flex flex-col gap-sm mb-lg z-20 mt-auto">
+      <a id="alerta-localizacao" href="#" target="_blank" rel="noopener noreferrer" class="hidden w-full py-3 px-5 rounded-full bg-surface text-primary font-button-text border border-primary/30 sombra-cutuca hover:bg-primary/5 active:scale-[0.98] transition-all flex items-center justify-center gap-2 min-h-[48px]">
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;" aria-hidden="true">location_on</span>
+        <span>Ver localização no mapa</span>
+      </a>
 
-      <div id="alerta-respostas" class="grid grid-cols-1 gap-sm w-full mt-sm">
+      <div id="alerta-respostas" class="grid grid-cols-1 gap-sm w-full">
         <button type="button" data-resposta="ja_vou" class="alerta-resposta w-full py-3 px-6 rounded-full bg-surface text-on-surface font-button-text border border-outline-variant sombra-cutuca hover:bg-surface-container-low active:scale-95 transition-all min-h-[48px]">
           Já vou
         </button>

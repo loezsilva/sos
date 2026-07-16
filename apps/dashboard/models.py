@@ -4,6 +4,7 @@ import secrets
 import unicodedata
 import uuid
 from datetime import timedelta
+from decimal import Decimal, InvalidOperation
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -15,6 +16,65 @@ from apps.accounts.models import User
 from apps.core.models import BaseModel
 
 logger = logging.getLogger(__name__)
+
+
+def normalizar_coordenadas(latitude=None, longitude=None, precisao_metros=None):
+    """Valida e normaliza coords; retorna dict vazio se ausentes/inválidas."""
+    if latitude in (None, '') or longitude in (None, ''):
+        return {}
+    try:
+        lat = Decimal(str(latitude))
+        lng = Decimal(str(longitude))
+    except (InvalidOperation, TypeError, ValueError):
+        raise ValueError('Coordenadas inválidas.')
+    if not (Decimal('-90') <= lat <= Decimal('90')):
+        raise ValueError('Latitude fora do intervalo.')
+    if not (Decimal('-180') <= lng <= Decimal('180')):
+        raise ValueError('Longitude fora do intervalo.')
+    dados = {
+        'latitude': lat.quantize(Decimal('0.0000001')),
+        'longitude': lng.quantize(Decimal('0.0000001')),
+    }
+    if precisao_metros not in (None, ''):
+        try:
+            precisao = Decimal(str(precisao_metros))
+            if precisao >= 0:
+                dados['precisao_metros'] = precisao.quantize(Decimal('0.1'))
+        except (InvalidOperation, TypeError, ValueError):
+            pass
+    return dados
+
+
+def coordenadas_opcionais(latitude=None, longitude=None, precisao_metros=None):
+    """No envio: coords ruins viram ausência — não bloqueiam o cutucão."""
+    try:
+        return normalizar_coordenadas(latitude, longitude, precisao_metros)
+    except ValueError:
+        return {}
+
+
+def payload_localizacao(instancia):
+    if instancia.latitude is None or instancia.longitude is None:
+        return {
+            'tem_localizacao': False,
+            'latitude': '',
+            'longitude': '',
+            'precisao_metros': '',
+            'mapa_url': '',
+        }
+    lat = f'{instancia.latitude:.7f}'.rstrip('0').rstrip('.')
+    lng = f'{instancia.longitude:.7f}'.rstrip('0').rstrip('.')
+    return {
+        'tem_localizacao': True,
+        'latitude': lat,
+        'longitude': lng,
+        'precisao_metros': (
+            str(instancia.precisao_metros)
+            if instancia.precisao_metros is not None
+            else ''
+        ),
+        'mapa_url': f'https://maps.google.com/?q={lat},{lng}',
+    }
 
 
 class StatusPresenca(models.TextChoices):
@@ -349,6 +409,15 @@ class Buzina(BaseModel):
         null=True,
     )
     mensagem = models.CharField('Mensagem', max_length=80, blank=True, default='')
+    latitude = models.DecimalField(
+        'Latitude', max_digits=10, decimal_places=7, null=True, blank=True
+    )
+    longitude = models.DecimalField(
+        'Longitude', max_digits=10, decimal_places=7, null=True, blank=True
+    )
+    precisao_metros = models.DecimalField(
+        'Precisão (m)', max_digits=8, decimal_places=1, null=True, blank=True
+    )
     lida_em = models.DateTimeField('Lida em', null=True, blank=True)
 
     objects = BuzinaQuerySet.as_manager()
@@ -440,17 +509,21 @@ class Buzina(BaseModel):
             if self.remetente.avatar
             else '',
             'mensagem': self.mensagem,
+            **payload_localizacao(self),
         }
 
     def payload_push(self):
         nome = self.remetente.name or self.remetente.username
         msg = (self.mensagem or '').strip()
+        local = payload_localizacao(self)
         if msg:
             titulo = f'{nome} te cutucou'
             corpo = f'"{msg}" — toque para responder agora'
         else:
             titulo = f'Chamada urgente — {nome}'
             corpo = f'{nome} precisa da sua atenção. Toque para abrir.'
+        if local['tem_localizacao']:
+            corpo = f'{corpo} Localização disponível.'
         return {
             'tipo': 'buzina_recebida',
             'buzina_id': str(self.id),
@@ -462,10 +535,19 @@ class Buzina(BaseModel):
             'titulo': titulo,
             'corpo': corpo,
             'url': f'/?buzina={self.id}',
+            **local,
         }
 
     @classmethod
-    def enviar(cls, remetente, destinatario_id, mensagem=''):
+    def enviar(
+        cls,
+        remetente,
+        destinatario_id,
+        mensagem='',
+        latitude=None,
+        longitude=None,
+        precisao_metros=None,
+    ):
         from apps.dashboard.presenca import Presenca
 
         membro = (
@@ -491,10 +573,12 @@ class Buzina(BaseModel):
             status=cls.Status.PENDENTE,
         ).update(status=cls.Status.CANCELADA, updated_at=timezone.now())
 
+        coords = coordenadas_opcionais(latitude, longitude, precisao_metros)
         buzina = cls.objects.create(
             remetente=remetente,
             destinatario_id=destinatario_id,
             mensagem=(mensagem or '')[:80],
+            **coords,
         )
         buzina.silenciada = silenciada
         if not silenciada:
@@ -509,7 +593,9 @@ class Buzina(BaseModel):
         return buzina
 
     @classmethod
-    def enviar_favoritos(cls, remetente, mensagem=''):
+    def enviar_favoritos(
+        cls, remetente, mensagem='', latitude=None, longitude=None, precisao_metros=None
+    ):
         from apps.dashboard.presenca import Presenca
 
         favoritos = MembroCirculo.objects.do_usuario(remetente).filter(eh_vip=True)
@@ -519,7 +605,14 @@ class Buzina(BaseModel):
                 continue
             try:
                 enviadas.append(
-                    cls.enviar(remetente, membro.contato_id, mensagem=mensagem)
+                    cls.enviar(
+                        remetente,
+                        membro.contato_id,
+                        mensagem=mensagem,
+                        latitude=latitude,
+                        longitude=longitude,
+                        precisao_metros=precisao_metros,
+                    )
                 )
             except ValueError:
                 continue
@@ -822,6 +915,15 @@ class CutucaoPublico(BaseModel):
         default='',
         db_index=True,
     )
+    latitude = models.DecimalField(
+        'Latitude', max_digits=10, decimal_places=7, null=True, blank=True
+    )
+    longitude = models.DecimalField(
+        'Longitude', max_digits=10, decimal_places=7, null=True, blank=True
+    )
+    precisao_metros = models.DecimalField(
+        'Precisão (m)', max_digits=8, decimal_places=1, null=True, blank=True
+    )
     lida_em = models.DateTimeField('Lida em', null=True, blank=True)
 
     objects = CutucaoPublicoQuerySet.as_manager()
@@ -917,10 +1019,15 @@ class CutucaoPublico(BaseModel):
             'origem_publica': True,
             'origem_anonima': self.origem_anonima,
             'rotulo_origem': 'pelo link público',
+            **payload_localizacao(self),
         }
 
     def payload_push(self):
         nome = self.nome_exibicao
+        local = payload_localizacao(self)
+        corpo = f'{nome} usou seu link público. Toque para abrir.'
+        if local['tem_localizacao']:
+            corpo = f'{corpo} Localização disponível.'
         return {
             'tipo': 'cutucao_publico_recebido',
             'cutucao_id': str(self.id),
@@ -933,10 +1040,11 @@ class CutucaoPublico(BaseModel):
             ),
             'mensagem': '',
             'titulo': f'{nome} te cutucou',
-            'corpo': f'{nome} usou seu link público. Toque para abrir.',
+            'corpo': corpo,
             'url': f'/?cutucao={self.id}',
             'origem_publica': True,
             'origem_anonima': self.origem_anonima,
+            **local,
         }
 
     def serializar_notificacao(self, usuario):
@@ -1077,7 +1185,16 @@ class CutucaoPublico(BaseModel):
         )
 
     @classmethod
-    def enviar(cls, canal, *, nickname='', remetente=None):
+    def enviar(
+        cls,
+        canal,
+        *,
+        nickname='',
+        remetente=None,
+        latitude=None,
+        longitude=None,
+        precisao_metros=None,
+    ):
         if not canal.ativo:
             raise ValueError('Canal público indisponível.')
 
@@ -1090,12 +1207,14 @@ class CutucaoPublico(BaseModel):
             nickname_final = cls.normalizar_nickname(nickname)
 
         token = cls.gerar_token()
+        coords = coordenadas_opcionais(latitude, longitude, precisao_metros)
         cutucao = cls.objects.create(
             canal=canal,
             destinatario_id=canal.proprietario_id,
             remetente=remetente,
             nickname=nickname_final,
             token_visita=cls.hash_token(token),
+            **coords,
         )
         cutucao.token_visita_claro = token
         cutucao._entregar()

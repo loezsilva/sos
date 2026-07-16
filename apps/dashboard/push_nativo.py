@@ -109,6 +109,10 @@ class ServicoPushNativo:
             'titulo': payload['titulo'],
             'corpo': payload['corpo'],
             'origem_publica': '1' if payload.get('origem_publica') else '0',
+            'tem_localizacao': '1' if payload.get('tem_localizacao') else '0',
+            'latitude': payload.get('latitude', ''),
+            'longitude': payload.get('longitude', ''),
+            'mapa_url': payload.get('mapa_url', ''),
         }
 
         for inscricao in InscricaoNativa.objects.filter(usuario_id=destinatario_id):

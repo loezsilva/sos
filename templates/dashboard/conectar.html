@@ -9,18 +9,18 @@
       {{ destino.name|default:destino.username|first|upper }}
     </div>
     <p class="app-sobretitulo">Convite de conexão</p>
-    <h1 class="app-titulo">Adicionar aos próximos?</h1>
+    <h1 class="app-titulo">Adicionar aos contatos?</h1>
     <p class="app-descricao mx-auto mb-6">
       <strong class="text-on-surface">{{ destino.name|default:destino.username }}</strong>
       <span class="block text-sm mt-xs">@{{ destino.username }}</span>
     </p>
 
     {% if ja_nos_proximos %}
-      <p class="text-secondary font-body-md mb-4">Essa pessoa já está entre os seus próximos.</p>
-      <a href="{% url 'dashboard:proximos' %}" class="app-acao">Ver próximos</a>
+      <p class="text-secondary font-body-md mb-4">Essa pessoa já está entre os seus contatos.</p>
+      <a href="{% url 'dashboard:proximos' %}" class="app-acao">Ver contatos</a>
     {% elif convite_pendente %}
       <p class="text-on-surface-variant font-body-md mb-4">Você já enviou um convite. Aguarde o aceite.</p>
-      <a href="{% url 'dashboard:proximos' %}" class="app-acao">Voltar aos próximos</a>
+      <a href="{% url 'dashboard:proximos' %}" class="app-acao">Voltar aos contatos</a>
     {% else %}
       <form method="post">
         {% csrf_token %}

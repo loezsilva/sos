@@ -91,6 +91,10 @@
           mensagem: dados.mensagem || '',
           origem_publica: dados.tipo === 'cutucao_publico_recebido' || dados.origem_publica === '1',
           rotulo_origem: 'pelo link público',
+          tem_localizacao: dados.tem_localizacao === '1' || dados.tem_localizacao === true,
+          latitude: dados.latitude || '',
+          longitude: dados.longitude || '',
+          mapa_url: dados.mapa_url || '',
         });
         window.BuzzSom?.tocarRecebido?.();
       }

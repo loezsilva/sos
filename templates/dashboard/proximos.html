@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Cutuca — Próximos{% endblock %}
+{% block title %}Cutuca — Contatos{% endblock %}
 
 {% block main %}
 <div class="app-pagina">
@@ -18,7 +18,7 @@
   <header class="app-cabecalho-pagina">
     <div>
       <p class="app-sobretitulo">Pessoas autorizadas</p>
-      <h1 class="app-titulo">Meus próximos</h1>
+      <h1 class="app-titulo">Meus contatos</h1>
       <p class="app-descricao">
         {% if total_online %}
           <span id="contador-online" data-total="{{ total_online|default:0 }}"><strong id="contador-online-numero">{{ total_online|default:0 }}</strong> online agora.</span>
@@ -48,7 +48,7 @@
         type="search"
         name="q"
         value="{{ termo_busca }}"
-        placeholder="Buscar nos próximos..."
+        placeholder="Buscar nos contatos..."
         autocomplete="off"
         enterkeyhint="search"
       >
@@ -111,7 +111,7 @@
     {% endif %}
   {% else %}
     <div class="rounded-xl bg-surface border border-outline-variant p-xl text-center sombra-cutuca">
-      <p class="text-on-surface-variant font-body-md mb-md">Faça login para ver seus próximos.</p>
+      <p class="text-on-surface-variant font-body-md mb-md">Faça login para ver seus contatos.</p>
       <a href="{% url 'login' %}" class="botao-cutuca inline-flex">Entrar</a>
     </div>
   {% endif %}
@@ -146,7 +146,7 @@
       <div class="flex items-center justify-between gap-md mb-md">
         <div>
           <h3 class="font-extrabold text-on-surface">Receber um cutucão</h3>
-          <p class="text-on-surface-variant text-sm mt-xs">Não cria conta nem adiciona aos próximos.</p>
+          <p class="text-on-surface-variant text-sm mt-xs">Não cria conta nem adiciona aos contatos.</p>
         </div>
         <span id="estado-canal-publico" class="shrink-0 text-xs font-bold px-sm py-xs rounded-full {% if canal_publico.ativo %}bg-secondary-container text-on-secondary-container{% else %}bg-surface-container-high text-on-surface-variant{% endif %}">
           {% if canal_publico.ativo %}Ativo{% else %}Inativo{% endif %}
@@ -196,7 +196,7 @@
     </section>
 
     <section id="painel-conectar" class="hidden text-center" role="tabpanel" aria-labelledby="aba-conectar">
-      <h3 class="font-extrabold text-on-surface">Adicionar aos próximos</h3>
+      <h3 class="font-extrabold text-on-surface">Adicionar aos contatos</h3>
       <p class="text-on-surface-variant text-sm mt-xs mb-md">A outra pessoa abre o convite para se conectar com você.</p>
       <img src="{% url 'dashboard:meu_qr' %}" alt="QR code de conexão" class="mx-auto w-44 h-44 rounded-xl bg-white p-sm border border-outline-variant" width="176" height="176">
       <p class="mt-md font-semibold text-on-surface">@{{ user.username }}</p>

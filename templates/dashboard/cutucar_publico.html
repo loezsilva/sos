@@ -657,17 +657,42 @@
     );
   }
 
+  async function obterLocalizacaoPublica() {
+    if (!navigator.geolocation) return {};
+    try {
+      const pos = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 8000,
+          maximumAge: 30000,
+        });
+      });
+      return {
+        latitude: String(pos.coords.latitude),
+        longitude: String(pos.coords.longitude),
+        precisao_metros: String(Math.round(pos.coords.accuracy || 0)),
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
   async function enviar() {
     if (enviando) return;
     enviando = true;
     botao.disabled = true;
     botao.setAttribute('aria-busy', 'true');
-    atualizarFeedback('Enviando…');
+    atualizarFeedback('Obtendo localização…');
+
+    const coords = await obterLocalizacaoPublica();
+    atualizarFeedback(Object.keys(coords).length ? 'Enviando…' : 'Enviando sem localização…');
 
     try {
+      const corpo = new FormData(form);
+      Object.entries(coords).forEach(([chave, valor]) => corpo.append(chave, valor));
       const resposta = await fetch(window.location.pathname, {
         method: 'POST',
-        body: new FormData(form),
+        body: corpo,
         credentials: 'same-origin',
         headers: {
           'X-Requested-With': 'XMLHttpRequest',

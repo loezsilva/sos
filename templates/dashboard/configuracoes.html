@@ -67,7 +67,7 @@
         {% if canal_publico.ativo %}
           Link ativo — compartilhe para receber cutucões sem conexão.
         {% else %}
-          Link desativado. Ative em Próximos para voltar a receber.
+          Link desativado. Ative em Contatos para voltar a receber.
         {% endif %}
       </p>
       {% if url_cutucar %}
@@ -76,7 +76,7 @@
         </p>
       {% endif %}
       <a href="{% url 'dashboard:proximos' %}" class="app-acao-secundaria mt-lg inline-flex">
-        Gerenciar em Próximos
+        Gerenciar em Contatos
       </a>
     </section>
 

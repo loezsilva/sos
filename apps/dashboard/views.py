@@ -299,7 +299,14 @@ class EnviarBuzinaView(LoginRequiredMixin, View):
         mensagem = request.POST.get('mensagem', '').strip()[:80]
 
         try:
-            buzina = Buzina.enviar(request.user, destinatario_id, mensagem=mensagem)
+            buzina = Buzina.enviar(
+                request.user,
+                destinatario_id,
+                mensagem=mensagem,
+                latitude=request.POST.get('latitude'),
+                longitude=request.POST.get('longitude'),
+                precisao_metros=request.POST.get('precisao_metros'),
+            )
         except ValueError as erro:
             return JsonResponse({'erro': str(erro)}, status=400)
 
@@ -321,7 +328,13 @@ class EnviarBuzinaFavoritosView(LoginRequiredMixin, View):
     def post(self, request):
         mensagem = request.POST.get('mensagem', '').strip()[:80]
         try:
-            buzinas = Buzina.enviar_favoritos(request.user, mensagem=mensagem)
+            buzinas = Buzina.enviar_favoritos(
+                request.user,
+                mensagem=mensagem,
+                latitude=request.POST.get('latitude'),
+                longitude=request.POST.get('longitude'),
+                precisao_metros=request.POST.get('precisao_metros'),
+            )
         except ValueError as erro:
             return JsonResponse({'erro': str(erro)}, status=400)
 
@@ -688,6 +701,9 @@ class PaginaCutucarPublicoView(TemplateView):
                 self.canal,
                 nickname=form.cleaned_data.get('nickname', ''),
                 remetente=request.user if autenticado else None,
+                latitude=request.POST.get('latitude'),
+                longitude=request.POST.get('longitude'),
+                precisao_metros=request.POST.get('precisao_metros'),
             )
         except ValueError as erro:
             if quer_json:
